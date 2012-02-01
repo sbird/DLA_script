@@ -154,39 +154,41 @@ class subfind(readsubf.subfind_catalog):
 #Find the average HI fraction in a halo
 #This is like Figure 9 of Tescari & Viel
 class halo_HI:
-        def __init__(self,dir,snapnum,minpart=100):
+        def __init__(self,dir,snapnum,minpart=1000):
+                #f np > 1.4.0, we have in1d
+                if not re.match("1\.[4-9]",np.version.version):
+                        print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
                 #Get halo catalog
                 subs=readsubf.subfind_catalog(dir,snapnum,masstab=True,long_ids=True)
                 #Get list of halos resolved with > minpart particles
                 ind=np.where(subs.sub_len > minpart)
                 self.nHI=np.zeros(np.size(ind))
-                ii=0
+                tot_found=np.zeros(np.size(ind))
+                print "Found ",np.size(ind)," halos with > ",minpart,"particles"
+                #Get particle ids for each subhalo
+                sub_ids=[readsubf.subf_ids(dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
+                all_sub_ids=np.concatenate(sub_ids)
+                print "Got particle id lists"
                 #Now find the average HI for each halo
-                for i in np.ravel(ind):
-                        print "Getting index for halo ",i," with ",subs.sub_len[i]," particles"
-                        tot_found=0
-                        #Get particle ids for each subhalo
-                        subs_id=readsubf.subf_ids(dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True)
-                        #Get HI for these particle IDs from the first file
-                        for fnum in range(0,500):
-                                try:
-                                        (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
-                                except IOError:
-                                        break
-                                bar=f["PartType0"]
-                                ids=np.array(bar["ParticleIDs"],dtype=np.uint64)
-                                nH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
-                                #Do we have in1d?
-                                if re.match("1\.[4-9]",np.version.version):
-                                        found=np.in1d(subs_id.SubIDs,ids,assume_unique=True)
-                                else:
-                                        #This is unbelievably slow
-                                        found=np.array([item in ids for item in subs_id.SubIDs])
-                                tot_found+=np.sum(found)
-                                self.nHI[ii]+=np.sum(nH0[np.where(found)])
-                        print "Found ",tot_found," gas particles"
-                        self.nHI[ii]/=tot_found
-                        ii+=1
+                for fnum in range(0,500):
+                        try:
+                                (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
+                        except IOError:
+                                break
+                        bar=f["PartType0"]
+                        iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
+                        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+                        #Find a superset of all the elements
+                        hind=np.where(np.in1d(iids,all_sub_ids))
+                        ids=iids[hind]
+                        nH0=inH0[hind]
+                        print "File ",fnum," has ",np.size(hind)," halo particles"
+                        #Assign each subset to the right halo
+                        tmp=[nH0[np.where(np.in1d(sub,ids,assume_unique=True))] for sub in sub_ids]
+                        tot_found+=np.array([np.size(i) for i in tmp])
+                        self.nHI+=np.array([np.sum(i) for i in tmp])
+                print "Found ",np.sum(tot_found)," gas particles"
+                self.nHI/=tot_found
                 self.mass=subs.sub_mass[ind]
                 return
 
