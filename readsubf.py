@@ -257,7 +257,7 @@ class subf_ids:
 	
 
       if count <= Offset+NIds:      
-	nskip = count - Offset
+	nskip = int(count) - int(Offset)
 	nrem = Offset + NIds - count	
 	if sublen > nrem:
 		n_to_read = nrem
