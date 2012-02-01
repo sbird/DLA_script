@@ -2,7 +2,11 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import os.path as path
+import sys
+import re
 import readsubf
+import h5py
+import phase_plot
 # cat = readsubf.subfind_catalog("./m_10002_h_94_501_z3_csf/",63,masstab=True)
 # print cat.nsubs
 # print "largest halo x position = ",cat.sub_pos[0][0] 
@@ -113,12 +117,11 @@ class subfind(readsubf.subfind_catalog):
         def __init__(self,dir,snapnum):
                 self.dir=dir
                 self.snapnum=snapnum
-                self.minmass=3e8/1e10
                 readsubf.subfind_catalog.__init__(self,dir,snapnum,masstab=True,long_ids=True)
 
-        def gen_halo_los_table(self):
+        def gen_halo_los_table(self, minmass=3e8):
                 #Look at above-average mass halos only
-                ind=np.where(self.sub_mass > self.minmass)
+                ind=np.where(self.sub_mass > minmass/1e10)
                 nsubs=np.size(ind)
                 #Make table of sightlines, one going through 
                 #the center of each halo in each direction
@@ -134,9 +137,56 @@ class subfind(readsubf.subfind_catalog):
                 los_table[2*nsubs:3*nsubs,0]=3
                 np.savetxt(path.join(self.dir,"los_"+str(self.snapnum)+".txt"),los_table,fmt="%d %.3e %.3e %.3e")
         
-        def get_halo_mass(self):
+        def gen_halo_table(self,  minmass=3e8):
                 #Look at above-average mass halos only
-                ind=np.where(self.sub_mass > self.minmass)
+                ind=np.where(self.sub_mass > minmass/1e10)
+                nsubs=np.size(ind)
+                #Make table of sightlines, one going through
+                #the center of each halo in each direction
+                np.savetxt(path.join(self.dir,"halo_"+str(self.snapnum)+".txt"),self.sub_pos[ind]/1000,fmt="%.3e %.3e %.3e")
+
+        def get_halo_mass(self,  minmass=3e8):
+                #Look at above-average mass halos only
+                ind=np.where(self.sub_mass > minmass/1e10)
                 #Assume code units where one mass unit is 1e10 solar masses
                 return self.sub_mass[ind]*1e10
+
+#Find the average HI fraction in a halo
+#This is like Figure 9 of Tescari & Viel
+class halo_HI:
+        def __init__(self,dir,snapnum,minpart=100):
+                #Get halo catalog
+                subs=readsubf.subfind_catalog(dir,snapnum,masstab=True,long_ids=True)
+                #Get list of halos resolved with > minpart particles
+                ind=np.where(subs.sub_len > minpart)
+                self.nHI=np.zeros(np.size(ind))
+                ii=0
+                #Now find the average HI for each halo
+                for i in np.ravel(ind):
+                        print "Getting index for halo ",i," with ",subs.sub_len[i]," particles"
+                        tot_found=0
+                        #Get particle ids for each subhalo
+                        subs_id=readsubf.subf_ids(dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True)
+                        #Get HI for these particle IDs from the first file
+                        for fnum in range(0,500):
+                                try:
+                                        (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
+                                except IOError:
+                                        break
+                                bar=f["PartType0"]
+                                ids=np.array(bar["ParticleIDs"],dtype=np.uint64)
+                                nH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+                                #Do we have in1d?
+                                if re.match("1\.[4-9]",np.version.version):
+                                        found=np.in1d(subs_id.SubIDs,ids,assume_unique=True)
+                                else:
+                                        #This is unbelievably slow
+                                        found=np.array([item in ids for item in subs_id.SubIDs])
+                                tot_found+=np.sum(found)
+                                self.nHI[ii]+=np.sum(nH0[np.where(found)])
+                        print "Found ",tot_found," gas particles"
+                        self.nHI[ii]/=tot_found
+                        ii+=1
+                self.mass=subs.sub_mass[ind]
+                return
 
