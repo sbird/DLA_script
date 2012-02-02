@@ -31,8 +31,7 @@ class subfind_catalog:
       curfile = self.filebase + str(filenum)
       
       if (not os.path.exists(curfile)):
-        print "file not found:", curfile
-        sys.exit()
+        raise IOError,"file not found:", curfile
       
       f = open(curfile,'rb')
               
@@ -220,8 +219,7 @@ class subf_ids:
       curfile = self.filebase + str(filenum)
       
       if (not os.path.exists(curfile)):
-        print "file not found:", curfile
-        sys.exit()
+        raise IOError,"file not found:", curfile
       
       f = open(curfile,'rb')
               

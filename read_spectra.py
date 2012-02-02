@@ -153,6 +153,8 @@ class subfind(readsubf.subfind_catalog):
 
 #Find the average HI fraction in a halo
 #This is like Figure 9 of Tescari & Viel
+#Note that in eq. 2 of Tescari & Viel, they set m_HI = f_c m_H, 
+#for particles with rho > 0.1/cm^3. 
 class halo_HI:
         def __init__(self,dir,snapnum,minpart=1000):
                 #f np > 1.4.0, we have in1d
@@ -163,7 +165,7 @@ class halo_HI:
                 #Get list of halos resolved with > minpart particles
                 ind=np.where(subs.sub_len > minpart)
                 self.nHI=np.zeros(np.size(ind))
-                tot_found=np.zeros(np.size(ind))
+                self.tot_found=np.zeros(np.size(ind))
                 print "Found ",np.size(ind)," halos with > ",minpart,"particles"
                 #Get particle ids for each subhalo
                 sub_ids=[readsubf.subf_ids(dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
@@ -184,11 +186,11 @@ class halo_HI:
                         nH0=inH0[hind]
                         print "File ",fnum," has ",np.size(hind)," halo particles"
                         #Assign each subset to the right halo
-                        tmp=[nH0[np.where(np.in1d(sub,ids,assume_unique=True))] for sub in sub_ids]
-                        tot_found+=np.array([np.size(i) for i in tmp])
+                        tmp=[nH0[np.where(np.in1d(sub,ids))] for sub in sub_ids]
+                        self.tot_found+=np.array([np.size(i) for i in tmp])
                         self.nHI+=np.array([np.sum(i) for i in tmp])
-                print "Found ",np.sum(tot_found)," gas particles"
-                self.nHI/=tot_found
+                print "Found ",np.sum(self.tot_found)," gas particles"
+                self.nHI/=self.tot_found
                 self.mass=subs.sub_mass[ind]
                 return
 
