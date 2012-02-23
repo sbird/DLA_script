@@ -7,6 +7,7 @@ import re
 import readsubf
 import h5py
 import phase_plot
+import scipy.interpolate as interp
 # cat = readsubf.subfind_catalog("./m_10002_h_94_501_z3_csf/",63,masstab=True)
 # print cat.nsubs
 # print "largest halo x position = ",cat.sub_pos[0][0] 
@@ -155,7 +156,7 @@ class subfind(readsubf.subfind_catalog):
 #This is like Figure 9 of Tescari & Viel
 #Note that in eq. 2 of Tescari & Viel, they set m_HI = f_c m_H, 
 #for particles with rho > 0.1/cm^3. 
-class halo_HI:
+class total_halo_HI:
         def __init__(self,dir,snapnum,minpart=1000):
                 #f np > 1.4.0, we have in1d
                 if not re.match("1\.[4-9]",np.version.version):
@@ -194,3 +195,53 @@ class halo_HI:
                 self.mass=subs.sub_mass[ind]
                 return
 
+def fieldize(points,values,grid):
+        raise Exception,"Not implemented"
+
+class halo_HI:
+        def __init__(self,dir,snapnum,minpart=10**4):
+                maxdist=100
+                ngrid=32
+                #proton mass in g
+                protonmass=1.66053886e-24
+                #Internal gadget mass unit: 1e10 M_sun in g
+                UnitMass_in_g=1.989e43
+                UnitLength_in_cm=3.085678e21
+                #f np > 1.4.0, we have in1d
+                if not re.match("1\.[4-9]",np.version.version):
+                        print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
+                #Get halo catalog
+                subs=readsubf.subfind_catalog(dir,snapnum,masstab=True,long_ids=True)
+                #Get list of halos resolved with > minpart particles
+                ind=np.where(subs.sub_len > minpart)
+                self.nHI=np.zeros(np.size(ind))
+                self.tot_found=np.zeros(np.size(ind))
+                print "Found ",np.size(ind)," halos with > ",minpart,"particles"
+                #Get particle center of mass 
+                self.sub_cofm=subs.sub_pos
+                #Grid to put paticles on
+                (f,fname)=phase_plot.get_file(snapnum,dir,0)
+                redshift=f["Header"]["Redshift"]
+                self.sub_nH0_grid=[np.zeros((ngrid,ngrid,ngrid)) for i in sub_cofm]
+                #Now grid the HI for each halo
+                for fnum in range(0,500):
+                        try:
+                                (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
+                        except IOError:
+                                break
+                        bar=f["PartType0"]
+                        ipos=np.array(bar["Coordinates"],dtype=np.float64)
+                        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+                        irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
+                        #Find particles near each halo
+                        near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < maxdist),axis=1)) for sub_pos in sub_cofm]
+                        print "File ",fnum," has ",np.size(near_halo)," halo particles"
+                        #positions, centered on each halo
+                        coords=([ipos[ind] for ind in near_halo]- sub_cofm)
+                        grids=[ipos[ind] for ind in near_halo]
+                        #NH0
+                        rhoH0 = [irho[ind]*inH0[ind]/protonmass for ind in near_halo]
+                        for i in range(0,np.size(sub_cofm):
+                                fieldize(coords[i],rhoH0[i],sub_nH0_grid[i])
+                np.sum(rhoH0*2*maxdist/ngrid/(1+redshift)**2,axes=np.random.randint(3))
+                return
