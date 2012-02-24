@@ -1,6 +1,6 @@
 import numpy as np
 
-def cold_gas_frac(rho,u, cool,rho_thresh=1.66053886e-25,A_0 = 1000,t_0_star=2.1,beta=0.1,epsilon_SN=4e48):
+def cold_gas_frac(rho,u, cool,rho_thresh=0.1,t_0_star=1.5,beta=0.1,T_SN=1e8,T_c = 1000):
         """Calculates the fraction of gas in cold clouds, following 
         Springel & Hernquist 2003 (astro-ph/0206393) and 
         Nagamine, Springel and Hernquist 2004 (astro-ph/0305409).
@@ -9,27 +9,36 @@ def cold_gas_frac(rho,u, cool,rho_thresh=1.66053886e-25,A_0 = 1000,t_0_star=2.1,
                 rho - Density of hot gas (g/cm^3)
                 u - Thermal energy of hot gas (ergs/g = (cm/s)^2)
                 cool - cooling rate of the gas (barye/s) (1 barye = 0.1Pa, cgs pressure)
-                rho_thresh - threshold density in g/cm^3. Set to 0.1 in units of hydrogen atoms/cm^3 
-                                following Tescari & Viel
-                A_0 - supernova evaporation parameter - 1000 (SH03)
+                rho_thresh - threshold density in hydrogen atoms/cm^3
+                           - 0.1 (Tescari & Viel)
                 t_0_star - star formation timescale at threshold density
-                         - 2.1 Gyr in SH03
-                beta - fraction of massive stars which form supernovae 0.1 in SH03.
-                epsilon_SN - energy deposited from each supernova 
-                           - 4x10^48 ergs/M_sun in SH03
+                         - (MaxSfrTimescale) 1.5 in internal time units ( 1 itu ~ 0.97 Gyr)
+                beta - fraction of massive stars which form supernovae (FactorSN) 0.1 in SH03.
+                T_SN - Temperature of the supernova in K- 10^8 K SH03. (TempSupernova) Used to calculate u_SN
+                T_c  - Temperature of the cold clouds in K- 10^3 K SH03. (TempClouds) Used to calculate u_c.
         Returns:
                 The fraction of gas in cold clouds. In practice this is often 1.
         """
-        t_0_star*=31556926*1e9 # Now in s
-        epsilon_SN/=1.989e33 # Now in ergs/g
+        #NOTE: do not modify default arguments inside the function!
+        #Some constants and unit systems
+        UnitLength_in_cm=3.085678e21
+        UnitVelocity_in_cm_per_s=1e5
+        #proton mass in g
+        protonmass=1.66053886e-24
+        hy_mass = 0.76 # Hydrogen massfrac
+        meanweight = 4 / (1 + 3 * hy_mass)
+        gamma=5./3
+        boltzmann=1.38066e-16
+        rho_thresh_cgs=rho_thresh*protonmass # Now in g
+        t_0_star_cgs=t_0_star*(UnitLength_in_cm/UnitVelocity_in_cm_per_s) # Now in s
+
         #Star formation timescale
-        t_star = t_0_star*np.sqrt(rho_thresh/rho)
-        #SN energy scale: u_SN = (1-beta)/beta epsilon_SN
-        u_SN = (1-beta)*epsilon_SN/beta
-        #supernova evaporation parameter A
-        A = A_0 *(rho/rho_thresh)**(-0.8)
-        #u_c - thermal energy in the cold gas. Equilibrium at:
-        u_c = u - u_SN/(A+1.)
+        t_star = t_0_star_cgs*np.sqrt(rho_thresh_cgs/rho)
+
+        #SN energy: u_SN = (1-beta)/beta epsilon_SN
+        u_SN =  1. / meanweight * (1.0 / (gamma -1)) * (boltzmann / protonmass) * T_SN
+        #u_c - thermal energy in the cold gas.
+        u_c =  1. / meanweight * (1.0 / (gamma-1)) * (boltzmann / protonmass) *T_c
         # a parameter: y = t_star \Lambda_net(\rho_h,u_h) / \rho_h (\beta u_SN - (1-\beta) u_c)
         y = t_star * cool / (rho*(beta*u_SN - (1-beta)*u_c))
         #The cold gas fraction
@@ -58,7 +67,7 @@ def get_reproc_rhoHI(bar,rho_thresh=0.1):
         rhoH0=irho*inH0/protonmass
         #Default density matches Tescari & Viel and Nagamine 2004
         dens_ind=np.where(irho > protonmass*rho_thresh)
-        fcold=cold_gas_frac(irho[dens_ind],iu[dens_ind],icool[dens_ind],rho_thresh=rho_thresh*protonmass)
+        fcold=cold_gas_frac(irho[dens_ind],iu[dens_ind],icool[dens_ind],rho_thresh=rho_thresh)
         rhoH0[dens_ind]=irho[dens_ind]*fcold
         return rhoH0
 
