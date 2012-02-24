@@ -7,7 +7,10 @@ import re
 import readsubf
 import h5py
 import phase_plot
+import cold_gas
+import fieldize
 import scipy.interpolate as interp
+import scipy.weave
 # cat = readsubf.subfind_catalog("./m_10002_h_94_501_z3_csf/",63,masstab=True)
 # print cat.nsubs
 # print "largest halo x position = ",cat.sub_pos[0][0] 
@@ -180,7 +183,8 @@ class total_halo_HI:
                                 break
                         bar=f["PartType0"]
                         iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
-                        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+                        irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
+                        inH0 = cold_gas.get_reproc_rhoHI(bar)/irho
                         #Find a superset of all the elements
                         hind=np.where(np.in1d(iids,all_sub_ids))
                         ids=iids[hind]
@@ -195,13 +199,8 @@ class total_halo_HI:
                 self.mass=subs.sub_mass[ind]
                 return
 
-def fieldize(points,values,grid):
-        raise Exception,"Not implemented"
-
 class halo_HI:
-        def __init__(self,dir,snapnum,minpart=10**4):
-                maxdist=100
-                ngrid=32
+        def __init__(self,dir,snapnum,minpart=10**4,ngrid=32,maxdist=100.):
                 #proton mass in g
                 protonmass=1.66053886e-24
                 #Internal gadget mass unit: 1e10 M_sun in g
@@ -216,32 +215,40 @@ class halo_HI:
                 ind=np.where(subs.sub_len > minpart)
                 self.nHI=np.zeros(np.size(ind))
                 self.tot_found=np.zeros(np.size(ind))
-                print "Found ",np.size(ind)," halos with > ",minpart,"particles"
+                nhalo=np.size(ind)
+                print "Found ",nhalo," halos with > ",minpart,"particles"
                 #Get particle center of mass 
-                self.sub_cofm=subs.sub_pos
+                self.sub_cofm=np.array(subs.sub_pos[ind])
+                del subs
                 #Grid to put paticles on
                 (f,fname)=phase_plot.get_file(snapnum,dir,0)
-                redshift=f["Header"]["Redshift"]
-                self.sub_nH0_grid=[np.zeros((ngrid,ngrid,ngrid)) for i in sub_cofm]
+                redshift=f["Header"].attrs["Redshift"]
+                f.close()
+                self.sub_nHI_grid=[np.zeros((ngrid+1,ngrid+1)) for i in self.sub_cofm]
                 #Now grid the HI for each halo
-                for fnum in range(0,500):
+                for fnum in xrange(0,500):
                         try:
                                 (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
                         except IOError:
                                 break
                         bar=f["PartType0"]
                         ipos=np.array(bar["Coordinates"],dtype=np.float64)
-                        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
-                        irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
+                        irhoH0 = cold_gas.get_reproc_rhoHI(bar)
+                        f.close()
                         #Find particles near each halo
-                        near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < maxdist),axis=1)) for sub_pos in sub_cofm]
-                        print "File ",fnum," has ",np.size(near_halo)," halo particles"
-                        #positions, centered on each halo
-                        coords=([ipos[ind] for ind in near_halo]- sub_cofm)
-                        grids=[ipos[ind] for ind in near_halo]
+                        near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < maxdist),axis=1)) for sub_pos in self.sub_cofm]
+                        print "File ",fnum," has ",np.sum([np.size(i) for i in near_halo])," halo particles"
+                        #positions, centered on each halo, in grid units
+                        poslist=[ipos[ind] for ind in near_halo]
+                        coords=[((ppos- self.sub_cofm[idx])/(2*maxdist)+0.5)*ngrid for idx,ppos in enumerate(poslist)]
                         #NH0
-                        rhoH0 = [irho[ind]*inH0[ind]/protonmass for ind in near_halo]
-                        for i in range(0,np.size(sub_cofm):
-                                fieldize(coords[i],rhoH0[i],sub_nH0_grid[i])
-                np.sum(rhoH0*2*maxdist/ngrid/(1+redshift)**2,axes=np.random.randint(3))
+                        rhoH0 = [irhoH0[ind] for ind in near_halo]
+                        [fieldize.ngp(coords[i],rhoH0[i],self.sub_nHI_grid[i]) for i in xrange(0,nhalo)]
+                #Linear dimension of each cell in cm
+                epsilon=2.*maxdist/ngrid*UnitLength_in_cm
+                self.sub_nHI_grid=[g*epsilon/(1+redshift)**2 for g in self.sub_nHI_grid]
+                for ii,grid in enumerate(self.sub_nHI_grid):
+                        ind=np.where(grid > 0)
+                        grid[ind]=np.log(grid[ind])
+                        self.sub_nHI_grid[ii]=grid
                 return
