@@ -8,8 +8,11 @@ import readsubf
 import h5py
 import phase_plot
 import cold_gas
+import halo_mass_function
 import fieldize
+import scipy
 import scipy.interpolate as interp
+import scipy.integrate as integ
 import scipy.weave
 # cat = readsubf.subfind_catalog("./m_10002_h_94_501_z3_csf/",63,masstab=True)
 # print cat.nsubs
@@ -201,6 +204,24 @@ class total_halo_HI:
 
 class halo_HI:
         def __init__(self,dir,snapnum,minpart=10**4,ngrid=32,maxdist=100.):
+                """Class for calculating properties of DLAs in a simulation.
+                Stores grids of the neutral hydrogen density around a given halo,
+                which are used to derive the halo properties.
+
+                Parameters:
+                        dir - Simulation directory
+                        snapnum - Number of simulation
+                        minpart - Minimum size of halo to consider, in particles
+                        ngrid - Size of grid to store values on
+                        maxdist - Maximum extent of grid in kpc.
+                        self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
+                        self.sub_mass is a list of halo masses
+                        self.sub_cofm is a list of halo positions"""
+                self.ngrid=ngrid
+                self.maxdist=maxdist
+                self.minpart=minpart
+                self.snapnum=snapnum
+                self.dir=dir
                 #proton mass in g
                 protonmass=1.66053886e-24
                 #Internal gadget mass unit: 1e10 M_sun in g
@@ -219,10 +240,12 @@ class halo_HI:
                 print "Found ",nhalo," halos with > ",minpart,"particles"
                 #Get particle center of mass 
                 self.sub_cofm=np.array(subs.sub_pos[ind])
+                #halo masses
+                self.sub_mass=np.array(subs.sub_mass[ind])
                 del subs
                 #Grid to put paticles on
                 (f,fname)=phase_plot.get_file(snapnum,dir,0)
-                redshift=f["Header"].attrs["Redshift"]
+                self.redshift=f["Header"].attrs["Redshift"]
                 f.close()
                 self.sub_nHI_grid=[np.zeros((ngrid+1,ngrid+1)) for i in self.sub_cofm]
                 #Now grid the HI for each halo
@@ -245,10 +268,69 @@ class halo_HI:
                         rhoH0 = [irhoH0[ind] for ind in near_halo]
                         [fieldize.ngp(coords[i],rhoH0[i],self.sub_nHI_grid[i]) for i in xrange(0,nhalo)]
                 #Linear dimension of each cell in cm
-                epsilon=2.*maxdist/ngrid*UnitLength_in_cm
-                self.sub_nHI_grid=[g*epsilon/(1+redshift)**2 for g in self.sub_nHI_grid]
+                epsilon=2.*maxdist/(ngrid+1)*UnitLength_in_cm
+                self.sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in self.sub_nHI_grid]
                 for ii,grid in enumerate(self.sub_nHI_grid):
                         ind=np.where(grid > 0)
                         grid[ind]=np.log(grid[ind])
                         self.sub_nHI_grid[ii]=grid
                 return
+
+        def get_sigma_DLA(self):
+                """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
+                This is defined as the area of all the cells with column density above 10^20.3 cm^-2.
+                Returns result in (kpc/h)^2."""
+                cell_area=4*self.maxdist**2/(self.ngrid+1)**2
+                self.sigma_DLA = [ np.sum(grid[np.where(grid > 20.3)])*cell_area for grid in self.sub_nHI_grid]
+                return
+
+class d_N_DLA_dz:
+        def __init__(self, sigma_DLA,halo_mass, redshift,Omega_M=0.27, Omega_L = 0.73, hubble=0.7):
+                """Get the DLA number density as a function of redshift, defined as:
+                d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
+                where n_h is the Sheth-Torman mass function, and
+                sigma_DLA is a power-law fit to self.sigma_DLA.
+                Parameters:
+                        sigma_DLA -  List of DLA cross-sections
+                        masses - List of DLA masses
+                        redshift
+                        Omega_M
+                        Omega_L"""
+                self.redshift=redshift
+                self.Omega_M = Omega_M
+                self.Omega_L = Omega_L
+                self.hubble=hubble
+                #log of halo mass limits in M_sun
+                self.log_mass_lim=(6,20)
+                #Fit to the DLA abundance
+                logmass=np.log(halo_mass)-12
+                logsigma=np.log(sigma_DLA)
+                (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
+                #Halo mass function object
+                self.halo_mass=halo_mass_function.halo_mass_function(redshift,omega_m=Omega_M, omega_l=Omega_L, hubble=hubble,log_mass_lim=self.log_mass_lim)
+
+        def sigma_DLA_fit(self,M):
+                return np.exp(self.alpha*(np.log(M)-12)+self.beta)
+
+
+        def drdz(self,zz):
+                #Speed of light in cgs units
+                light=2.9979e10
+                #h * 100 km/s/Mpc in 1/s
+                h100=3.2407789e-18*self.hubble
+                return light/h100*np.sqrt(self.Omega_M*(1+zz)**3+self.Omega_L)
+
+        def get_N_DLA_dz(self, mass=1e9):
+                """Get the DLA number density as a function of redshift, defined as:
+                d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
+                where n_h is the Sheth-Torman mass function, and
+                sigma_DLA is a power-law fit to self.sigma_DLA.
+                Parameters:
+                        lower_mass in M_sun.
+                """
+                result = integ.quad(self.NDLA_integrand,np.log(mass),np.log(10.**self.log_mass_lim[1]), epsrel=1e-2)
+                return self.drdz(self.redshift)*result[0]
+
+        def NDLA_integrand(self,logM):
+                M=np.exp(logM)
+                return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M
