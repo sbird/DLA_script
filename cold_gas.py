@@ -58,13 +58,14 @@ def get_reproc_rhoHI(bar,rho_thresh=0.1):
         UnitVelocity_in_cm_per_s=1e5
         #proton mass in g
         protonmass=1.66053886e-24
+        hy_mass = 0.76 # Hydrogen massfrac
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
         #cgs units
         irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
         iu=np.array(bar["InternalEnergy"],dtype=np.float64)*UnitVelocity_in_cm_per_s**2
         UnitCoolingRate_in_cgs=UnitMass_in_g*(UnitVelocity_in_cm_per_s**3/UnitLength_in_cm**4)
         icool=np.array(bar["CoolingRate"],dtype=np.float64)*UnitCoolingRate_in_cgs
-        rhoH0=irho*inH0/protonmass
+        rhoH0=irho*inH0*hy_mass/protonmass
         #Default density matches Tescari & Viel and Nagamine 2004
         dens_ind=np.where(irho > protonmass*rho_thresh)
         fcold=cold_gas_frac(irho[dens_ind],iu[dens_ind],icool[dens_ind],rho_thresh=rho_thresh)
