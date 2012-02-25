@@ -5,8 +5,7 @@ import os.path as path
 import sys
 import re
 import readsubf
-import h5py
-import phase_plot
+import hdfsim
 import cold_gas
 import halo_mass_function
 import fieldize
@@ -179,7 +178,7 @@ class total_halo_HI:
         #Now find the average HI for each halo
         for fnum in range(0,500):
             try:
-                (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
+                f=hdfsim.get_file(snapnum,dir,fnum)
             except IOError:
                 break
             bar=f["PartType0"]
@@ -235,7 +234,7 @@ class halo_HI:
         self.sub_mass=np.array(subs.sub_mass[ind])
         del subs
         #Grid to put paticles on
-        (f,fname)=phase_plot.get_file(snapnum,self.snap_dir,0)
+        f=hdfsim.get_file(snapnum,self.snap_dir,0)
         self.redshift=f["Header"].attrs["Redshift"]
         f.close()
         self.set_nHI_grid(ngrid,maxdist)
@@ -256,7 +255,7 @@ class halo_HI:
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
             try:
-                (f,fname)=phase_plot.get_file(snapnum,self.snap_dir,fnum)
+                f=hdfsim.get_file(snapnum,self.snap_dir,fnum)
             except IOError:
                 break
             bar=f["PartType0"]

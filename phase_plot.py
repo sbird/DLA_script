@@ -1,4 +1,4 @@
-import h5py
+import hdfsim
 import math
 import numpy as np
 
@@ -32,31 +32,8 @@ class mass_map:
         def get_lims(self):
                 return(self.minT,self.maxT,self.minR,self.maxR)
 
-def get_file(num, base, file=0):
-        #base="/home/spb41/data2/runs/bf2/"
-        exts='0'
-        snap=str(num).rjust(3,'0')
-        fname=base+"/snapdir_"+snap+"/snap_"+snap
-        try:
-                f=h5py.File(fname+"."+str(file)+".hdf5",'r')
-        except IOError:
-                if file == 0:
-                        fname=base+"/snap_"+snap
-                        f=h5py.File(fname+".hdf5",'r')
-                else:
-                        raise IOError
-        return (f,fname)
-        
-
-def get_baryon_array(name,num, base, file=0):
-        (f,fname) = get_file(num,base,file)
-        bar=f["PartType0"]
-        data=np.array(bar[name],dtype=np.float64)
-        f.close()
-        return data
-
 def get_temp_overden_mass(num,base,file=0):
-        (f,fname)=get_file(num,base,file)
+        f=hdfsim.get_file(num,base,file)
 #         print 'Reading file from:',fname
         
         head=f["Header"].attrs
@@ -109,7 +86,7 @@ def get_temp_overden_mass(num,base,file=0):
         return (templog,overden,mass)
 
 def get_temp_overden_volume(num,base,file=0):
-        (f,fname)=get_file(num,base,file)
+        f=hdfsim.get_file(num,base,file)
 #         print 'Reading file from:',fname
         
         head=f["Header"].attrs
@@ -193,14 +170,14 @@ def get_volume_forest(num,base):
 def find_particle(part_id,num,base):
         """Gets the file and position of a particle with id part_id"""
         for i in range(0,500) :
-                ids=get_baryon_array("ParticleIDs",num,base,i)
+                ids=hdfsim.get_baryon_array("ParticleIDs",num,base,i,dtype=np.int64)
                 ind=np.where(ids==part_id)
                 if np.size(ind) > 0:
                         return (ind[0][0], i)
 
 def find_id(pos,num,base,file=0):
         """Gets the id of a particle at some position"""
-        ids=get_baryon_array("ParticleIDs",num,base,file)
+        ids=hdfsim.get_baryon_array("ParticleIDs",num,base,file,dtype=np.int64)
         return ids[pos]
 
 """
