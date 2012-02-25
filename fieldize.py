@@ -12,7 +12,11 @@
 """
 
 import numpy as np
-import scipy.weave
+#Try to import scipy.weave. If we can't, don't worry, we just use the unaccelerated versions
+try :
+    import scipy.weave
+except ImportError :
+    scipy=None
 
 def convert(pos, ngrid,box):
     """Rescales coordinates to grid units. 
@@ -46,9 +50,9 @@ def ngp(pos,values,field):
     # Coordinates of nearest grid point (ngp).
     ind=np.array(np.rint(pos),dtype=np.int)
     nx=np.shape(values)[0]
-    #Slow python version
-    #for j in xrange(0,nx):
-    #    grid[ind[j,:]]+=values[j]
+    dims=np.size(np.shape(field))
+    if np.shape(ind)[1] != dims:
+        raise ValueError,"Position array does not match dimensionality of field"
     #Sum over the 3rd axis here.
     expr="""for(int j=0;j<nx;j++){
             int ind1=ind(j,0);
@@ -56,7 +60,24 @@ def ngp(pos,values,field):
             field(ind1,ind2)+=values(j);
         }
     """
-    scipy.weave.inline(expr,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
+    expr3d="""for(int j=0;j<nx;j++){
+            int ind1=ind(j,0);
+            int ind2=ind(j,1);
+            int ind3=ind(j,2);
+            field(ind1,ind2,ind3)+=values(j);
+        }
+    """
+    try:
+        if dims==2:
+            scipy.weave.inline(expr,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
+        elif dims==3:
+            scipy.weave.inline(expr3d,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
+        else: 
+            raise ValueError
+    except Exception:
+        #Fall back on slow python version.
+        for j in xrange(0,nx):
+            field[ind[j,:]]+=values[j]
     return field
 
 def cic(pos, values, field):
@@ -68,6 +89,10 @@ def cic(pos, values, field):
 
     Points need to be in coordinates where np.max(points) = np.shape(field)
     """
+    nx=np.shape(values)[0]
+    dims=np.size(np.shape(field))
+    if np.shape(pos)[1] != dims:
+        raise ValueError,"Position array does not match dimensionality of field"
     raise Exception, "Not Implemented"
 
 def tsc(value,pos,field,average=True,wraparound=False,no_message=True,isolated=True):
