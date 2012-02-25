@@ -158,11 +158,9 @@ class subfind(readsubf.subfind_catalog):
                 #Assume code units where one mass unit is 1e10 solar masses
                 return self.sub_mass[ind]*1e10
 
-#Find the average HI fraction in a halo
-#This is like Figure 9 of Tescari & Viel
-#Note that in eq. 2 of Tescari & Viel, they set m_HI = f_c m_H, 
-#for particles with rho > 0.1/cm^3. 
 class total_halo_HI:
+        """Find the average HI fraction in a halo
+        This is like Figure 9 of Tescari & Viel"""
         def __init__(self,dir,snapnum,minpart=1000):
                 #f np > 1.4.0, we have in1d
                 if not re.match("1\.[4-9]",np.version.version):
@@ -203,7 +201,7 @@ class total_halo_HI:
                 return
 
 class halo_HI:
-        def __init__(self,dir,snapnum,minpart=10**4,ngrid=32,maxdist=100.):
+        def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=32,maxdist=100.):
                 """Class for calculating properties of DLAs in a simulation.
                 Stores grids of the neutral hydrogen density around a given halo,
                 which are used to derive the halo properties.
@@ -217,21 +215,14 @@ class halo_HI:
                         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
                         self.sub_mass is a list of halo masses
                         self.sub_cofm is a list of halo positions"""
-                self.ngrid=ngrid
-                self.maxdist=maxdist
                 self.minpart=minpart
                 self.snapnum=snapnum
-                self.dir=dir
-                #proton mass in g
-                protonmass=1.66053886e-24
-                #Internal gadget mass unit: 1e10 M_sun in g
-                UnitMass_in_g=1.989e43
-                UnitLength_in_cm=3.085678e21
+                self.snap_dir=snap_dir
                 #f np > 1.4.0, we have in1d
                 if not re.match("1\.[4-9]",np.version.version):
                         print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
                 #Get halo catalog
-                subs=readsubf.subfind_catalog(dir,snapnum,masstab=True,long_ids=True)
+                subs=readsubf.subfind_catalog(self.snap_dir,snapnum,masstab=True,long_ids=True)
                 #Get list of halos resolved with > minpart particles
                 ind=np.where(subs.sub_len > minpart)
                 self.nHI=np.zeros(np.size(ind))
@@ -244,14 +235,28 @@ class halo_HI:
                 self.sub_mass=np.array(subs.sub_mass[ind])
                 del subs
                 #Grid to put paticles on
-                (f,fname)=phase_plot.get_file(snapnum,dir,0)
+                (f,fname)=phase_plot.get_file(snapnum,self.snap_dir,0)
                 self.redshift=f["Header"].attrs["Redshift"]
                 f.close()
-                self.sub_nHI_grid=[np.zeros((ngrid+1,ngrid+1)) for i in self.sub_cofm]
+                self.set_nHI_grid(ngrid,maxdist)
+                return
+
+
+        def set_nHI_grid(self,ngrid=32,maxdist=100.):
+                """Set up the grid around each halo where the HI is calculated.
+                        ngrid - Size of grid to store values on
+                        maxdist - Maximum extent of grid in kpc.
+                """
+                self.ngrid=ngrid
+                self.maxdist=maxdist
+                #Internal gadget mass unit: 1e10 M_sun in g
+                UnitMass_in_g=1.989e43
+                UnitLength_in_cm=3.085678e21
+                self.sub_nHI_grid=[np.zeros((self.ngrid+1,self.ngrid+1)) for i in self.sub_cofm]
                 #Now grid the HI for each halo
                 for fnum in xrange(0,500):
                         try:
-                                (f,fname)=phase_plot.get_file(snapnum,dir,fnum)
+                                (f,fname)=phase_plot.get_file(snapnum,self.snap_dir,fnum)
                         except IOError:
                                 break
                         bar=f["PartType0"]
@@ -259,16 +264,16 @@ class halo_HI:
                         irhoH0 = cold_gas.get_reproc_rhoHI(bar)
                         f.close()
                         #Find particles near each halo
-                        near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < maxdist),axis=1)) for sub_pos in self.sub_cofm]
+                        near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)) for sub_pos in self.sub_cofm]
                         print "File ",fnum," has ",np.sum([np.size(i) for i in near_halo])," halo particles"
                         #positions, centered on each halo, in grid units
                         poslist=[ipos[ind] for ind in near_halo]
-                        coords=[((ppos- self.sub_cofm[idx])/(2*maxdist)+0.5)*ngrid for idx,ppos in enumerate(poslist)]
+                        coords=[((ppos- self.sub_cofm[idx])/(2*self.maxdist)+0.5)*self.ngrid for idx,ppos in enumerate(poslist)]
                         #NH0
                         rhoH0 = [irhoH0[ind] for ind in near_halo]
                         [fieldize.ngp(coords[i],rhoH0[i],self.sub_nHI_grid[i]) for i in xrange(0,nhalo)]
                 #Linear dimension of each cell in cm
-                epsilon=2.*maxdist/(ngrid+1)*UnitLength_in_cm
+                epsilon=2.*self.maxdist/(self.ngrid+1)*UnitLength_in_cm
                 self.sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in self.sub_nHI_grid]
                 for ii,grid in enumerate(self.sub_nHI_grid):
                         ind=np.where(grid > 0)
