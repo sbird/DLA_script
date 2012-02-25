@@ -1,16 +1,48 @@
+"""Methods for interpolating particle lists onto a grid. There are three classic methods:
+        ngp - Nearest grid point (point interpolation)
+        cic - Cloud in Cell (linear interpolation)
+        tsc - Triangular Shaped Cloud (quadratic interpolation)
+
+        Each function takes inputs:
+            Values - list of field values to interpolate, centered on the grid center.
+            Points - coordinates of the field values
+            Field  - grid to add interpolated points onto
+
+        There are also helper functions (convert and convert_centered) to rescale arrays to grid units.
+"""
+
 import numpy as np
 import scipy.weave
 
-def ngp(pos,values,grid):
-        """Does nearest grid point. 
-        
-        ==Parameters==
+def convert(pos, ngrid,box):
+    """Rescales coordinates to grid units. 
+    (0,0) is the lower corner of the grid.
+    Inputs: 
+            pos - coord array to rescale
+            ngrid - dimension of grid
+            box - Size of the grid in units of pos
+    """
+    return pos*(ngrid-1)/box
 
-        Values is a list of field values
-        Points are the coordinates of the field values
-        Grid is the grid to interpolate onto
+def convert_centered(pos, ngrid,box):
+    """Rescales coordinates to grid units.
+    (0,0) is the center of the grid
+    Inputs: 
+            pos - coord array to rescale
+            ngrid - dimension of grid
+            box - Size of the grid in units of pos
+    """
+    return pos*(ngrid-1)/box+(ngrid-1)/2.
 
-        Points need to be in coordinates where max(points) = np.shape(grid)"""
+def ngp(pos,values,field):
+        """Does nearest grid point for a 2D array. 
+        Inputs:
+            Values - list of field values to interpolate
+            Points - coordinates of the field values
+            Field  - grid to add interpolated points onto
+
+        Points need to be in grid units
+        """
         # Coordinates of nearest grid point (ngp).
         ind=np.array(np.rint(pos),dtype=np.int)
         nx=np.shape(values)[0]
@@ -21,11 +53,22 @@ def ngp(pos,values,grid):
         expr="""for(int j=0;j<nx;j++){
                         int ind1=ind(j,0);
                         int ind2=ind(j,1);
-                        grid(ind1,ind2)+=values(j);
+                        field(ind1,ind2)+=values(j);
                 }
         """
-        scipy.weave.inline(expr,['nx','ind','values','grid'],type_converters=scipy.weave.converters.blitz)
-        return grid
+        scipy.weave.inline(expr,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
+        return field
+
+def cic(pos, values, field):
+        """Does nearest grid point for a 2D array.
+        Inputs:
+            Values - list of field values to interpolate
+            Points - coordinates of the field values
+            Field  - grid to add interpolated points onto
+
+        Points need to be in coordinates where np.max(points) = np.shape(field)
+        """
+        raise Exception, "Not Implemented"
 
 def tsc(value,pos,field,average=True,wraparound=False,no_message=True,isolated=True):
         """ NAME:    TSC
