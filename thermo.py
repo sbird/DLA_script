@@ -1,7 +1,10 @@
+"""Script for making thermodynamic comparison plots for the Lyman-alpha forest
+between Arepo and Gadget"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import plot_flux_power as pflux
-figure(1)
+plt.figure(1)
 ddir="/home/spb/scratch/ComparisonProject/"
 gad=np.loadtxt(ddir+"Gadget/thermo.txt")
 ar=np.loadtxt(ddir+"Arepo/thermo.txt")
@@ -22,7 +25,7 @@ plt.xlabel("Redshift")
 plt.legend(loc=0)
 plt.xlim(0,10)
 plt.savefig(ddir+"temp.png")
-figure(4)
+plt.figure(4)
 plt.plot(gad[:,0],gad[:,2], label="Gadget")
 plt.plot(ar[:,0],ar[:,2],label="Arepo")
 plt.plot(ar2[:,0],ar2[:,2],label="Arepo 256")
@@ -32,13 +35,13 @@ plt.xlabel("Redshift")
 plt.legend(loc=0)
 plt.xlim(0,10)
 plt.savefig(ddir+"gamma.png")
-figure(2)
+plt.figure(2)
 pflux.pdfplots(139)
 pflux.pdfplots(159)
 pflux.pdfplots(189)
 plt.legend(loc=0)
 plt.savefig(ddir+"flux_pdf.png")
-figure(3)
+plt.figure(3)
 pflux.pfplots(119)
 #pflux.pfplots(139)
 pflux.pfplots(159)
@@ -47,7 +50,7 @@ plt.xlim(4.2e-3,0.03)
 plt.ylim(0,4000)
 plt.legend(loc=0)
 plt.savefig(ddir+"flux_pow.png")
-figure(5)
+plt.figure(5)
 gad=np.loadtxt(ddir+"Gadget/high-den-thermo.txt")
 ar=np.loadtxt(ddir+"Arepo/high-den-thermo.txt")
 plt.plot(gad[:,0],gad[:,1], label="Gadget")
@@ -56,7 +59,7 @@ plt.ylabel("Temp at mean density")
 plt.xlabel("Redshift")
 plt.legend(loc=0)
 plt.savefig(ddir+"hdtemp.png")
-figure(6)
+plt.figure(6)
 plt.plot(gad[:,0],gad[:,2], label="Gadget")
 plt.plot(ar[:,0],ar[:,2],label="Arepo")
 plt.ylabel("Temp-density relation")
@@ -66,17 +69,18 @@ plt.savefig(ddir+"hdgamma.png")
 
 #Histogram
 import re
-def load_multi_txt(file):
-        data=np.loadtxt(file)
-        for i in np.arange(1,500):
-                file2=re.sub("_0_","_"+str(i)+"_",file)
-                if file == file2:
-                        break
-                try:
-                        data=np.append(data,np.loadtxt(file2))
-                except IOError:
-                        break
-        return np.array(data)
+def load_multi_txt(snap_file):
+    """Load data from a text file split into multiple pieces"""
+    data=np.loadtxt(snap_file)
+    for i in np.arange(1,500):
+        file2=re.sub("_0_","_"+str(i)+"_",snap_file)
+        if snap_file == file2:
+            break
+        try:
+            data=np.append(data,np.loadtxt(file2))
+        except IOError:
+            break
+    return np.array(data)
 
 temp_ar=load_multi_txt(ddir+"/Arepo/124_tempdata.txt")
 temp_gad=load_multi_txt(ddir+"/Gadget/124_tempdata.txt")
@@ -94,13 +98,13 @@ plt.legend(loc=0)
 
 plt.savefig(ddir+"temp_hist.png")
 #Positional plot
-figure(6)
+plt.figure(6)
 pos_ar_256=load_multi_txt(ddir+"/Arepo_256/124_0_posdata.txt")
 pos_ar_256=np.reshape(pos_ar_256,[-1,3])/1000
 pos_gad_256=load_multi_txt(ddir+"/Gadget_256/124_0_posdata.txt")
 pos_gad_256=np.reshape(pos_gad_256,[-1,3])/1000
 ind=np.where(pos_ar_256[:,2]> 19.9)
-scatter(pos_ar_256[ind,0],pos_ar_256[ind,1],c=temp_ar_256[ind],vmin=3.5,vmax=5)
+plt.scatter(pos_ar_256[ind,0],pos_ar_256[ind,1],c=temp_ar_256[ind],vmin=3.5,vmax=5)
 plt.xlim(0,20)
 plt.ylim(0,20)
 plt.xlabel("x (Mpc)")
@@ -109,9 +113,9 @@ plt.title("Arepo Positions at 19.9 < z < 20 Mpc.")
 cb=plt.colorbar()
 cb.set_label("log T_0")
 plt.savefig(ddir+"arepo_pos.png")
-figure(7)
+plt.figure(7)
 ind2=np.where(pos_gad_256[:,2]> 19.9)
-scatter(pos_gad_256[ind2,0],pos_gad_256[ind2,1],c=temp_gad_256[ind2],vmin=3.5,vmax=5)
+plt.scatter(pos_gad_256[ind2,0],pos_gad_256[ind2,1],c=temp_gad_256[ind2],vmin=3.5,vmax=5)
 plt.xlim(0,20)
 plt.ylim(0,20)
 plt.xlabel("x (Mpc)")

@@ -1,18 +1,7 @@
-out='/n/home11/spb/data/ComparisonProject/Arepo_128/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/128_20Mpc/Arepo_ENERGY/output/'
-gamma.read_gamma(124,base,out)
-out='/n/home11/spb/data/ComparisonProject/Gadget_128/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/128_20Mpc/Gadget/output/'
-gamma.read_gamma(124,base,out)
-out='/n/home11/spb/data/ComparisonProject/Arepo_256/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/256_20Mpc/Arepo_ENERGY/output/'
-gamma.read_gamma(124,base,out)
-out='/n/home11/spb/data/ComparisonProject/Gadget_256/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/256_20Mpc/Gadget/output/'
-gamma.read_gamma(124,base,out)
-out='/n/home11/spb/data/ComparisonProject/Arepo/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/512_20Mpc/Arepo_ENERGY/output/'
-gamma.read_gamma(124,base,out)
-out='/n/home11/spb/data/ComparisonProject/Gadget/'
-base='/n/hernquistfs1/mvogelsberger/ComparisonProject/512_20Mpc/Gadget/output/'
-gamma.read_gamma(124,base,out)
+"""Script for getting the equation of state at z=3.2 from a variety of relevant simulations (on odyssey)"""
+import gamma
+#outbase='/n/home11/spb/data/ComparisonProject/'
+database='/n/hernquistfs1/mvogelsberger/ComparisonProject/'
+#out=['Arepo_128/','Gadget_128/','Arepo_256/','Gadget_256/','Arepo/','Gadget/']
+base=['128_20Mpc/Arepo_ENERGY/output/','128_20Mpc/Gadget/output/','256_20Mpc/Arepo_ENERGY/output/','256_20Mpc/Gadget/output/','512_20Mpc/Arepo_ENERGY/output/','512_20Mpc/Gadget/output/']
+gam_list=[gamma.read_gamma(124,database+bb) for bb in base]
