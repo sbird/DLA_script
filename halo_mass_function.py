@@ -5,7 +5,7 @@ import scipy.interpolate
 """This module calculaes the halo mass functions and is mainly taken from yt."""
 
 class halo_mass_function:
-        def __init__(self,redshift,omega_m=0.27, omega_b=0.045,omega_l=0.73,hubble=0.7, ns=0.95,sigma8=0.8,mass_function=None):
+        def __init__(self,redshift,omega_m=0.27, omega_b=0.045,omega_l=0.73,hubble=0.7, ns=0.95,sigma8=0.8,mass_function=None,log_mass_lim=(6,20)):
             """Module for calculating halo mass functions. Largely stolen from yt.
 
             Note self.mass_function(sigma) will return the mass function as defined in eq. 4 of Jenkins 2001.
@@ -15,7 +15,7 @@ class halo_mass_function:
             n(M,z) is the abundance of halos with mass less than M at redshift z.
             """
             #Sigma tables
-            self.overden=overdensities(redshift,omega_m, omega_b,omega_l,hubble, ns,sigma8)
+            self.overden=overdensities(redshift,omega_m, omega_b,omega_l,hubble, ns,sigma8,log_mass_lim=log_mass_lim)
             if mass_function==None:
                 self.mass_function=self.sheth_tormen
             else:
@@ -24,7 +24,7 @@ class halo_mass_function:
             self.delta_c0 = 1.69;  # critical density for turnpround (Press-Schechter)
         
         def dndm(self,mass):
-            """Returns the halo mass function in units of h^4 M_sun^-1 Mpc^-3"""
+            """Returns the halo mass function dn/dM in units of h^4 M_sun^-1 Mpc^-3"""
             # Mean matter density at redshift z in units of h^2 Msolar/Mpc^3
             rho0 = 2.78e+11* self.overden.omega_matter_of_z(self.overden.redshift) 
             sigma=self.overden.sigmaof_M_z(mass)
@@ -34,48 +34,6 @@ class halo_mass_function:
             dlogsigma= (np.log(sigma_plus)-np.log(sigma))/(0.01*mass)
             dndM = - dlogsigma*mass_func/mass*rho0
             return dndM
-            
-        """def dndm(self):
-            
-            # constants - set these before calling any functions!
-            rho0 = self.omega_matter0 * 2.78e+11; # in units of h^2 Msolar/Mpc^3
-            
-            nofmz_cum = 0.0;  # keep track of cumulative number density
-            
-            # Loop over masses, going BACKWARD, and calculate dn/dm as well as the 
-            # cumulative mass function.
-            
-            # output arrays
-            # 5) (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-            self.dn_M_z = na.empty(self.num_sigma_bins, dtype='float64')
-            # 6) cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
-            self.nofmz_cum = na.zeros(self.num_sigma_bins, dtype='float64')
-            
-            for j in xrange(self.num_sigma_bins - 1):
-                i = (self.num_sigma_bins - 2) - j
-            
-                thissigma = self.sigmaof_M_z(i, self.this_redshift);
-                nextsigma = self.sigmaof_M_z(i+1, self.this_redshift);
-                
-                # calc dsigmadm - has units of h (since massarray has units of h^-1)
-                dsigmadm = (nextsigma-thissigma) / (self.massarray[i+1] - self.massarray[i]);
-
-                # calculate dn(M,z) (dn/dM * dM)
-                # this has units of h^3 since rho0 has units of h^2, dsigmadm
-                # has units of h, and massarray has units of h^-1
-                dn_M_z = -1.0 / thissigma * dsigmadm * rho0 / self.massarray[i] * \
-                self.multiplicityfunction(thissigma)*(self.massarray[i+1] - self.massarray[i]);
-
-                # scale by h^3 to get rid of all factors of h
-                dn_M_z *= math.pow(self.hubble0, 3.0);
-                
-                # keep track of cumulative number density
-                if dn_M_z > 1.0e-20:
-                    nofmz_cum += dn_M_z;
-                
-                # Store this.
-                self.nofmz_cum[i] = nofmz_cum
-                self.dn_M_z[i] = dn_M_z"""
         
         def press_schechter(self,sigma):
             """Press-Schechter (This form from Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 5)"""
