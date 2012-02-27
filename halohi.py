@@ -81,6 +81,11 @@ class HaloHI:
         self.snap_dir=snap_dir
         self.ngrid=ngrid
         self.maxdist=maxdist
+        #Internal gadget mass unit: 1e10 M_sun in g
+        self.UnitMass_in_g=1.989e43
+        #Internal gadget length unit: 1 kpc in cm
+        self.UnitLength_in_cm=3.085678e21
+        self.UnitVelocity_in_cm_per_s=1e5
         #f np > 1.4.0, we have in1d
         if not re.match("1\.[4-9]",np.version.version):
             print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
@@ -94,8 +99,8 @@ class HaloHI:
         print "Found ",self.nhalo," halos with > ",minpart,"particles"
         #Get particle center of mass 
         self.sub_cofm=np.array(subs.sub_pos[ind])
-        #halo masses
-        self.sub_mass=np.array(subs.sub_mass[ind])
+        #halo masses in M_sun
+        self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
         del subs
         #Grid to put paticles on
         f=hdfsim.get_file(snapnum,self.snap_dir,0)
@@ -114,7 +119,6 @@ class HaloHI:
             self.ngrid=ngrid
         if maxdist != None:
             self.maxdist=maxdist
-        UnitLength_in_cm=3.085678e21
         sub_nHI_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
@@ -132,7 +136,7 @@ class HaloHI:
             #positions, centered on each halo, in grid units
             poslist=[ipos[ind] for ind in near_halo]
             coords=[ppos- self.sub_cofm[idx] for idx,ppos in enumerate(poslist)]
-            coords=[fieldize.convert_centered(co,self.ngrid,self.maxdist) for co in coords]
+            coords=[fieldize.convert_centered(co,self.ngrid,2*self.maxdist) for co in coords]
             #NH0
             rhoH0 = [irhoH0[ind] for ind in near_halo]
             map(fieldize.ngp, coords,rhoH0,sub_nHI_grid)
@@ -149,8 +153,8 @@ class HaloHI:
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
         This is defined as the area of all the cells with column density above 10^20.3 cm^-2.
         Returns result in (kpc/h)^2."""
-        cell_area=4*self.maxdist**2/self.ngrid**2
-        sigma_DLA = [ np.sum(grid[np.where(grid > 20.3)])*cell_area for grid in self.sub_nHI_grid]
+        cell_area=(2.*self.maxdist/self.ngrid)**2
+        sigma_DLA = [ np.shape(np.where(grid > 20.3))[1]*cell_area for grid in self.sub_nHI_grid]
         return sigma_DLA
 
 class DNdlaDz:
