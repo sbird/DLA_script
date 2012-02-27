@@ -74,7 +74,15 @@ def get_reproc_rhoHI(bar,rho_thresh=0.1):
     rhoH0=irho*inH0*hy_mass/protonmass
     #Default density matches Tescari & Viel and Nagamine 2004
     dens_ind=np.where(irho > protonmass*rho_thresh)
-    fcold=cold_gas_frac(irho[dens_ind],icool[dens_ind],rho_thresh=rho_thresh)
+    #Guard against wandering nan, which will occur if icool is zero
+    #Check: How does arepo deal with this?
+    cool=icool[dens_ind]
+    zind=np.where(cool == 0.)
+    #Add some arbitrary small amount in this case
+    if np.size(zind) > 0:
+        print "Found ",np.size(zind)," particles with zero cooling rate"
+    cool[zind]+=np.min(icool[np.where(icool > 0)])
+    fcold=cold_gas_frac(irho[dens_ind],cool,rho_thresh=rho_thresh)
     rhoH0[dens_ind]=irho[dens_ind]*fcold
     return rhoH0
 
