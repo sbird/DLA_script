@@ -36,7 +36,19 @@ def convert_centered(pos, ngrid,box):
         ngrid - dimension of grid
         box - Size of the grid in units of pos
     """
-    return pos*(ngrid-1)/box+(ngrid-1)/2.
+    return pos*(ngrid-1.)/float(box)+(ngrid-1.)/2.
+
+def check_input(pos, field):
+    """Checks the position and field values for consistency. 
+    Avoids segfaults in the C code."""
+    if np.size(pos) == 0:
+        return 0
+    dims=np.size(np.shape(field))
+    if np.max(pos) > np.shape(field)[0] or np.min(pos) < 0:
+        raise ValueError("Positions outside grid")
+    if np.shape(pos)[1] < dims:
+        raise ValueError("Position array not wide enough for field")
+    return 1
 
 def ngp(pos,values,field):
     """Does nearest grid point for a 2D array. 
@@ -47,12 +59,12 @@ def ngp(pos,values,field):
 
     Points need to be in grid units
     """
-    # Coordinates of nearest grid point (ngp).
-    ind=np.array(np.rint(pos),dtype=np.int)
+    if not check_input(pos,field):
+        return field
     nx=np.shape(values)[0]
     dims=np.size(np.shape(field))
-    if np.shape(ind)[1] != dims:
-        raise ValueError,"Position array does not match dimensionality of field"
+    # Coordinates of nearest grid point (ngp).
+    ind=np.array(np.rint(pos),dtype=np.int)
     #Sum over the 3rd axis here.
     expr="""for(int j=0;j<nx;j++){
             int ind1=ind(j,0);
@@ -72,12 +84,12 @@ def ngp(pos,values,field):
             scipy.weave.inline(expr,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
         elif dims==3:
             scipy.weave.inline(expr3d,['nx','ind','values','field'],type_converters=scipy.weave.converters.blitz)
-        else: 
+        else:
             raise ValueError
     except Exception:
         #Fall back on slow python version.
         for j in xrange(0,nx):
-            field[ind[j,:]]+=values[j]
+            field[tuple(ind[j,0:dims])]+=values[j]
     return field
 
 def cic(pos, values, field):
@@ -89,10 +101,10 @@ def cic(pos, values, field):
 
     Points need to be in coordinates where np.max(points) = np.shape(field)
     """
+    if not check_input(pos,field):
+        return field
     nx=np.shape(values)[0]
     dims=np.size(np.shape(field))
-    if np.shape(pos)[1] != dims:
-        raise ValueError,"Position array does not match dimensionality of field"
     raise Exception, "Not Implemented"
 
 def tsc(value,pos,field,average=True,wraparound=False,no_message=True,isolated=True):
