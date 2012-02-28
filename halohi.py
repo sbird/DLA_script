@@ -37,6 +37,7 @@ class TotalHaloHI:
         #Internal gadget mass unit: 1e10 M_sun in g
         UnitMass_in_g=1.989e43
         UnitLength_in_cm=3.085678e21
+        star=cold_gas.StarFormation()
         #Now find the average HI for each halo
         for fnum in range(0,500):
             try:
@@ -46,7 +47,7 @@ class TotalHaloHI:
             bar=f["PartType0"]
             iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
             irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
-            inH0 = cold_gas.get_reproc_rhoHI(bar)/irho
+            inH0 = star.get_reproc_rhoHI(bar)/irho
             #Find a superset of all the elements
             hind=np.where(np.in1d(iids,all_sub_ids))
             ids=iids[hind]
@@ -105,6 +106,8 @@ class HaloHI:
         #Grid to put paticles on
         f=hdfsim.get_file(snapnum,self.snap_dir,0)
         self.redshift=f["Header"].attrs["Redshift"]
+        self.hubble=f["Header"].attrs["HubbleParameter"]
+        self.box=f["Header"].attrs["BoxSize"]
         f.close()
         self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
         return
@@ -120,6 +123,7 @@ class HaloHI:
         if maxdist != None:
             self.maxdist=maxdist
         sub_nHI_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
+        star=cold_gas.StarFormation()
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
             try:
@@ -128,7 +132,7 @@ class HaloHI:
                 break
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            irhoH0 = cold_gas.get_reproc_rhoHI(bar)
+            irhoH0 = star.get_reproc_rhoHI(bar)
             f.close()
             #Find particles near each halo
             near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)) for sub_pos in self.sub_cofm]
@@ -141,7 +145,7 @@ class HaloHI:
             rhoH0 = [irhoH0[ind] for ind in near_halo]
             map(fieldize.ngp, coords,rhoH0,sub_nHI_grid)
         #Linear dimension of each cell in cm
-        epsilon=2.*self.maxdist/(self.ngrid)*UnitLength_in_cm
+        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm
         sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_nHI_grid]
         for ii,grid in enumerate(sub_nHI_grid):
             ind=np.where(grid > 0)
@@ -156,6 +160,21 @@ class HaloHI:
         cell_area=(2.*self.maxdist/self.ngrid)**2
         sigma_DLA = [ np.shape(np.where(grid > 20.3))[1]*cell_area for grid in self.sub_nHI_grid]
         return sigma_DLA
+
+    def absorption_distance(self):
+        """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)"""
+        #h * 100 km/s/Mpc in 1/s
+        h100=3.2407789e-18*self.hubble
+        light=2.9979e10
+        return h100/light*(1+self.redshift)**2*self.box
+
+    def column_density_function(self,NHI):
+        """This computes the DLA column density function, which is the number 
+        of absorbers per sight line with HI column densities in the interval 
+        [NHI, NHI+dNHI] at the absorption distance X. 
+        Absorption distance is simply a single simulation box.
+        A sightline is assumed to be equivalent to one grid cell."""
+
 
 class DNdlaDz:
     """Get the DLA number density as a function of redshift, defined as:
@@ -210,3 +229,4 @@ class DNdlaDz:
         """Integrand for above"""
         M=np.exp(logM)
         return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M
+
