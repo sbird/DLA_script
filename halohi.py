@@ -11,6 +11,7 @@ import re
 import readsubf
 import hdfsim
 import math
+import os.path as path
 import cold_gas
 import halo_mass_function
 import fieldize
@@ -89,30 +90,51 @@ class HaloHI:
         #Internal gadget length unit: 1 kpc in cm
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
-        #f np > 1.4.0, we have in1d
-        if not re.match("1\.[4-9]",np.version.version):
-            print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
-        #Get halo catalog
-        subs=readsubf.subfind_catalog(self.snap_dir,snapnum,masstab=True,long_ids=True)
-        #Get list of halos resolved with > minpart particles
-        ind=np.where(subs.sub_len > minpart)
-        self.nHI=np.zeros(np.size(ind))
-        self.tot_found=np.zeros(np.size(ind))
-        self.nhalo=np.size(ind)
-        print "Found ",self.nhalo," halos with > ",minpart,"particles"
-        #Get particle center of mass
-        self.sub_cofm=np.array(subs.sub_pos[ind])
-        #halo masses in M_sun
-        self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
-        del subs
-        #Grid to put paticles on
-        f=hdfsim.get_file(snapnum,self.snap_dir,0)
-        self.redshift=f["Header"].attrs["Redshift"]
-        self.hubble=f["Header"].attrs["HubbleParameter"]
-        self.box=f["Header"].attrs["BoxSize"]
-        f.close()
-        self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
+        #Name of savefile
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"hi_grid.npz")
+        try:
+            #First try to load from a file
+            grid_file=np.load(self.savefile)
+
+            if  not (grid_file["maxdist"] == self.maxdist and grid_file["minpart"] == self.minpart and self.ngrid == grid_file["ngrid"]):
+                raise KeyError("File not for this structure")
+            #Otherwise...
+            self.sub_nHI_grid = grid_file["sub_nHI_grid"]
+            self.sub_mass = grid_file["sub_mass"]
+            self.sub_cofm=grid_file["sub_cofm"]
+            self.redshift=grid_file["redshift"]
+            self.hubble=grid_file["hubble"]
+            self.box=grid_file["box"]
+            grid_file.close()
+        except (IOError,KeyError):
+            #Otherwise regenerate from the raw data
+            #Get halo catalog
+            subs=readsubf.subfind_catalog(self.snap_dir,snapnum,masstab=True,long_ids=True)
+            #Get list of halos resolved with > minpart particles
+            ind=np.where(subs.sub_len > minpart)
+            self.nhalo=np.size(ind)
+            print "Found ",self.nhalo," halos with > ",minpart,"particles"
+            #Get particle center of mass
+            self.sub_cofm=np.array(subs.sub_pos[ind])
+            #halo masses in M_sun
+            self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
+            del subs
+            #Simulation parameters
+            f=hdfsim.get_file(snapnum,self.snap_dir,0)
+            self.redshift=f["Header"].attrs["Redshift"]
+            self.hubble=f["Header"].attrs["HubbleParam"]
+            self.box=f["Header"].attrs["BoxSize"]
+            f.close()
+            self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
         return
+
+    def save_file(self):
+        """
+        Saves grids to a file, because they are slow to generate.
+        File is hard-coded to be $snap_dir/snapdir_$snapnum/hi_grid.npz.
+        """
+        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box)
+
 
 
     def set_nHI_grid(self,ngrid=None,maxdist=None):
@@ -209,7 +231,7 @@ class HaloHI:
         #Grid size (in cm^2)
         dX=self.absorption_distance()
         for ii,N in enumerate(NHI_table):
-            logN=np.log(N)
+            logN=np.log10(N)
             n_DLA_N = self.get_absorber_area(logN,logN+dlogN_real)/self.box**2
             f_N[ii] = n_DLA_N/dlogN_real/N/dX
 
