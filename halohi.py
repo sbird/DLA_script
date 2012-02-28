@@ -79,7 +79,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -106,6 +106,10 @@ class HaloHI:
             self.hubble=grid_file["hubble"]
             self.box=grid_file["box"]
             grid_file.close()
+            if halo_list != None:
+                self.sub_nHI_grid=self.sub_nHI_grid[halo_list]
+                self.sub_mass=self.sub_mass[halo_list]
+                self.sub_cofm=self.sub_cofm[halo_list]
         except (IOError,KeyError):
             #Otherwise regenerate from the raw data
             #Get halo catalog
@@ -119,6 +123,9 @@ class HaloHI:
             #halo masses in M_sun
             self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
             del subs
+            if halo_list != None:
+                self.sub_mass=self.sub_mass[halo_list]
+                self.sub_cofm=self.sub_cofm[halo_list]
             #Simulation parameters
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.redshift=f["Header"].attrs["Redshift"]
