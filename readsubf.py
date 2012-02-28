@@ -266,18 +266,18 @@ class subf_ids:
                     n_to_read = nrem
                 else:    
                     n_to_read = sublen        
-                if n_to_read > 0:
-                    if (verbose):
-                        print filenum, n_to_read
-                    if nskip > 0:
-                        dummy=np.fromfile(f, dtype=self.id_type, count=nskip)
+                    if n_to_read > 0:
                         if (verbose):
-                            print dummy
-                        locs = slice(found, found + n_to_read)
-                        dummy2 = np.fromfile(f, dtype=self.id_type, count=n_to_read)
-                    if (verbose):
-                        print dummy2
-                    self.SubIDs[locs]=dummy2
+                            print filenum, n_to_read
+                        if nskip > 0:
+                            dummy=np.fromfile(f, dtype=self.id_type, count=nskip)
+                            if (verbose):
+                                print dummy
+                            locs = slice(found, found + n_to_read)
+                            dummy2 = np.fromfile(f, dtype=self.id_type, count=n_to_read)
+                            if (verbose):
+                                print dummy2
+                            self.SubIDs[locs]=dummy2
                     found += n_to_read
                 count += n_to_read
                 sublen -= n_to_read
