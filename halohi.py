@@ -10,6 +10,7 @@ import numpy as np
 import re
 import readsubf
 import hdfsim
+import math
 import cold_gas
 import halo_mass_function
 import fieldize
@@ -213,6 +214,21 @@ class HaloHI:
             f_N[ii] = n_DLA_N/dlogN_real/N/dX
 
         return (NHI_table, f_N)
+
+    def omega_DLA(self, maxN):
+        """Compute Omega_DLA, defined as:
+            Ω_DLA = m_p H_0/(c f_HI rho_c) \int_10^20.3^Nmax  f(N,X) N dN
+        """
+        (NHI_table, f_N) = self.column_density_function(minN=20.3,maxN=maxN)
+        dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
+        omega_DLA=np.sum(NHI_table*f_N*10**dlogN_real)
+        h100=3.2407789e-18*self.hubble
+        light=2.9979e10
+        rho_crit=3*h100**2/(8*math.pi*6.672e-8)
+        protonmass=1.66053886e-24
+        hy_mass = 0.76 # Hydrogen massfrac
+        omega_DLA*=(h100/light)*(protonmass/hy_mass)/rho_crit
+        return omega_DLA
 
 
 class DNdlaDz:
