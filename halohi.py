@@ -7,7 +7,6 @@ Classes:
     HaloHI - Creates a grid around the halo center with the HI fraction calculated at each grid cell
 """
 import numpy as np
-import re
 import readsubf
 import hdfsim
 import math
@@ -23,47 +22,76 @@ class TotalHaloHI:
     """Find the average HI fraction in a halo
     This is like Figure 9 of Tescari & Viel"""
     def __init__(self,snap_dir,snapnum,minpart=1000):
-        #f np > 1.4.0, we have in1d
-        if not re.match("1\.[4-9]",np.version.version):
-            print "Need numpy 1.4 for in1d: without it this is unfeasibly slow"
-        #Get halo catalog
-        subs=readsubf.subfind_catalog(snap_dir,snapnum,masstab=True,long_ids=True)
-        #Get list of halos resolved with > minpart particles
-        ind=np.where(subs.sub_len > minpart)
-        self.nHI=np.zeros(np.size(ind))
-        self.tot_found=np.zeros(np.size(ind))
-        print "Found ",np.size(ind)," halos with > ",minpart,"particles"
-        #Get particle ids for each subhalo
-        sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
-        all_sub_ids=np.concatenate(sub_ids)
-        print "Got particle id lists"
-        #Internal gadget mass unit: 1e10 M_sun in g
-        UnitMass_in_g=1.989e43
-        UnitLength_in_cm=3.085678e21
-        star=cold_gas.StarFormation()
-        #Now find the average HI for each halo
-        for fnum in range(0,500):
-            try:
-                f=hdfsim.get_file(snapnum,snap_dir,fnum)
-            except IOError:
-                break
-            bar=f["PartType0"]
-            iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
-            irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
-            inH0 = star.get_reproc_rhoHI(bar)/irho
-            #Find a superset of all the elements
-            hind=np.where(np.in1d(iids,all_sub_ids))
-            ids=iids[hind]
-            nH0=inH0[hind]
-            print "File ",fnum," has ",np.size(hind)," halo particles"
-            #Assign each subset to the right halo
-            tmp=[nH0[np.where(np.in1d(sub,ids))] for sub in sub_ids]
-            self.tot_found+=np.array([np.size(i) for i in tmp])
-            self.nHI+=np.array([np.sum(i) for i in tmp])
-        print "Found ",np.sum(self.tot_found)," gas particles"
-        self.nHI/=self.tot_found
-        self.mass=subs.sub_mass[ind]
+        self.snap_dir=snap_dir
+        self.snapnum=snapnum
+        #proton mass in g
+        self.protonmass=1.66053886e-24
+        self.hy_mass = 0.76 # Hydrogen massfrac
+        self.minpart=minpart
+        #Name of savefile
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"tot_hi_grid.npz")
+        try:
+            #First try to load from a file
+            grid_file=np.load(self.savefile)
+
+            if  grid_file["minpart"] != self.minpart:
+                raise KeyError("File not for this structure")
+            #Otherwise...
+            self.nHI = grid_file["nHI"]
+            self.mass = grid_file["mass"]
+            self.tot_found=grid_file["tot_found"]
+            grid_file.close()
+        except (IOError,KeyError):
+            #Get halo catalog
+            subs=readsubf.subfind_catalog(snap_dir,snapnum,masstab=True,long_ids=True)
+            #Get list of halos resolved with > minpart particles
+            ind=np.where(subs.sub_len > minpart)
+            #Initialise arays
+            self.nHI=np.zeros(np.size(ind))
+            self.tot_found=np.zeros(np.size(ind))
+            #Put masses in M_sun
+            self.mass=subs.sub_mass[ind]*1e10
+            print "Found ",np.size(ind)," halos with > ",minpart,"particles"
+            #Get particle ids for each subhalo
+            sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
+            all_sub_ids=np.concatenate(sub_ids)
+            del subs
+            print "Got particle id lists"
+            #Internal gadget mass unit: 1e10 M_sun in g
+            UnitMass_in_g=1.989e43
+            UnitLength_in_cm=3.085678e21
+            star=cold_gas.StarFormation()
+            #Now find the average HI for each halo
+            for fnum in range(0,500):
+                try:
+                    f=hdfsim.get_file(snapnum,snap_dir,fnum)
+                except IOError:
+                    break
+                bar=f["PartType0"]
+                iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
+                irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
+                inH0 = star.get_reproc_rhoHI(bar)/(irho*self.hy_mass/self.protonmass)
+                #Find a superset of all the elements
+                hind=np.where(np.in1d(iids,all_sub_ids))
+                ids=iids[hind]
+                nH0=inH0[hind]
+                print "File ",fnum," has ",np.size(hind)," halo particles"
+                #Assign each subset to the right halo
+                tmp=[nH0[np.where(np.in1d(ids,sub))] for sub in sub_ids]
+                self.tot_found+=np.array([np.size(i) for i in tmp])
+                self.nHI+=np.array([np.sum(i) for i in tmp])
+            print "Found ",np.sum(self.tot_found)," gas particles"
+            self.nHI/=self.tot_found
         return
+
+    def save_file(self):
+        """
+        Saves grids to a file, because they are slow to generate.
+        File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
+        """
+        np.savez_compressed(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found)
+
+
 
 class HaloHI:
     """Class for calculating properties of DLAs in a simulation.
