@@ -1,7 +1,8 @@
-"""Module for creating the DLA hydrogen density plots, as found in Tescari & Viel, 
-and Nagamine, Springel and Hernquist, 2003. 
+# vim: set fileencoding=utf-8
+"""Module for creating the DLA hydrogen density plots, as found in Tescari & Viel,
+and Nagamine, Springel and Hernquist, 2003.
 
-Classes: 
+Classes:
     TotalHaloHI - Finds the average HI fraction in a halo
     HaloHI - Creates a grid around the halo center with the HI fraction calculated at each grid cell
 """
@@ -98,7 +99,7 @@ class HaloHI:
         self.tot_found=np.zeros(np.size(ind))
         self.nhalo=np.size(ind)
         print "Found ",self.nhalo," halos with > ",minpart,"particles"
-        #Get particle center of mass 
+        #Get particle center of mass
         self.sub_cofm=np.array(subs.sub_pos[ind])
         #halo masses in M_sun
         self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
@@ -161,19 +162,57 @@ class HaloHI:
         sigma_DLA = [ np.shape(np.where(grid > 20.3))[1]*cell_area for grid in self.sub_nHI_grid]
         return sigma_DLA
 
+    def get_absorber_area(self,minN,maxN):
+        """Return the total area (in kpc^2) covered by absorbers with column density covered by a given bin"""
+        #Number of grid cells
+        cells=np.sum([np.shape(np.where((grid > minN)* (grid < maxN)))[1] for grid in self.sub_nHI_grid])
+        #Area of grid cells
+        cell_area=(2.*self.maxdist/self.ngrid)**2
+        return cells*cell_area
+
     def absorption_distance(self):
         """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)"""
         #h * 100 km/s/Mpc in 1/s
         h100=3.2407789e-18*self.hubble
         light=2.9979e10
-        return h100/light*(1+self.redshift)**2*self.box
+        return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
-    def column_density_function(self,NHI):
-        """This computes the DLA column density function, which is the number 
-        of absorbers per sight line with HI column densities in the interval 
-        [NHI, NHI+dNHI] at the absorption distance X. 
+    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30.):
+        """
+        This computes the DLA column density function, which is the number
+        of absorbers per sight line with HI column densities in the interval
+        [NHI, NHI+dNHI] at the absorption distance X.
         Absorption distance is simply a single simulation box.
-        A sightline is assumed to be equivalent to one grid cell."""
+        A sightline is assumed to be equivalent to one grid cell.
+        That is, there is presumed to be only one halo in along the sightline
+        encountering a given halo.
+
+        So we have f(N) = d n_DLA/ dN dX
+        and n_DLA(N) = number of absorbers in this column density bin.
+                     = fraction of total (grid? box?) area covered by this column density bin
+        ie, f(N) = n_DLA / ΔN / ΔX
+        Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
+
+        Parameters:
+            dlogN - bin spacing to aim for (may not actually be reached)
+            minN - minimum log N
+            maxN - maximum log N
+
+        Returns:
+            (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
+        """
+        NHI_table = np.logspace(minN, maxN,(maxN-minN)/dlogN,endpoint=True)
+        f_N = np.empty(np.size(NHI_table))
+        #To compensate for any rounding
+        dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
+        #Grid size (in cm^2)
+        dX=self.absorption_distance()
+        for ii,N in enumerate(NHI_table):
+            logN=np.log(N)
+            n_DLA_N = self.get_absorber_area(logN,logN+dlogN_real)/self.box**2
+            f_N[ii] = n_DLA_N/dlogN_real/N/dX
+
+        return (NHI_table, f_N)
 
 
 class DNdlaDz:
