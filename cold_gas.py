@@ -154,11 +154,12 @@ class StarFormation:
             bar = a baryon type from an HDF5 file.
             rho_phys_thresh - physical SFR threshold density in hydrogen atoms/cm^3
                             - 0.1 (Tornatore & Borgani 2007)
+        Returns:
+            nH0 - the density of neutral hydrogen in these particles in atoms/cm^3
         """
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
         #cgs units
         irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)
-        rhoH0=irho*inH0*self.hy_mass/self.protonmass
         #Default density matches Tescari & Viel and Nagamine 2004
         rho_thresh = self.get_rho_thresh(rho_phys_thresh)
         dens_ind=np.where(irho > rho_thresh)
@@ -177,6 +178,10 @@ class StarFormation:
         tcool = ienergy[dens_ind]/cool
         tcool *= (self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s) # Now in s
         fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_thresh)
-        rhoH0[dens_ind]=irho[dens_ind]*fcold
-        return rhoH0
+        #Adjust the neutral hydrogen fraction
+        inH0[dens_ind]=fcold
+
+        #Calculate rho_HI
+        nH0=irho*inH0*self.hy_mass/self.protonmass
+        return nH0
 
