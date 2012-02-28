@@ -170,10 +170,11 @@ class StarFormation:
         #except when CoolingRate==0, when we want t_cool = 0
         icool=np.array(bar["CoolingRate"],dtype=np.float64)
         ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)
-        tcool = ienergy[dens_ind]/icool[dens_ind]
-        ind=np.where(icool[dens_ind] == 0)
-        #Set tcool to a very small number to avoid divide by zero
-        tcool[ind]=1e-99
+        cool=icool[dens_ind]
+        ind=np.where(cool == 0)
+        #Set cool to a very large number to avoid divide by zero
+        cool[ind]=1e99
+        tcool = ienergy[dens_ind]/cool
         tcool *= (self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s) # Now in s
         fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_thresh)
         rhoH0[dens_ind]=irho[dens_ind]*fcold
