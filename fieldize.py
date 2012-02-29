@@ -274,12 +274,41 @@ def tscadd(field,index,weight,value,totweight):
        the weighted value to the field and optionally calculates the total weight.
     Returns nothing, but alters field
     """
-    wwval=weight*value
-    for j in xrange(0,np.size(wwval)):
-        ind=tuple(index[j,:])
-        field[ind]+=wwval[j]
-        if totweight != None:
-            totweight[ind]+=weight[j]
+    nx=np.size(value)
+    dims=np.size(np.shape(field))
+    total=totweight !=None
+    #Faster C version of this function: this is getting a little out of hand.
+    expr="""for(int j=0;j<nx;j++){
+        int ind1=index(j,0);
+        int ind2=index(j,1);
+        """
+    if dims == 3:
+        expr+="""int ind3=index(j,2);
+                 field(ind1,ind2,ind3)+=weight(j)*value(j);
+                 """
+        if total:
+            expr+=" totweight(ind1,ind2,ind3) +=weight(j);"
+    if dims == 2:
+        expr+="""field(ind1,ind2)+=weight(j)*value(j);
+              """
+        if total:
+            expr+=" totweight(ind1,ind2) +=weight(j);"
+    expr+="}"
+    try:
+        if dims==2 or dims == 3:
+            if total:
+                scipy.weave.inline(expr,['nx','index','value','field','weight','totweight'],type_converters=scipy.weave.converters.blitz)
+            else:
+                scipy.weave.inline(expr,['nx','index','value','field','weight'],type_converters=scipy.weave.converters.blitz)
+        else:
+            raise ValueError
+    except Exception:
+        wwval=weight*value
+        for j in xrange(0,nx):
+            ind=tuple(index[j,:])
+            field[ind]+=wwval[j]
+            if totweight != None:
+                totweight[ind]+=weight[j]
     return
 
 def get_tscweight(ww,ii):
