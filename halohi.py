@@ -119,7 +119,7 @@ class HaloHI:
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
-        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"hi_grid.npz")
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"hi_grid_"+str(ngrid)+".npz")
         try:
             #First try to load from a file
             grid_file=np.load(self.savefile)
@@ -131,6 +131,8 @@ class HaloHI:
             self.sub_mass = grid_file["sub_mass"]
             self.sub_cofm=grid_file["sub_cofm"]
             self.redshift=grid_file["redshift"]
+            self.omegam=grid_file["omegam"]
+            self.omegal=grid_file["omegal"]
             self.hubble=grid_file["hubble"]
             self.box=grid_file["box"]
             grid_file.close()
@@ -159,6 +161,8 @@ class HaloHI:
             self.redshift=f["Header"].attrs["Redshift"]
             self.hubble=f["Header"].attrs["HubbleParam"]
             self.box=f["Header"].attrs["BoxSize"]
+            self.omegam=f["Header"].attrs["Omega0"]
+            self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
             self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
         return
@@ -166,9 +170,9 @@ class HaloHI:
     def save_file(self):
         """
         Saves grids to a file, because they are slow to generate.
-        File is hard-coded to be $snap_dir/snapdir_$snapnum/hi_grid.npz.
+        File is hard-coded to be $snap_dir/snapdir_$snapnum/hi_grid_$ngrid.npz.
         """
-        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box)
+        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box,omegam=self.omegam,omegal=self.omegal)
 
 
 
@@ -202,7 +206,7 @@ class HaloHI:
             coords=[fieldize.convert_centered(co,self.ngrid,2*self.maxdist) for co in coords]
             #NH0
             rhoH0 = [irhoH0[ind] for ind in near_halo]
-            map(fieldize.ngp, coords,rhoH0,sub_nHI_grid)
+            map(fieldize.tsc, coords,rhoH0,sub_nHI_grid)
         #Linear dimension of each cell in cm
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm
         sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_nHI_grid]
@@ -305,7 +309,7 @@ class DNdlaDz:
         self.Omega_L = Omega_L
         self.hubble=hubble
         #log of halo mass limits in M_sun
-        self.log_mass_lim=(6,20)
+        self.log_mass_lim=(7,15)
         #Fit to the DLA abundance
         logmass=np.log(halo_mass)-12
         logsigma=np.log(sigma_DLA)
