@@ -17,43 +17,35 @@ gcol="red"
 astyle="-"
 gstyle="-."
 
-def plot_pretty_halo(base,snapnum,halo=50,ngrid=255,maxdist=100.):
+class PrettyHalo(halohi.HaloHI):
     """
-    Plots a pretty (high-resolution) picture of the grid around a halo.
+    Derived class with one method that plots a pretty (high-resolution) picture of the grid around a halo.
     Like Figure 6 of Tescari & Viel
     """
-    #Get paths
-    gdir=path.join(base,"Gadget")
-    adir=path.join(base,"Arepo_ENERGY")
-    #Get data
-    if np.size(halo) == 0:
-        raise ValueError("Must specify a list of halos to pretty plot!")
-    if np.size(halo) ==1:
-        halo_list=[halo,]
-    else:
-        halo_list=list(halo)
-    ahalo=halohi.HaloHI(adir,snapnum,100,ngrid,maxdist,halo_list)
-    #ahalo.save_file()
-    ghalo=halohi.HaloHI(gdir,snapnum,100,ngrid,maxdist,halo_list)
-    #ghalo.save_file()
-    #Plot a figure
-    plt.imshow(ahalo.sub_nHI_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=55)
-    bar=plt.colorbar()
-    bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
-    plt.xlabel("x (kpc/h)")
-    plt.xlabel("y (kpc/h)")
-    plt.title("Arepo")
-    plt.show()
-    #Plot another figure
-    #Plot a figure
-    plt.imshow(ghalo.sub_nHI_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=55)
-    bar=plt.colorbar()
-    bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
-    plt.xlabel("x (kpc/h)")
-    plt.xlabel("y (kpc/h)")
-    plt.title("Gadget")
-    plt.show()
+    def __init__(self,snap_dir,snapnum,halo=0,ngrid=255,maxdist=100.):
+        #Get data
+        if np.size(halo) == 0:
+            raise ValueError("Must specify a list of halos to pretty plot!")
+        if np.size(halo) ==1:
+            halo_list=[halo,]
+        else:
+            halo_list=list(halo)
+        halohi.HaloHI.__init__(self,snap_dir,snapnum,100,ngrid,maxdist,halo_list)
+        self.halo_list=halo_list
 
+    def plot_pretty_halo(self,num=0):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        """
+        #Plot a figure
+        vmax=np.max(self.sub_nHI_grid[num])
+        maxdist=self.maxdist
+        plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        bar=plt.colorbar()
+        bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        plt.xlabel("x (kpc/h)")
+        plt.xlabel("y (kpc/h)")
+        plt.show()
 
 def plot_totalHI(base,snapnum,minpart=1000):
     """Make the plot of total neutral hydrogen density in a halo:
@@ -120,10 +112,10 @@ class HaloHIPlots:
         plt.legend(loc=3)
         plt.show()
 
-    def plot_column_density(self):
+    def plot_column_density(self,minN=20.3,maxN=30.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function()
-        (gNHI,gf_N)=self.ghalo.column_density_function()
+        (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
         plt.loglog(aNHI,af_N,color=acol,ls=astyle,legend="Arepo")
         plt.loglog(gNHI,gf_N,color=gcol,ls=gstyle,legend="Gadget")
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
