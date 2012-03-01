@@ -104,15 +104,19 @@ class HaloHI:
         minpart - Minimum size of halo to consider, in particles
         ngrid - Size of grid to store values on
         maxdist - Maximum extent of grid in kpc.
+        halo_list - If not None, only consider halos in the list
+        slice - Only consider particles near the z-axis if true
+        reload - Ignore saved files if true
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None,slice=False,reload=False):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.ngrid=ngrid
         self.maxdist=maxdist
+        self.slice=slice
         #Internal gadget mass unit: 1e10 M_sun in g
         self.UnitMass_in_g=1.989e43
         #Internal gadget length unit: 1 kpc in cm
@@ -121,6 +125,8 @@ class HaloHI:
         #Name of savefile
         self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"hi_grid_"+str(ngrid)+".npz")
         try:
+            if reload:
+                raise KeyError("reloading")
             #First try to load from a file
             grid_file=np.load(self.savefile)
 
@@ -198,7 +204,11 @@ class HaloHI:
             irhoH0 = star.get_reproc_rhoHI(bar)
             f.close()
             #Find particles near each halo
-            near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)) for sub_pos in self.sub_cofm]
+            if not self.slice:
+                near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)) for sub_pos in self.sub_cofm]
+            else:
+                #Only consider particles near z=0
+                near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)*(np.abs(ipos[:,2]-sub_pos[2])< self.maxdist/self.ngrid) ) for sub_pos in self.sub_cofm]
             print "File ",fnum," has ",np.sum([np.size(i) for i in near_halo])," halo particles"
             #positions, centered on each halo, in grid units
             poslist=[ipos[ind] for ind in near_halo]
