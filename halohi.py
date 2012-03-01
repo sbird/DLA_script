@@ -29,7 +29,7 @@ class TotalHaloHI:
         self.hy_mass = 0.76 # Hydrogen massfrac
         self.minpart=minpart
         #Name of savefile
-        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"tot_hi_grid.npz")
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"tot_hi_grid.npz")
         try:
             #First try to load from a file
             grid_file=np.load(self.savefile)
@@ -54,6 +54,8 @@ class TotalHaloHI:
             print "Found ",np.size(ind)," halos with > ",minpart,"particles"
             #Get particle ids for each subhalo
             sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
+            #NOTE: this will in general be much larger than the number of particles we want to process,
+            #because it includes the DM.
             all_sub_ids=np.concatenate(sub_ids)
             del subs
             print "Got particle id lists"
@@ -81,7 +83,9 @@ class TotalHaloHI:
                 self.tot_found+=np.array([np.size(i) for i in tmp])
                 self.nHI+=np.array([np.sum(i) for i in tmp])
             print "Found ",np.sum(self.tot_found)," gas particles"
-            self.nHI/=self.tot_found
+            #If a halo has no gas particles
+            ind=np.where(self.tot_found > 0)
+            self.nHI[ind]/=self.tot_found[ind]
         return
 
     def save_file(self):
@@ -123,7 +127,7 @@ class HaloHI:
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
-        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum),"hi_grid_"+str(ngrid)+".npz")
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"hi_grid_"+str(ngrid)+".npz")
         try:
             if reload:
                 raise KeyError("reloading")
