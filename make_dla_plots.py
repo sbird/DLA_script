@@ -9,9 +9,10 @@ import dla_plots as dp
 from save_figure import *
 
 #base="/home/spb/data/ComparisonProject/512_20Mpc"
-base="/home/spb/data/ComparisonProject/128_20Mpc"
+base="/home/spb/data/ComparisonProject/256_20Mpc"
+#base="/home/spb/data/ComparisonProject/128_20Mpc"
 outdir=path.join(base,"plots")
-snaps=[091,124,191]
+snaps=[91,124,191]
 
 for snapnum in snaps:
     #Fig 6
