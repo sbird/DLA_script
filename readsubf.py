@@ -4,39 +4,39 @@
 import readsubf
 cat = readsubf.subfind_catalog("./m_10002_h_94_501_z3_csf/",63,masstab=True)
 print cat.nsubs
-print "largest halo x position = ",cat.sub_pos[0][0] 
+print "largest halo x position = ",cat.sub_pos[0][0]
 """
 
 import numpy as np
 import os
- 
+
 class subfind_catalog:
     def __init__(self, basedir, snapnum, group_veldisp = False, masstab = False, long_ids = False, swap = False):
         self.filebase = basedir + "/groups_" + str(snapnum).zfill(3) + "/subhalo_tab_" + str(snapnum).zfill(3) + "."
- 
+
         #print
         #print "reading subfind catalog for snapshot",snapnum,"of",basedir
- 
+
         if long_ids:
             self.id_type = np.uint64
         else:
             self.id_type = np.uint32
- 
+
         self.group_veldisp = group_veldisp
         self.masstab = masstab
- 
+
         filenum = 0
         doneflag = False
         skip_gr = 0
         skip_sub = 0
         while not doneflag:
             curfile = self.filebase + str(filenum)
-            
+
             if (not os.path.exists(curfile)):
-                raise IOError,"file not found:", curfile
-            
+                raise IOError("file not found: "+curfile)
+
             f = open(curfile,'rb')
-                            
+
             ngroups = np.fromfile(f, dtype=np.uint32, count=1)[0]
             totngroups = np.fromfile(f, dtype=np.uint32, count=1)[0]
             nids = np.fromfile(f, dtype=np.uint32, count=1)[0]
@@ -44,7 +44,7 @@ class subfind_catalog:
             ntask = np.fromfile(f, dtype=np.uint32, count=1)[0]
             nsubs = np.fromfile(f, dtype=np.uint32, count=1)[0]
             totnsubs = np.fromfile(f, dtype=np.uint32, count=1)[0]
-            
+
             if swap:
                 ngroups = ngroups.byteswap()
                 totngroups = totngroups.byteswap()
@@ -53,7 +53,7 @@ class subfind_catalog:
                 ntask = ntask.byteswap()
                 nsubs = nsubs.byteswap()
                 totnsubs = totnsubs.byteswap()
-            
+
             if filenum == 0:
                 self.ngroups = totngroups
                 self.nids = totnids
@@ -78,7 +78,7 @@ class subfind_catalog:
                 self.group_contamination_mass = np.empty(totngroups, dtype=np.float32)
                 self.group_nsubs = np.empty(totngroups, dtype=np.uint32)
                 self.group_firstsub = np.empty(totngroups, dtype=np.uint32)
-                
+
                 self.sub_len = np.empty(totnsubs, dtype=np.uint32)
                 self.sub_offset = np.empty(totnsubs, dtype=np.uint32)
                 self.sub_parent = np.empty(totnsubs, dtype=np.uint32)
@@ -95,7 +95,7 @@ class subfind_catalog:
                 self.sub_grnr = np.empty(totnsubs, dtype=np.uint32)
                 if masstab:
                     self.sub_masstab = np.empty(totnsubs, dtype=np.dtype((np.float32,6)))
-         
+
             if ngroups > 0:
                 locs = slice(skip_gr, skip_gr + ngroups)
                 self.group_len[locs] = np.fromfile(f, dtype=np.uint32, count=ngroups)
@@ -115,9 +115,9 @@ class subfind_catalog:
                 self.group_contamination_count[locs] = np.fromfile(f, dtype=np.uint32, count=ngroups)
                 self.group_contamination_mass[locs] = np.fromfile(f, dtype=np.float32, count=ngroups)
                 self.group_nsubs[locs] = np.fromfile(f, dtype=np.uint32, count=ngroups)
-                self.group_firstsub[locs] = np.fromfile(f, dtype=np.uint32, count=ngroups)                
+                self.group_firstsub[locs] = np.fromfile(f, dtype=np.uint32, count=ngroups)
                 skip_gr += ngroups
-                
+
             if nsubs > 0:
                 locs = slice(skip_sub, skip_sub + nsubs)
                 self.sub_len[locs] = np.fromfile(f, dtype=np.uint32, count=nsubs)
@@ -142,12 +142,12 @@ class subfind_catalog:
             f.seek(0,os.SEEK_END)
             if curpos != f.tell():
                 print "Warning: finished reading before EOF for file",filenum
-            f.close()    
+            f.close()
             #print 'finished with file number',filenum,"of",ntask
             filenum += 1
             if filenum == self.nfiles:
                 doneflag = True
-             
+
         if swap:
             self.group_len.byteswap(True)
             self.group_offset.byteswap(True)
@@ -167,7 +167,7 @@ class subfind_catalog:
             self.group_contamination_mass.byteswap(True)
             self.group_nsubs.byteswap(True)
             self.group_firstsub.byteswap(True)
-                
+
             self.sub_len.byteswap(True)
             self.sub_offset.byteswap(True)
             self.sub_parent.byteswap(True)
@@ -184,7 +184,7 @@ class subfind_catalog:
             self.sub_grnr.byteswap(True)
             if masstab:
                 self.sub_masstab.byteswap(True)
-             
+
         #print
         #print "number of groups =", self.ngroups
         #print "number of subgroups =", self.nsubs
@@ -207,13 +207,13 @@ class subf_ids:
 
         if (verbose):
             print "reading subhalo IDs for snapshot",snapnum,"of",basedir
- 
+
         if long_ids:
             self.id_type = np.uint64
         else:
             self.id_type = np.uint32
 
- 
+
         filenum = 0
         doneflag = False
         count=substart
@@ -222,24 +222,24 @@ class subf_ids:
 
         while not doneflag:
             curfile = self.filebase + str(filenum)
-            
+
             if (not os.path.exists(curfile)):
                 raise IOError,"file not found:", curfile
-            
+
             f = open(curfile,'rb')
-                            
+
             Ngroups = np.fromfile(f, dtype=np.uint32, count=1)[0]
             TotNgroups = np.fromfile(f, dtype=np.uint32, count=1)[0]
             NIds = np.fromfile(f, dtype=np.uint32, count=1)[0]
             TotNids = np.fromfile(f, dtype=np.uint64, count=1)[0]
-            NTask = np.fromfile(f, dtype=np.uint32, count=1)[0]            
-            Offset = np.fromfile(f, dtype=np.uint32, count=1)[0]                        
+            NTask = np.fromfile(f, dtype=np.uint32, count=1)[0]
+            Offset = np.fromfile(f, dtype=np.uint32, count=1)[0]
 
 
             if read_all:
-                substart=0                
-                sublen=TotNids        
-            if swap:         
+                substart=0
+                sublen=TotNids
+            if swap:
                 Ngroups = Ngroups.byteswap()
                 TotNgroups = TotNgroups.byteswap()
                 NIds = NIds.byteswap()
@@ -249,23 +249,23 @@ class subf_ids:
             if filenum == 0:
                 if (verbose):
                     print "Ngroups        = ", Ngroups
-                    print "TotNgroups = ", Ngroups    
+                    print "TotNgroups = ", Ngroups
                     print "NIds             = ", NIds
                     print "TotNids        = ", TotNids
-                    print "NTask            = ", NTask    
-                    print "Offset         = ", Offset    
+                    print "NTask            = ", NTask
+                    print "Offset         = ", Offset
                 self.nfiles = NTask
                 self.SubLen=sublen
                 self.SubIDs = np.empty(sublen, dtype=self.id_type)
-    
 
-            if count <= Offset+NIds:            
+
+            if count <= Offset+NIds:
                 nskip = int(count) - int(Offset)
-                nrem = Offset + NIds - count    
+                nrem = Offset + NIds - count
                 if sublen > nrem:
                     n_to_read = nrem
-                else:    
-                    n_to_read = sublen        
+                else:
+                    n_to_read = sublen
                     if n_to_read > 0:
                         if (verbose):
                             print filenum, n_to_read
@@ -282,12 +282,12 @@ class subf_ids:
                 count += n_to_read
                 sublen -= n_to_read
 
-            f.close()    
+            f.close()
             filenum += 1
             if filenum == self.nfiles:
                 doneflag = True
-             
+
         if swap:
             self.SubIDs.byteswap(True)
 
- 
+
