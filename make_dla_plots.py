@@ -8,14 +8,16 @@ import os.path as path
 import dla_plots as dp
 from save_figure import *
 
-#base="/home/spb/data/ComparisonProject/512_20Mpc"
-base="/home/spb/data/ComparisonProject/256_20Mpc"
-base="/home/spb/data/ComparisonProject/128_20Mpc"
-outdir=path.join(base,"plots")
+bases=["/home/spb/data/ComparisonProject/128_20Mpc",
+"/home/spb/data/ComparisonProject/256_20Mpc",
+"/home/spb/data/ComparisonProject/512_20Mpc"
+]
 snaps=[91,124,191]
 
-print "Saving to ",outdir
-for snapnum in snaps:
+for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
+    outdir=path.join(base,"plots")
+    print "Saving plots for snapshot ",snapnum," to ",outdir
+
     #Fig 6
     plt.figure()
     gdir=path.join(base,"Gadget")
