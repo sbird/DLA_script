@@ -16,7 +16,7 @@ class StarFormation:
     Parameters (of the star formation model):
         hubble - hubble parameter in units of 100 km/s/Mpc
         t_0_star - star formation timescale at threshold density
-             - (MaxSfrTimescale) 1.5 in internal time units ( 1 itu ~ 0.97 Gyr)
+             - (MaxSfrTimescale) 1.5 in internal time units ( 1 itu ~ 0.97 Gyr/h)
         beta - fraction of massive stars which form supernovae (FactorSN) 0.1 in SH03.
         T_SN - Temperature of the supernova in K- 10^8 K SH03. (TempSupernova) Used to calculate u_SN
         T_c  - Temperature of the cold clouds in K- 10^3 K SH03. (TempClouds) Used to calculate u_c.
@@ -24,9 +24,9 @@ class StarFormation:
     """
     def __init__(self,hubble=0.7,t_0_star=1.5,beta=0.1,T_SN=1e8,T_c = 1000, A_0=1000):
         #Some constants and unit systems
-        #Internal gadget mass unit: 1e10 M_sun in g
+        #Internal gadget mass unit: 1e10 M_sun/h in g/h
         self.UnitMass_in_g=1.989e43
-        #Internal gadget length unit: 1 kpc in cm
+        #Internal gadget length unit: 1 kpc/h in cm/h
         self.UnitLength_in_cm=3.085678e21
         #Internal velocity unit : 1 km/s in cm/s
         self.UnitVelocity_in_cm_per_s=1e5
@@ -46,7 +46,7 @@ class StarFormation:
         self.hubble=hubble
 
         #Supernova timescale in s
-        self.t_0_star=t_0_star*(self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s) # Now in s
+        self.t_0_star=t_0_star*(self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s)/self.hubble # Now in s
 
         self.beta = beta
 
@@ -159,8 +159,8 @@ class StarFormation:
             nH0 - the density of neutral hydrogen in these particles in atoms/cm^3
         """
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
-        #cgs units
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)
+        #Convert density to g/cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
         #Default density matches Tescari & Viel and Nagamine 2004
         rho_thresh = self.get_rho_thresh(rho_phys_thresh)
         dens_ind=np.where(irho > rho_thresh)
@@ -177,12 +177,14 @@ class StarFormation:
         #Set cool to a very large number to avoid divide by zero
         cool[ind]=1e99
         tcool = ienergy[dens_ind]/cool
-        tcool *= (self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s) # Now in s
+        #Convert from internal time units, normally 9.8x10^8 yr/h to s.
+        tcool *= (self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s)/self.hubble # Now in s
         fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_thresh)
         #Adjust the neutral hydrogen fraction
         inH0[dens_ind]=fcold
 
         #Calculate rho_HI
         nH0=irho*inH0*self.hy_mass/self.protonmass
+        #Now in atoms /cm^3
         return nH0
 

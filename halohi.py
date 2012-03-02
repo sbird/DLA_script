@@ -21,13 +21,20 @@ import scipy.weave
 class TotalHaloHI:
     """Find the average HI fraction in a halo
     This is like Figure 9 of Tescari & Viel"""
-    def __init__(self,snap_dir,snapnum,minpart=1000):
+    def __init__(self,snap_dir,snapnum,minpart=1000,hubble=0.7):
         self.snap_dir=snap_dir
         self.snapnum=snapnum
         #proton mass in g
         self.protonmass=1.66053886e-24
+        #Internal gadget mass unit: 1e10 M_sun/h in g/h
+        UnitMass_in_g=1.989e43
+        #1 M_sun in g
+        SolarMass_in_g=1.989e33
+        #Internal gadget mass unit: 1 kpc/h in cm/h
+        UnitLength_in_cm=3.085678e21
         self.hy_mass = 0.76 # Hydrogen massfrac
         self.minpart=minpart
+        self.hubble=hubble
         #Name of savefile
         self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"tot_hi_grid.npz")
         try:
@@ -49,8 +56,8 @@ class TotalHaloHI:
             #Initialise arays
             self.nHI=np.zeros(np.size(ind))
             self.tot_found=np.zeros(np.size(ind))
-            #Put masses in M_sun
-            self.mass=subs.sub_mass[ind]*1e10
+            #Put masses in M_sun/h
+            self.mass=subs.sub_mass[ind]*UnitMass_in_g/SolarMass_in_g
             print "Found ",np.size(ind)," halos with > ",minpart,"particles"
             #Get particle ids for each subhalo
             sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
@@ -59,10 +66,7 @@ class TotalHaloHI:
             all_sub_ids=np.concatenate(sub_ids)
             del subs
             print "Got particle id lists"
-            #Internal gadget mass unit: 1e10 M_sun in g
-            UnitMass_in_g=1.989e43
-            UnitLength_in_cm=3.085678e21
-            star=cold_gas.StarFormation()
+            star=cold_gas.StarFormation(hubble=self.hubble)
             #Now find the average HI for each halo
             for fnum in range(0,500):
                 try:
@@ -71,8 +75,13 @@ class TotalHaloHI:
                     break
                 bar=f["PartType0"]
                 iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
+                #Density in (g/h)/(cm/h)^3 = g/cm^3 h^2
                 irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
-                inH0 = star.get_reproc_rhoHI(bar)/(irho*self.hy_mass/self.protonmass)
+                #nH0 in atoms/cm^3 (NOTE NO h!)
+                inH0 = star.get_reproc_rhoHI(bar)
+                #Convert to neutral fraction: this is in neutral atoms/total hydrogen.
+                inH0/=(irho*self.hubble**2*self.hy_mass/self.protonmass)
+                #So nH0 is dimensionless
                 #Find a superset of all the elements
                 hind=np.where(np.in1d(iids,all_sub_ids))
                 ids=iids[hind]
@@ -109,27 +118,29 @@ class HaloHI:
         ngrid - Size of grid to store values on
         maxdist - Maximum extent of grid in kpc.
         halo_list - If not None, only consider halos in the list
-        slice - Only consider particles near the z-axis if true
-        reload - Ignore saved files if true
+        slice_grid - Only consider particles near the z-axis if true
+        reload_file - Ignore saved files if true
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None,slice=False,reload=False):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None,slice_grid=False,reload_file=False):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.ngrid=ngrid
         self.maxdist=maxdist
-        self.slice=slice
-        #Internal gadget mass unit: 1e10 M_sun in g
+        self.slice=slice_grid
+        #Internal gadget mass unit: 1e10 M_sun/h in g/h
         self.UnitMass_in_g=1.989e43
-        #Internal gadget length unit: 1 kpc in cm
+        #1 M_sun in g
+        self.SolarMass_in_g=1.989e33
+        #Internal gadget length unit: 1 kpc/h in cm/h
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
         self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"hi_grid_"+str(ngrid)+".npz")
         try:
-            if reload:
+            if reload_file:
                 raise KeyError("reloading")
             #First try to load from a file
             grid_file=np.load(self.savefile)
@@ -160,8 +171,8 @@ class HaloHI:
             print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Get particle center of mass
             self.sub_cofm=np.array(subs.sub_pos[ind])
-            #halo masses in M_sun
-            self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/1.989e33
+            #halo masses in M_sun/h
+            self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
             del subs
             if halo_list != None:
                 self.sub_mass=self.sub_mass[halo_list]
@@ -190,13 +201,16 @@ class HaloHI:
         """Set up the grid around each halo where the HI is calculated.
             ngrid - Size of grid to store values on
             maxdist - Maximum extent of grid in kpc.
+        Returns:
+            sub_nHI_grid - a grid containing the integrated N_HI in neutral atoms/cm^-2
+                           summed along the z-axis
         """
         if ngrid != None:
             self.ngrid=ngrid
         if maxdist != None:
             self.maxdist=maxdist
         sub_nHI_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
-        star=cold_gas.StarFormation()
+        star=cold_gas.StarFormation(hubble=self.hubble)
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
             try:
@@ -205,6 +219,7 @@ class HaloHI:
                 break
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
+            #Returns neutral density in atoms/cm^3
             irhoH0 = star.get_reproc_rhoHI(bar)
             f.close()
             #Find particles near each halo
@@ -216,13 +231,15 @@ class HaloHI:
             print "File ",fnum," has ",np.sum([np.size(i) for i in near_halo])," halo particles"
             #positions, centered on each halo, in grid units
             poslist=[ipos[ind] for ind in near_halo]
+            #coords in kpc/h
             coords=[ppos- self.sub_cofm[idx] for idx,ppos in enumerate(poslist)]
             coords=[fieldize.convert_centered(co,self.ngrid,2*self.maxdist) for co in coords]
             #NH0
             rhoH0 = [irhoH0[ind] for ind in near_halo]
             map(fieldize.tsc, coords,rhoH0,sub_nHI_grid)
-        #Linear dimension of each cell in cm
-        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
         sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_nHI_grid]
         for ii,grid in enumerate(sub_nHI_grid):
             ind=np.where(grid > 0)
@@ -239,18 +256,21 @@ class HaloHI:
         return sigma_DLA
 
     def get_absorber_area(self,minN,maxN):
-        """Return the total area (in kpc^2) covered by absorbers with column density covered by a given bin"""
+        """Return the total area (in kpc/h^2) covered by absorbers with column density covered by a given bin"""
         #Number of grid cells
         cells=np.sum([np.shape(np.where((grid > minN)* (grid < maxN)))[1] for grid in self.sub_nHI_grid])
-        #Area of grid cells
+        #Area of grid cells in kpc/h^2
         cell_area=(2.*self.maxdist/self.ngrid)**2
         return cells*cell_area
 
     def absorption_distance(self):
-        """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)"""
-        #h * 100 km/s/Mpc in 1/s
-        h100=3.2407789e-18*self.hubble
+        """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
+        in dimensionless units."""
+        #h * 100 km/s/Mpc in h/s
+        h100=3.2407789e-18
+        # in cm/s
         light=2.9979e10
+        #Units: h/s   s/cm                        kpc/h      cm/kpc
         return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
     def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30.):
@@ -337,11 +357,12 @@ class DNdlaDz:
 
 
     def drdz(self,zz):
-        """Calculates dr/dz in a flat cosmology"""
-        #Speed of light in cgs units
+        """Calculates dr/dz in a flat cosmology in units of cm/h"""
+        #Speed of light in cm/s
         light=2.9979e10
-        #h * 100 km/s/Mpc in 1/s
-        h100=3.2407789e-18*self.hubble
+        #h * 100 km/s/Mpc in h/s
+        h100=3.2407789e-18
+        #       cm/s   s/h   =>
         return light/h100*np.sqrt(self.Omega_M*(1+zz)**3+self.Omega_L)
 
     def get_N_DLA_dz(self, mass=1e9):
@@ -350,15 +371,15 @@ class DNdlaDz:
         where n_h is the Sheth-Torman mass function, and
         sigma_DLA is a power-law fit to self.sigma_DLA.
         Parameters:
-            lower_mass in M_sun.
+            lower_mass in M_sun/h.
         """
         result = integ.quad(self.NDLA_integrand,np.log10(mass),self.log_mass_lim[1], epsrel=1e-2)
-        #drdz is in cm, while the rest is in kpc, so convert.
+        #drdz is in cm/h, while the rest is in kpc/h, so convert.
         return self.drdz(self.redshift)*result[0]/3.085678e21
 
     def NDLA_integrand(self,log10M):
         """Integrand for above"""
         M=10**log10M
-        #sigma_DLA is in kpc^2, while halo_mass is in M_sun^-1 Mpc^(-3), so convert.
+        #sigma_DLA is in kpc/h^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), so convert.
         return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M/(10**9)
 

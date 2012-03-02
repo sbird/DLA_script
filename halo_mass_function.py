@@ -33,8 +33,10 @@ class HaloMassFunction:
         self.delta_c0 = 1.69  # critical density for turnaround (Press-Schechter)
 
     def dndm(self, mass):
-        """Returns the halo mass function dn/dM in units of h^4 M_sun^-1 Mpc^-3"""
+        """Returns the halo mass function dn/dM in units of h^4 M_sun^-1 Mpc^-3
+        Requires mass in units of M_sun /h """
         # Mean matter density at redshift z in units of h^2 Msolar/Mpc^3
+        #This is rho_c in units of h^-1 M_sun (Mpc/h)^-3
         rho0 = 2.78e+11* self.overden.omega_matter_of_z(self.overden.redshift)
         sigma = self.overden.sigmaof_M_z(mass)
         mass_func = self.mass_function(sigma)
@@ -93,7 +95,7 @@ class Overdensities:
         self.log_mass_min = log_mass_lim[0]
 
         # output arrays
-        # 1) log10 of mass (Msolar, NOT Msolar/h)
+        # 1) Virial radius in units of Mpc/h
         self.Rarray = np.empty(self.num_sigma_bins,dtype='float64')
         # 2) mass (Msolar/h)
         self.logmassarray = np.empty(self.num_sigma_bins, dtype='float64')

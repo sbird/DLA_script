@@ -62,7 +62,7 @@ def plot_totalHI(base,snapnum,minpart=1000):
     plt.loglog(atHI.mass,atHI.nHI,'o',color=acol,label="Arepo")
     plt.loglog(gtHI.mass,gtHI.nHI,'o',color=gcol,label="Gadget")
     #Axes
-    plt.xlabel(r"Mass ($M_\odot$)")
+    plt.xlabel(r"Mass ($M_\odot$/h)")
     plt.ylabel("HI frac")
     plt.legend(loc=4)
     plt.show()
@@ -97,13 +97,13 @@ class HaloHIPlots:
         plt.loglog(mass,self.aDLAdz.sigma_DLA_fit(mass),color=acol,label="Arepo",ls=astyle)
         plt.loglog(mass,self.gDLAdz.sigma_DLA_fit(mass),color=gcol,label="Gadget",ls=gstyle)
         #Axes
-        plt.xlabel(r"Mass ($M_\odot$)")
+        plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
         plt.legend(loc=0,ncol=2)
         plt.show()
 
     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
-        """Plots dN_DLA/dz fro the halos. Figure 11"""
+        """Plots dN_DLA/dz for the halos. Figure 11"""
         Mmax=np.min([Mmax,10**self.aDLAdz.log_mass_lim[1]])
         mass=np.logspace(np.log10(Mmin),np.log10(Mmax),num=100)
         aDLA_dz_tab = np.empty(np.size(mass))
@@ -113,7 +113,7 @@ class HaloHIPlots:
             gDLA_dz_tab[i] = self.gDLAdz.get_N_DLA_dz(m)
         plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle)
         plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
-        plt.xlabel(r"Mass ($M_\odot$)")
+        plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$dN_{DLA} / dz (> M_\mathrm{tot})$")
         plt.legend(loc=3)
         plt.show()
