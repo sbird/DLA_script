@@ -352,11 +352,13 @@ class DNdlaDz:
         Parameters:
             lower_mass in M_sun.
         """
-        result = integ.quad(self.NDLA_integrand,np.log(mass),np.log(10.**self.log_mass_lim[1]), epsrel=1e-2)
-        return self.drdz(self.redshift)*result[0]
+        result = integ.quad(self.NDLA_integrand,np.log10(mass),self.log_mass_lim[1], epsrel=1e-2)
+        #drdz is in cm, while the rest is in kpc, so convert.
+        return self.drdz(self.redshift)*result[0]/3.085678e21
 
-    def NDLA_integrand(self,logM):
+    def NDLA_integrand(self,log10M):
         """Integrand for above"""
-        M=np.exp(logM)
-        return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M
+        M=10**log10M
+        #sigma_DLA is in kpc^2, while halo_mass is in M_sun^-1 Mpc^(-3), so convert.
+        return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M/(10**9)
 
