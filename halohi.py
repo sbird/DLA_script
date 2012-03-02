@@ -325,22 +325,20 @@ class HaloHI:
         omega_DLA*=(h100/light)*(protonmass/hy_mass)/rho_crit
         return omega_DLA
 
-    def get_dndm(self,M,deltaM=0.2):
+    def get_dndm(self,minM,maxM):
         """Get the halo mass function from the simulations,
         in units of h^4 M_sun^-1 Mpc^-3.
         Parameters:
-            M - halo mass in M_sun /h
-            deltaM - mass bin to use in log units
+            minM and maxM are the sides of the bin to use.
         """
-        logM=np.log10(M)
         #Number of halos in this mass bin in the whole box
-        logmass=np.log10(self.sub_mass)
-        Nhalo=np.shape(np.where((logmass < logM + deltaM/2.)*(logmass > logM - deltaM/2.)))[1]
+        Nhalo=np.shape(np.where((self.sub_mass <= maxM)*(self.sub_mass > minM)))[1]
         Mpch_in_cm=3.085678e24
         #Convert to halos per Mpc/h^3
         Nhalo/=(self.box*self.UnitLength_in_cm/Mpch_in_cm)**3
         #Convert to per unit mass
-        return Nhalo/M/deltaM
+        return Nhalo/(maxM-minM)
+
 
 
 class DNdlaDz:

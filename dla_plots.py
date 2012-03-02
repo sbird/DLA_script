@@ -111,6 +111,8 @@ class HaloHIPlots:
         for (i,m) in enumerate(mass):
             aDLA_dz_tab[i] = self.aDLAdz.get_N_DLA_dz(m)
             gDLA_dz_tab[i] = self.gDLAdz.get_N_DLA_dz(m)
+        print "AREPO: alpha=",self.aDLAdz.alpha," beta=",self.aDLAdz.beta
+        print "GADGET: alpha=",self.gDLAdz.alpha," beta=",self.gDLAdz.beta
         plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle)
         plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
         plt.xlabel(r"Mass ($M_\odot$/h)")
@@ -136,19 +138,21 @@ class HaloHIPlots:
 
     def plot_halo_mass_func(self,minM=1e7,maxM=5e12):
         """Plots the halo mass function as well as Sheth-Torman. Figure 5."""
-        mass=np.logspace(np.log10(minM),np.log10(maxM),50)
-        deltaM = np.log10(mass[1]-mass[0])
+        mass=np.logspace(np.log10(minM),np.log10(maxM),51)
         shdndm=[self.aDLAdz.halo_mass.dndm(mm) for mm in mass]
-        adndm=[self.ahalo.get_dndm(mm,deltaM) for mm in mass]
-        gdndm=[self.ghalo.get_dndm(mm,deltaM) for mm in mass]
+        adndm=np.empty(50)
+        gdndm=np.empty(50)
+        for ii in range(0,50):
+            adndm[ii]=self.ahalo.get_dndm(mass[ii],mass[ii+1])
+            gdndm[ii]=self.ghalo.get_dndm(mass[ii],mass[ii+1])
         plt.loglog(mass,shdndm,color="black",ls='--',label="Sheth-Tormen")
-        plt.loglog(mass,adndm,color=acol,ls=astyle,label="Arepo")
-        plt.loglog(mass,gdndm,color=gcol,ls=gstyle,label="Gadget")
+        plt.loglog(mass[0:-1],adndm,color=acol,ls=astyle,label="Arepo")
+        plt.loglog(mass[0:-1],gdndm,color=gcol,ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
-        #ax=plt.gca()
-        #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
-        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        plt.ylabel(r"$dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)$")
+        ax=plt.gca()
+        ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(shdndm[-1])),int(np.log10(shdndm[0])),2)))
+
+        plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.legend(loc=0)
         plt.xlim(minM,maxM)

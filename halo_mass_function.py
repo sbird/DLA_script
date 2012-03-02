@@ -83,8 +83,8 @@ class Overdensities:
     """Module for calculating the linear theory overdensities.
     Main result obtained from sigmaof_M_z"""
     def __init__(self,redshift,omega_m=0.27, omega_b=0.045,omega_l=0.73,hubble=0.7, ns=0.95,sigma8=0.8,num_sigma_bins=50,log_mass_lim=(6, 20)):
-        #Calculate the transfer functions at redshift 0, so the normalisation is at redshift 0
-        self.TF = TransferFunction(omega_m, omega_b, 0.0, 0,omega_l, hubble, 0)
+        #Calculate the transfer functions
+        self.TF = TransferFunction(omega_m, omega_b, 0.0, 0,omega_l, hubble, redshift)
         self.omega_matter0 = omega_m
         self.omega_lambda0 = omega_l
         self.hubble0 = hubble
