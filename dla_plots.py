@@ -90,16 +90,18 @@ class HaloHIPlots:
 
     def plot_sigma_DLA(self):
         """Plot sigma_DLA against mass. Figure 10."""
-        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',label="Arepo",color=acol)
-        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(),'s',label="Gadget",color=gcol)
-        #Fits
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
-        plt.loglog(mass,self.aDLAdz.sigma_DLA_fit(mass),color=acol,label="Arepo",ls=astyle)
-        plt.loglog(mass,self.gDLAdz.sigma_DLA_fit(mass),color=gcol,label="Gadget",ls=gstyle)
+        alabel = r"Arepo: $\alpha=$"+str(np.round(self.aDLAdz.alpha,2))+" $\\beta=$"+str(np.round(self.aDLAdz.beta,2))
+        glabel = r"Gadget: $\alpha=$"+str(np.round(self.gDLAdz.alpha,2))+" $\\beta=$"+str(np.round(self.gDLAdz.beta,2))
+        plt.loglog(mass,self.aDLAdz.sigma_DLA_fit(mass),color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,self.gDLAdz.sigma_DLA_fit(mass),color=gcol,label=glabel,ls=gstyle)
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
-        plt.legend(loc=0,ncol=2)
+        plt.legend(loc=9)
+        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',color=acol)
+        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(),'s',color=gcol)
+        #Fits
         plt.show()
 
     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
@@ -129,7 +131,7 @@ class HaloHIPlots:
         #Make the ticks be less-dense
         ax=plt.gca()
         ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
-        ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
+        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
         plt.legend(loc=3)
