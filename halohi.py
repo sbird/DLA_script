@@ -359,9 +359,13 @@ class DNdlaDz:
         self.hubble=hubble
         #log of halo mass limits in M_sun
         self.log_mass_lim=(7,15)
+        #Make it an array, not a list
+        s_DLA=np.array(sigma_DLA)
+        h_mass=np.array(halo_mass)
         #Fit to the DLA abundance
-        logmass=np.log(halo_mass)-12
-        logsigma=np.log(sigma_DLA)
+        ind=np.where(s_DLA > 0.)
+        logmass=np.log(h_mass[ind])-12
+        logsigma=np.log(s_DLA[ind])
         (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
         #Halo mass function object
         self.halo_mass=halo_mass_function.HaloMassFunction(redshift,omega_m=Omega_M, omega_l=Omega_L, hubble=hubble,log_mass_lim=self.log_mass_lim)
