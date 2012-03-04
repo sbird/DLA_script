@@ -243,7 +243,7 @@ class HaloHI:
         sub_nHI_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_nHI_grid]
         for ii,grid in enumerate(sub_nHI_grid):
             ind=np.where(grid > 0)
-            grid[ind]=np.log(grid[ind])
+            grid[ind]=np.log10(grid[ind])
             sub_nHI_grid[ii]=grid
         return sub_nHI_grid
 
