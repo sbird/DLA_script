@@ -37,13 +37,13 @@ class HaloMassFunction:
         Requires mass in units of M_sun /h """
         # Mean matter density at redshift z in units of h^2 Msolar/Mpc^3
         #This is rho_c in units of h^-1 M_sun (Mpc/h)^-3
-        rho0 = 2.78e+11* self.overden.omega_matter_of_z(self.overden.redshift)
+        rhom = 2.78e+11* self.overden.omega_matter0 #self.overden.omega_matter_of_z(self.overden.redshift)
         sigma = self.overden.sigmaof_M_z(mass)
         mass_func = self.mass_function(sigma)
         #We have dn / dM = - d ln sigma /dM rho_0/M f(sigma)
         sigma_plus = self.overden.sigmaof_M_z(1.01*mass)
         dlogsigma = (np.log(sigma_plus)-np.log(sigma))/(0.01*mass)
-        dndM = - dlogsigma*mass_func/mass*rho0
+        dndM = - dlogsigma*mass_func/mass*rhom
         return dndM
 
     def press_schechter(self, sigma):
