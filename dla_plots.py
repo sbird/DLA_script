@@ -41,10 +41,11 @@ class PrettyHalo(halohi.HaloHI):
         vmax=np.max(self.sub_nHI_grid[num])
         maxdist=self.maxdist
         plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
-        bar=plt.colorbar()
+        bar=plt.colorbar(use_gridspec=True)
         bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
         plt.xlabel("x (kpc/h)")
         plt.xlabel("y (kpc/h)")
+        plt.tight_layout()
         plt.show()
 
 def plot_totalHI(base,snapnum,minpart=1000):
@@ -65,7 +66,9 @@ def plot_totalHI(base,snapnum,minpart=1000):
     plt.xlabel(r"Mass ($M_\odot$/h)")
     plt.ylabel("HI frac")
     plt.legend(loc=4)
+    plt.xlim(1e9,5e12)
     plt.show()
+    plt.tight_layout()
     return
 
 
@@ -75,7 +78,7 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=10**5,ngrid=33,maxdist=100.):
+    def __init__(self,base,snapnum,minpart=10**5,ngrid=33,maxdist=100.,minplot=1e9, maxplot=5e12):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
@@ -84,6 +87,8 @@ class HaloHIPlots:
         self.ahalo.save_file()
         self.ghalo=halohi.HaloHI(self.gdir,snapnum,minpart,ngrid,maxdist)
         self.ghalo.save_file()
+        self.minplot=minplot
+        self.maxplot=maxplot
         #Get the DLA redshift fit
         self.aDLAdz=halohi.DNdlaDz(self.ahalo.get_sigma_DLA(),self.ahalo.sub_mass,self.ahalo.redshift,self.ahalo.omegam,self.ahalo.omegal,self.ahalo.hubble)
         self.gDLAdz=halohi.DNdlaDz(self.ghalo.get_sigma_DLA(),self.ghalo.sub_mass,self.ghalo.redshift,self.ghalo.omegam,self.ghalo.omegal,self.ghalo.hubble)
@@ -98,10 +103,12 @@ class HaloHIPlots:
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
-        plt.legend(loc=9)
+        plt.legend(loc=0)
         plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',color=acol)
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(),'s',color=gcol)
+        plt.xlim(self.minplot,self.maxplot)
         #Fits
+        plt.tight_layout()
         plt.show()
 
     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
@@ -120,27 +127,29 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$dN_{DLA} / dz (> M_\mathrm{tot})$")
         plt.legend(loc=3)
+        plt.xlim(self.minplot,self.maxplot)
+        plt.tight_layout()
         plt.show()
 
-    def plot_column_density(self,minN=20.3,maxN=30.):
+    def plot_column_density(self,minN=20.3,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
         plt.loglog(aNHI,af_N,color=acol,ls=astyle,label="Arepo")
         plt.loglog(gNHI,gf_N,color=gcol,ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
-        ax=plt.gca()
-        ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
+        #ax=plt.gca()
+        #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
         plt.legend(loc=3)
+        plt.tight_layout()
         plt.show()
 
-
-    def plot_halo_mass_func(self,minM=1e7,maxM=5e12):
+    def plot_halo_mass_func(self):
         """Plots the halo mass function as well as Sheth-Torman. Figure 5."""
-        mass=np.logspace(np.log10(minM),np.log10(maxM),51)
+        mass=np.logspace(np.log10(self.minplot),np.log10(self.maxplot),51)
         shdndm=[self.aDLAdz.halo_mass.dndm(mm) for mm in mass]
         adndm=np.empty(50)
         gdndm=np.empty(50)
@@ -157,5 +166,6 @@ class HaloHIPlots:
         plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.legend(loc=0)
-        plt.xlim(minM,maxM)
+        plt.xlim(self.minplot,self.maxplot)
+        plt.tight_layout()
         plt.show()
