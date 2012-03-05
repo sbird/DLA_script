@@ -8,11 +8,17 @@ import os.path as path
 import dla_plots as dp
 from save_figure import *
 
-bases=["/home/spb/data/ComparisonProject/128_20Mpc",
+bases=[
+"/home/spb/data/ComparisonProject/128_20Mpc",
 "/home/spb/data/ComparisonProject/256_20Mpc",
-"/home/spb/data/ComparisonProject/512_20Mpc"
+"/home/spb/data/ComparisonProject/512_20Mpc",
 ]
-snaps=[91,124,191]
+minpart=1000
+snaps=[
+91,
+124,
+191,
+]
 
 for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     outdir=path.join(base,"plots")
@@ -39,7 +45,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
 
     #Fig 10
-    hplots=dp.HaloHIPlots(base,snapnum,1000)
+    hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart)
     plt.figure()
     hplots.plot_sigma_DLA()
     save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
