@@ -118,18 +118,16 @@ class HaloHI:
         ngrid - Size of grid to store values on
         maxdist - Maximum extent of grid in kpc.
         halo_list - If not None, only consider halos in the list
-        slice_grid - Only consider particles near the z-axis if true
         reload_file - Ignore saved files if true
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None,slice_grid=False,reload_file=False):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=33,maxdist=100.,halo_list=None,reload_file=False):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.ngrid=ngrid
         self.maxdist=maxdist
-        self.slice=slice_grid
         #Internal gadget mass unit: 1e10 M_sun/h in g/h
         self.UnitMass_in_g=1.989e43
         #1 M_sun in g
@@ -217,26 +215,25 @@ class HaloHI:
                 f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
             except IOError:
                 break
+            print "Starting file ",fnum
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
             #Returns neutral density in atoms/cm^3
             irhoH0 = star.get_reproc_rhoHI(bar)
             f.close()
             #Find particles near each halo
-            if not self.slice:
-                near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)) for sub_pos in self.sub_cofm]
-            else:
-                #Only consider particles near z=0
-                near_halo=[np.where(np.all((np.abs(ipos-sub_pos) < self.maxdist),axis=1)*(np.abs(ipos[:,2]-sub_pos[2])< self.maxdist/self.ngrid) ) for sub_pos in self.sub_cofm]
-            print "File ",fnum," has ",np.sum([np.size(i) for i in near_halo])," halo particles"
-            #positions, centered on each halo, in grid units
-            poslist=[ipos[ind] for ind in near_halo]
-            #coords in kpc/h
-            coords=[ppos- self.sub_cofm[idx] for idx,ppos in enumerate(poslist)]
-            coords=[fieldize.convert_centered(co,self.ngrid,2*self.maxdist) for co in coords]
-            #NH0
-            rhoH0 = [irhoH0[ind] for ind in near_halo]
-            map(fieldize.tsc, coords,rhoH0,sub_nHI_grid)
+            for ii in range(0,np.size(self.sub_mass)):
+                sub_pos=self.sub_cofm[ii]
+                indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
+                pposx=ipos[indx]
+                indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
+                if np.size(indz) == 0:
+                    continue
+                #coords in grid units
+                coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
+                #NH0
+                rhoH0=(irhoH0[indx])[indz]
+                fieldize.tsc(coords,rhoH0,sub_nHI_grid[ii])
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
