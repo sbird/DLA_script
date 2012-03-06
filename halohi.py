@@ -257,7 +257,7 @@ class HaloHI:
         #Number of grid cells
         cells=np.sum([np.shape(np.where((grid > minN)* (grid < maxN)))[1] for grid in self.sub_nHI_grid])
         #Area of grid cells in kpc/h^2
-        cell_area=(2.*self.maxdist/self.ngrid)**2
+        cell_area=(1./self.ngrid)**2
         return cells*cell_area
 
     def absorption_distance(self):
@@ -302,8 +302,8 @@ class HaloHI:
         dX=self.absorption_distance()
         for ii,N in enumerate(NHI_table):
             logN=np.log10(N)
-            n_DLA_N = self.get_absorber_area(logN,logN+dlogN_real)/self.box**2
-            f_N[ii] = n_DLA_N/dlogN_real/N/dX
+            n_DLA_N = self.get_absorber_area(logN,logN+dlogN_real)
+            f_N[ii] = n_DLA_N/(N*10**dlogN_real-N)/dX
 
         return (NHI_table, f_N)
 
