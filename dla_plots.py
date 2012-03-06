@@ -56,12 +56,10 @@ def plot_totalHI(base,snapnum,minpart=1000):
     adir=path.join(base,"Arepo_ENERGY")
     #Load data
     atHI=halohi.TotalHaloHI(adir,snapnum,minpart)
-    atHI.save_file()
     gtHI=halohi.TotalHaloHI(gdir,snapnum,minpart)
-    gtHI.save_file()
     #Plot.
-    plt.loglog(atHI.mass,atHI.nHI,'o',color=acol,label="Arepo")
     plt.loglog(gtHI.mass,gtHI.nHI,'o',color=gcol,label="Gadget")
+    plt.loglog(atHI.mass,atHI.nHI,'o',color=acol,label="Arepo")
     #Axes
     plt.xlabel(r"Mass ($M_\odot$/h)")
     plt.ylabel("HI frac")
@@ -104,8 +102,8 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
         plt.legend(loc=0)
-        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',color=acol)
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(),'s',color=gcol)
+        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',color=acol)
         plt.xlim(self.minplot,self.maxplot)
         #Fits
         plt.tight_layout()
@@ -131,7 +129,7 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_column_density(self,minN=20.3,maxN=23.):
+    def plot_column_density(self,minN=20.3,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
