@@ -96,7 +96,7 @@ def ngp(pos,values,field):
             field[tuple(ind[j,0:dims])]+=values[j]
     return field
 
-def cic(pos, values, field):
+def cic(pos, value, field,totweight=None,periodic=False):
     """Does nearest grid point for a 2D array.
     Inputs:
         Values - list of field values to interpolate
@@ -105,11 +105,73 @@ def cic(pos, values, field):
 
     Points need to be in coordinates where np.max(points) = np.shape(field)
     """
+    # Some error handling.
     if not check_input(pos,field):
         return field
-    nx=np.shape(values)[0]
-    dims=np.size(np.shape(field))
-    raise Exception, "Not Implemented"
+
+    nval=np.size(value)
+    dim=np.shape(field)
+    nx = dim[0]
+    dim=np.size(dim)
+
+    #-----------------------
+    # Calculate TSC weights.
+    #-----------------------
+
+    # Coordinates of nearest grid point (ngp).
+    ng=np.array(np.rint(pos[:,0:dim]),dtype=np.int)
+
+    # Distance from sample to ngp.
+    dng=ng-pos[:,0:dim]
+
+    #Setup two arrays for later:
+    # kk is for the indices, and ww is for the weights.
+    kk=[np.empty([nval,dim]),np.empty([nval,dim])]
+    ww=[np.empty([nval,dim]),np.empty([nval,dim])]
+    # Index of ngp.
+    kk[1]=ng
+    # Weight of ngp.
+    ww[1]=0.5+np.abs(dng)
+
+    # Point before ngp.
+    kk[0]=kk[1]-1  # Index.
+    ww[0]=0.5-np.abs(dng)
+
+    #Take care of the points at the boundaries
+    tscedge(kk,ww,nx,periodic)
+
+    #-----------------------------
+    # Interpolate samples to grid.
+    #-----------------------------
+
+    # tscweight adds up all tsc weights allocated to a grid point, we need
+    # to keep track of this in order to compute the temperature.
+    # Note that total(tscweight) is equal to nrsamples and that
+    # total(ifield)=n0**3 if sph.plot NE 'sph,temp' (not 1 because we use
+    # xpos=posx*n0 --> cube length different from EDFW paper).
+
+    #index[j] -> kk[0][j,0],kk[0][j,2],kk[0][j,3] -> kk[0][j,:]
+
+    extraind=np.zeros(dim-1,dtype=int)
+    #Perform y=0, z=0 addition
+    tsc_xind(field,value,totweight,kk,ww,extraind)
+
+    if dim > 1:
+        #Perform z=0 addition
+        extraind[0]=1
+        tsc_xind(field,value,totweight,kk,ww,extraind)
+
+    if dim > 2:
+        extraind[1]=1
+        #Perform the rest of the addition
+        for yy in xrange(0,2):
+            extraind[0]=yy
+            tsc_xind(field,value,totweight,kk,ww,extraind)
+    if totweight == None:
+        return field
+    else:
+        return (field,totweight)
+
 
 def tsc(pos,value,field,totweight=None,periodic=False):
     """ NAME:    TSC
@@ -220,20 +282,7 @@ def tsc(pos,value,field,totweight=None,periodic=False):
     ww[2]=0.5*(1.5-dd)**2  # TSC-weight.
 
     #Take care of the points at the boundaries
-    if periodic:
-        #If periodic, the nearest grid indices need to wrap around
-        #Note python has a sensible remainder operator
-        #which always returns > 0 , unlike C
-        for axis in xrange(0,2):
-            kk[axis]=kk[axis]%nx
-    else:
-        for axis in xrange(0,2):
-            #Find points outside the grid
-            ind=np.where((kk[axis] < 0) + (kk[axis] > nx-1))
-            #Set the weights of these points to zero
-            ww[axis][ind]=0
-            #Indices of these points now do not matter, so set to zero also
-            kk[axis][ind]=0
+    tscedge(kk,ww,nx,periodic)
 
     #-----------------------------
     # Interpolate samples to grid.
@@ -253,14 +302,14 @@ def tsc(pos,value,field,totweight=None,periodic=False):
 
     if dim > 1:
         #Perform z=0 addition
-        for yy in xrange(1,2):
+        for yy in xrange(1,3):
             extraind[0]=yy
             tsc_xind(field,value,totweight,kk,ww,extraind)
 
     if dim > 2:
         #Perform the rest of the addition
-        for zz in xrange(1,2):
-            for yy in xrange(0,2):
+        for zz in xrange(1,3):
+            for yy in xrange(0,3):
                 extraind[0]=yy
                 extraind[1]=zz
                 tsc_xind(field,value,totweight,kk,ww,extraind)
@@ -268,6 +317,32 @@ def tsc(pos,value,field,totweight=None,periodic=False):
         return field
     else:
         return (field,totweight)
+
+def tscedge(kk,ww,ngrid,periodic):
+    """This function takes care of the points at the grid boundaries,
+       either by wrapping them around the grid (the Julie Andrews sense)
+       or by throwing them over the side (the Al Pacino sense).
+       Arguments are:
+           kk - the grid indices
+           ww - the grid weights
+           nx - the number of grid points
+           periodic - Julie or Al?
+    """
+    if periodic:
+        #If periodic, the nearest grid indices need to wrap around
+        #Note python has a sensible remainder operator
+        #which always returns > 0 , unlike C
+        for axis in xrange(0,np.shape(kk)[0]):
+            kk[axis]=kk[axis]%ngrid
+    else:
+        for axis in xrange(0,np.shape(kk)[0]):
+            #Find points outside the grid
+            ind=np.where((kk[axis] < 0) + (kk[axis] > ngrid-1))
+            #Set the weights of these points to zero
+            ww[axis][ind]=0
+            #Indices of these points now do not matter, so set to zero also
+            kk[axis][ind]=0
+
 
 def tscadd(field,index,weight,value,totweight):
     """This function is a helper for the tsc and cic routines. It adds
@@ -339,7 +414,7 @@ def tsc_xind(field,value,totweight,kk,ww,extraind):
     for i in xrange(1,dims):
         index[:,i]=kk[extraind[i-1]][:,i]
     #Do the addition for each value of x
-    for i in xrange(0,2):
+    for i in xrange(0,np.shape(kk)[0]):
         dim_list[0]=i
         tscweight=get_tscweight(ww,dim_list)
         index[:,0]=kk[i][:,0]
