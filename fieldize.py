@@ -115,7 +115,7 @@ def cic(pos, value, field,totweight=None,periodic=False):
     dim=np.size(dim)
 
     #-----------------------
-    # Calculate TSC weights.
+    # Calculate CIC weights.
     #-----------------------
 
     # Coordinates of nearest grid point (ngp).
@@ -126,8 +126,8 @@ def cic(pos, value, field,totweight=None,periodic=False):
 
     #Setup two arrays for later:
     # kk is for the indices, and ww is for the weights.
-    kk=[np.empty([nval,dim]),np.empty([nval,dim])]
-    ww=[np.empty([nval,dim]),np.empty([nval,dim])]
+    kk=np.empty([2,nval,dim])
+    ww=np.empty([2,nval,dim])
     # Index of ngp.
     kk[1]=ng
     # Weight of ngp.
@@ -264,20 +264,20 @@ def tsc(pos,value,field,totweight=None,periodic=False):
 
     #Setup two arrays for later:
     # kk is for the indices, and ww is for the weights.
-    kk=[np.empty([nval,dim]),np.empty([nval,dim]),np.empty([nval,dim])]
-    ww=[np.empty([nval,dim]),np.empty([nval,dim]),np.empty([nval,dim])]
+    kk=np.empty([3,nval,dim])
+    ww=np.empty([3,nval,dim])
     # Index of ngp.
-    kk[1]=ng
+    kk[1,:,:]=ng
     # Weight of ngp.
-    ww[1]=0.75-dng**2
+    ww[1,:,:]=0.75-dng**2
 
     # Point before ngp.
-    kk[0]=kk[1]-1  # Index.
+    kk[0,:,:]=kk[1,:,:]-1  # Index.
     dd=1.0-dng  # Distance to sample.
     ww[0]=0.5*(1.5-dd)**2  # TSC-weight.
 
     # Point after ngp.
-    kk[2]=kk[1]+1  # Index.
+    kk[2,:,:]=kk[1,:,:]+1  # Index.
     dd=1.0+dng  # Distance to sample.
     ww[2]=0.5*(1.5-dd)**2  # TSC-weight.
 
@@ -318,6 +318,63 @@ def tsc(pos,value,field,totweight=None,periodic=False):
     else:
         return (field,totweight)
 
+def cic_str(pos,value,field,in_radii,periodic=False):
+    """This is exactly the same as the cic() routine, above, except
+       that instead of each particle being stretched over one grid point,
+       it is stretched over a cubic region with some radius.
+
+       Field must be 2d
+       Extra arguments:
+            radii - Array of particle radii in grid units.
+    """
+    # Some error handling.
+    if not check_input(pos,field):
+        return field
+
+    nval=np.size(value)
+    dim=np.shape(field)
+    nx = dim[0]
+    dim=np.size(dim)
+    if dim != 2:
+        raise ValueError("Non 2D grid not supported!")
+    #If the smoothing length is below a single grid cell,
+    #stretch it.
+    radii=np.array(in_radii)
+    ind = np.where(radii < 0.5)
+    radii[ind]=0.5
+    #Weight of each cell
+    weight = value/(2*radii)**dim
+    #Upper and lower bounds
+    up = pos[:,0:dim]+np.repeat(np.transpose([radii,]),dim,axis=1)
+    low = pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)
+    #Deal with the edges
+    if periodic:
+        raise ValueError("Not supported")
+    else:
+        ind=np.where(up > nx-1)
+        up[ind] = nx-1
+        ind=np.where(low < 0)
+        low[ind]=0
+    #Upper and lower grid cells to add to
+    upg = np.array(np.floor(up),dtype=int)
+    lowg = np.array(np.floor(low),dtype=int)
+
+    for p in xrange(0,nval):
+        #Deal with corner values
+        field[lowg[p,0],lowg[p,1]]+=(lowg[p,0]+1-low[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
+        field[upg[p,0],lowg[p,1]]+=(up[p,0]-upg[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
+        field[lowg[p,0],upg[p,1]]+=(lowg[p,0]+1-low[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
+        field[upg[p,0], upg[p,1]]+=(up[p,0]-upg[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
+        #Central region
+        for gy in xrange(lowg[p,1]+1,upg[p,1]):
+            #Edges.
+            field[lowg[p,0],gy]+=(lowg[p,0]+1-low[p,0])*weight[p]
+            field[upg[p,0],gy]+=(up[p,0]-upg[p,0])*weight[p]
+            #x-values
+            for gx in xrange(lowg[p,0]+1,upg[p,0]):
+                field[gx,gy]+=weight[p]
+    return field
+
 def tscedge(kk,ww,ngrid,periodic):
     """This function takes care of the points at the grid boundaries,
        either by wrapping them around the grid (the Julie Andrews sense)
@@ -332,16 +389,14 @@ def tscedge(kk,ww,ngrid,periodic):
         #If periodic, the nearest grid indices need to wrap around
         #Note python has a sensible remainder operator
         #which always returns > 0 , unlike C
-        for axis in xrange(0,np.shape(kk)[0]):
-            kk[axis]=kk[axis]%ngrid
+        kk=kk%ngrid
     else:
-        for axis in xrange(0,np.shape(kk)[0]):
-            #Find points outside the grid
-            ind=np.where((kk[axis] < 0) + (kk[axis] > ngrid-1))
-            #Set the weights of these points to zero
-            ww[axis][ind]=0
-            #Indices of these points now do not matter, so set to zero also
-            kk[axis][ind]=0
+        #Find points outside the grid
+        ind=np.where(np.logical_or((kk < 0),(kk > ngrid-1)))
+        #Set the weights of these points to zero
+        ww[ind]=0
+        #Indices of these points now do not matter, so set to zero also
+        kk[ind]=0
 
 
 def tscadd(field,index,weight,value,totweight):
@@ -393,10 +448,10 @@ def get_tscweight(ww,ii):
     eg, call as:
         get_tscweight(ww,[0,0,0])
     """
-    tscweight=1
+    tscweight=1.
     #tscweight = \Pi ww[1]*ww[2]*ww[3]
     for j in xrange(0,np.size(ii)):
-        tscweight*=ww[ii[j]][:,j]
+        tscweight*=ww[ii[j],:,j]
     return tscweight
 
 def tsc_xind(field,value,totweight,kk,ww,extraind):
@@ -409,15 +464,15 @@ def tsc_xind(field,value,totweight,kk,ww,extraind):
     dims=np.size(extraind)+1
     dim_list=np.zeros(dims,dtype=int)
     dim_list[1:dims]=extraind
-    index=np.array(kk[0])
+    index=kk[0]
     #Set up the index to have the right kk values depending on the y,z axes
     for i in xrange(1,dims):
-        index[:,i]=kk[extraind[i-1]][:,i]
+        index[:,i]=kk[extraind[i-1],:,i]
     #Do the addition for each value of x
     for i in xrange(0,np.shape(kk)[0]):
         dim_list[0]=i
         tscweight=get_tscweight(ww,dim_list)
-        index[:,0]=kk[i][:,0]
+        index[:,0]=kk[i,:,0]
         tscadd(field,index,tscweight,value,totweight)
     return
 
