@@ -48,6 +48,22 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
+    def plot_pretty_gas_halo(self,num=0):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        """
+        #Plot a figure
+        vmax=np.max(self.sub_gas_grid[num])
+        maxdist=self.maxdist
+        plt.imshow(self.sub_gas_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        bar=plt.colorbar(use_gridspec=True)
+        bar.set_label("log$_{10}$ N$_{H}$ (cm$^{-2}$)")
+        plt.xlabel("x (kpc/h)")
+        plt.xlabel("y (kpc/h)")
+        plt.tight_layout()
+        plt.show()
+
+
 def plot_totalHI(base,snapnum,minpart=1000):
     """Make the plot of total neutral hydrogen density in a halo:
         Figure 9 of Tescari & Viel 2009"""
@@ -133,8 +149,7 @@ class HaloHIPlots:
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
-        plt.loglog(aNHI,af_N,color=acol,ls=astyle,label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol,ls=gstyle,label="Gadget")
+        plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
