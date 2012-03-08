@@ -14,6 +14,7 @@ import os.path as path
 import cold_gas
 import halo_mass_function
 import fieldize
+import hsml
 import scipy
 import scipy.integrate as integ
 import scipy.weave
@@ -137,6 +138,8 @@ class HaloHI:
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
         self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"hi_grid_"+str(ngrid)+".npz")
+        #For printing
+        self.once=False
         try:
             if reload_file:
                 raise KeyError("reloading")
@@ -147,6 +150,7 @@ class HaloHI:
                 raise KeyError("File not for this structure")
             #Otherwise...
             self.sub_nHI_grid = grid_file["sub_nHI_grid"]
+            self.sub_gas_grid = grid_file["sub_gas_grid"]
             self.sub_mass = grid_file["sub_mass"]
             self.sub_cofm=grid_file["sub_cofm"]
             self.redshift=grid_file["redshift"]
@@ -157,6 +161,7 @@ class HaloHI:
             grid_file.close()
             if halo_list != None:
                 self.sub_nHI_grid=self.sub_nHI_grid[halo_list]
+                self.sub_gas_grid=self.sub_gas_grid[halo_list]
                 self.sub_mass=self.sub_mass[halo_list]
                 self.sub_cofm=self.sub_cofm[halo_list]
         except (IOError,KeyError):
@@ -184,6 +189,7 @@ class HaloHI:
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
             self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
+            self.sub_gas_grid=self.set_gas_grid(ngrid,maxdist)
         return
 
     def save_file(self):
@@ -191,14 +197,14 @@ class HaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/hi_grid_$ngrid.npz.
         """
-        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box,omegam=self.omegam,omegal=self.omegal)
+        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_gas_grid=self.sub_gas_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box,omegam=self.omegam,omegal=self.omegal)
 
 
 
     def set_nHI_grid(self,ngrid=None,maxdist=None):
         """Set up the grid around each halo where the HI is calculated.
             ngrid - Size of grid to store values on
-            maxdist - Maximum extent of grid in kpc.
+            maxdist - Maximum extent of grid in kpc/h
         Returns:
             sub_nHI_grid - a grid containing the integrated N_HI in neutral atoms/cm^-2
                            summed along the z-axis
@@ -209,6 +215,7 @@ class HaloHI:
             self.maxdist=maxdist
         sub_nHI_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
         star=cold_gas.StarFormation(hubble=self.hubble)
+        self.once=True
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
             try:
@@ -220,20 +227,12 @@ class HaloHI:
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
             #Returns neutral density in atoms/cm^3
             irhoH0 = star.get_reproc_rhoHI(bar)
+            smooth = hsml.get_smooth_length(bar)
             f.close()
-            #Find particles near each halo
-            for ii in range(0,np.size(self.sub_mass)):
-                sub_pos=self.sub_cofm[ii]
-                indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
-                pposx=ipos[indx]
-                indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
-                if np.size(indz) == 0:
-                    continue
-                #coords in grid units
-                coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
-                #NH0
-                rhoH0=(irhoH0[indx])[indz]
-                fieldize.tsc(coords,rhoH0,sub_nHI_grid[ii])
+            #Convert smoothing lengths to grid coordinates.
+            smooth*=(self.ngrid/(2*self.maxdist))
+            #Perform the grid interpolation
+            self.sub_gridize_single_file(ipos,irhoH0,smooth,sub_nHI_grid)
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
@@ -243,6 +242,78 @@ class HaloHI:
             grid[ind]=np.log10(grid[ind])
             sub_nHI_grid[ii]=grid
         return sub_nHI_grid
+
+    def set_gas_grid(self,ngrid=None,maxdist=None):
+        """Set up the grid around each halo where the column density
+           of hydrogen (neutral and ionised) is calculated.
+            ngrid - Size of grid to store values on
+            maxdist - Maximum extent of grid in kpc/h
+        Returns:
+            sub_gas_grid - a grid containing the integrated N_HI in neutral atoms/cm^-2
+                           summed along the z-axis
+        """
+        if ngrid != None:
+            self.ngrid=ngrid
+        if maxdist != None:
+            self.maxdist=maxdist
+        sub_gas_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
+        #Now grid the gas for each halo
+        for fnum in xrange(0,500):
+            try:
+                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
+            except IOError:
+                break
+            print "Starting file ",fnum
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"],dtype=np.float64)
+            #Returns neutral gas density in atoms/cm^3
+            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            protonmass=1.66053886e-24
+            hy_mass = 0.76 # Hydrogen massfrac
+            irho*=(hy_mass/protonmass)
+            smooth = hsml.get_smooth_length(bar)
+            f.close()
+            #Convert smoothing lengths to grid coordinates.
+            smooth*=(self.ngrid/(2*self.maxdist))
+            #Perform the grid interpolation
+            self.sub_gridize_single_file(ipos,irho,smooth,sub_gas_grid)
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        sub_gas_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_gas_grid]
+        for ii,grid in enumerate(sub_gas_grid):
+            ind=np.where(grid > 0)
+            grid[ind]=np.log10(grid[ind])
+            sub_gas_grid[ii]=grid
+        return sub_gas_grid
+
+    def sub_gridize_single_file(self,ipos,irho,ismooth,sub_grid):
+        """Helper function for sub_gas_grid and sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        #Find particles near each halo
+        for ii in range(0,np.size(self.sub_mass)):
+            sub_pos=self.sub_cofm[ii]
+            indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
+            pposx=ipos[indx]
+            indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
+            if np.size(indz) == 0:
+                continue
+            #coords in grid units
+            coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
+            #NH0
+            rho=(irho[indx])[indz]
+            smooth = (ismooth[indx])[indz]
+            if self.once:
+                print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+                self.once=False
+            fieldize.cic_str(coords,rho,sub_grid[ii],smooth)
+        return
 
     def get_sigma_DLA(self):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
@@ -360,10 +431,13 @@ class DNdlaDz:
         s_DLA=np.array(sigma_DLA)
         h_mass=np.array(halo_mass)
         #Fit to the DLA abundance
-        ind=np.where(s_DLA > 0.)
+        ind=np.where((s_DLA > 0.)*(h_mass > 1e10) )
         logmass=np.log(h_mass[ind])-12
         logsigma=np.log(s_DLA[ind])
-        (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
+        if np.size(logsigma) == 0:
+            (self.alpha,self.beta)=(0,0)
+        else:
+            (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
         #Halo mass function object
         self.halo_mass=halo_mass_function.HaloMassFunction(redshift,omega_m=Omega_M, omega_l=Omega_L, hubble=hubble,log_mass_lim=self.log_mass_lim)
 

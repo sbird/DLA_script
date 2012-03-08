@@ -16,11 +16,12 @@ def get_smooth_length(bar):
     """
     #Are we arepo? If we are we should have this array.
     if np.any(np.array(bar.keys()) == 'Number of faces of cell'):
-        print "We are Arepo!"
         rho=np.array(bar["Density"],dtype=np.float64)
         mass=np.array(bar["Masses"],dtype=np.float64)
         volume = mass/rho
-        radius = 3*volume**(0.33333333)/4./math.pi
+        radius = (3*volume/4/math.pi)**(0.33333333)
+        #Note that 4 pi/3**1/3 ~ 1.4, so the
+        #geometric factors nearly cancel and the cell is almost a cube.
         hsml=1.5*radius
     else:
         #If we are gadget, the SmoothingLength array is actually the smoothing length.
