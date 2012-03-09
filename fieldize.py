@@ -349,7 +349,7 @@ def cic_str(pos,value,field,in_radii,periodic=False):
     low = pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)
     #Deal with the edges
     if periodic:
-        raise ValueError("Not supported")
+        raise ValueError("Periodic grid not supported")
     else:
         ind=np.where(up > nx-1)
         up[ind] = nx-1
@@ -359,20 +359,51 @@ def cic_str(pos,value,field,in_radii,periodic=False):
     upg = np.array(np.floor(up),dtype=int)
     lowg = np.array(np.floor(low),dtype=int)
 
-    for p in xrange(0,nval):
-        #Deal with corner values
-        field[lowg[p,0],lowg[p,1]]+=(lowg[p,0]+1-low[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
-        field[upg[p,0],lowg[p,1]]+=(up[p,0]-upg[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
-        field[lowg[p,0],upg[p,1]]+=(lowg[p,0]+1-low[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
-        field[upg[p,0], upg[p,1]]+=(up[p,0]-upg[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
-        #Central region
-        for gy in xrange(lowg[p,1]+1,upg[p,1]):
-            #Edges.
-            field[lowg[p,0],gy]+=(lowg[p,0]+1-low[p,0])*weight[p]
-            field[upg[p,0],gy]+=(up[p,0]-upg[p,0])*weight[p]
-            #x-values
-            for gx in xrange(lowg[p,0]+1,upg[p,0]):
-                field[gx,gy]+=weight[p]
+    expr="""for(int p=0;p<nval;p++){
+            //Temp variables
+            double wght = weight(p);
+            int ilx=lowg(p,0);
+            int ily=lowg(p,1);
+            int iux=upg(p,0);
+            int iuy=upg(p,1);
+            double lx=low(p,0);
+            double ly=low(p,1);
+            double ux=up(p,0);
+            double uy=up(p,1);
+            //Deal with corner values
+            field(ilx,ily)+=(ilx+1-lx)*(ily+1-ly)*wght;
+            field(iux,ily)+=(ux-iux)*(ily+1-ly)*wght;
+            field(ilx,iuy)+=(ilx+1-lx)*(iuy+1-uy)*wght;
+            field(iux,iuy)+=(ux-iux)*(iuy+1-uy)*wght;
+            //Central region
+            for(int gy=ily+1;gy< iuy;gy++){
+                //Edges.
+                field(ilx,gy)+=(ilx+1-lx)*wght;
+                field(iux,gy)+=(ux-iux)*wght;
+                //x-values
+                for(int gx=ilx+1;gx<iux;gx++){
+                    field(gx,gy)+=wght;
+                }
+            }
+        }
+    """
+    try:
+        scipy.weave.inline(expr,['nval','upg','lowg','field','up','low','weight'],type_converters=scipy.weave.converters.blitz)
+    except Exception:
+        for p in xrange(0,nval):
+            #Deal with corner values
+            field[lowg[p,0],lowg[p,1]]+=(lowg[p,0]+1-low[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
+            field[upg[p,0],lowg[p,1]]+=(up[p,0]-upg[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
+            field[lowg[p,0],upg[p,1]]+=(lowg[p,0]+1-low[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
+            field[upg[p,0], upg[p,1]]+=(up[p,0]-upg[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
+            #Central region
+            for gy in xrange(lowg[p,1]+1,upg[p,1]):
+                #Edges.
+                field[lowg[p,0],gy]+=(lowg[p,0]+1-low[p,0])*weight[p]
+                field[upg[p,0],gy]+=(up[p,0]-upg[p,0])*weight[p]
+                #x-values
+                for gx in xrange(lowg[p,0]+1,upg[p,0]):
+                    field[gx,gy]+=weight[p]
     return field
 
 def tscedge(kk,ww,ngrid,periodic):
