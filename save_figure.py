@@ -7,7 +7,7 @@ def save_figure(path):
     bk=matplotlib.backends.backend
     if path == "":
         return
-    elif bk == 'TkAgg' or bk == 'Agg' or bk == 'GTKAgg':
+    elif bk == 'TkAgg' or bk == 'Agg' or bk == 'GTKAgg' or bk == 'Qt4Agg':
         path = path+".png"
     elif bk == 'PDF' or bk == 'pdf':
         path = path+".pdf"

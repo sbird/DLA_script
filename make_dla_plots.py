@@ -50,6 +50,16 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_sigma_DLA()
     save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
+    #Fig 10
+    plt.figure()
+    hplots.plot_sigma_DLA(17)
+    save_figure(path.join(outdir,"sigma_DLA_17_"+str(snapnum)))
+
+    #Fig 10
+    plt.figure()
+    hplots.plot_sigma_DLA(15)
+    save_figure(path.join(outdir,"sigma_DLA_15_"+str(snapnum)))
+
     plt.figure()
     hplots.plot_rel_sigma_DLA()
     save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
@@ -69,7 +79,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_rel_column_density()
     save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
-    #Fig 5
-    plt.figure()
-    hplots.plot_halo_mass_func()
-    save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
+#     #Fig 5
+#     plt.figure()
+#     hplots.plot_halo_mass_func()
+#     save_figure(path.join(outdir,"halo_func_"+str(snapnum)))

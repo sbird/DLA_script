@@ -88,39 +88,41 @@ class HaloHIPlots:
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
         self.ahalo=PrettyHalo(self.adir,snapnum,minpart,ngrid,maxdist)
-        self.ahalo.save_file()
+#         self.ahalo.save_file()
         self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,ngrid,maxdist)
-        self.ghalo.save_file()
+#         self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
         #Get the DLA redshift fit
-        self.aDLAdz=halohi.DNdlaDz(self.ahalo.get_sigma_DLA(),self.ahalo.sub_mass,self.ahalo.redshift,self.ahalo.omegam,self.ahalo.omegal,self.ahalo.hubble)
-        self.gDLAdz=halohi.DNdlaDz(self.ghalo.get_sigma_DLA(),self.ghalo.sub_mass,self.ghalo.redshift,self.ghalo.omegam,self.ghalo.omegal,self.ghalo.hubble)
+#         self.aDLAdz=halohi.DNdlaDz(self.ahalo.get_sigma_DLA(),self.ahalo.sub_mass,self.ahalo.redshift,self.ahalo.omegam,self.ahalo.omegal,self.ahalo.hubble)
+#         self.gDLAdz=halohi.DNdlaDz(self.ghalo.get_sigma_DLA(),self.ghalo.sub_mass,self.ghalo.redshift,self.ghalo.omegam,self.ghalo.omegal,self.ghalo.hubble)
 
-    def plot_sigma_DLA(self):
+    def plot_sigma_DLA(self, DLA_cut=20.3):
         """Plot sigma_DLA against mass. Figure 10."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
-        alabel = r"Arepo: $\alpha=$"+str(np.round(self.aDLAdz.alpha,2))+" $\\beta=$"+str(np.round(self.aDLAdz.beta,2))
-        glabel = r"Gadget: $\alpha=$"+str(np.round(self.gDLAdz.alpha,2))+" $\\beta=$"+str(np.round(self.gDLAdz.beta,2))
-        plt.loglog(mass,self.aDLAdz.sigma_DLA_fit(mass),color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,self.gDLAdz.sigma_DLA_fit(mass),color=gcol,label=glabel,ls=gstyle)
+        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut)
+        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut)
+        alabel = r"Arepo: $\alpha=$"+str(np.round(self.ahalo.alpha,2))+" $\\beta=$"+str(np.round(self.ahalo.beta,2))
+        glabel = r"Gadget: $\alpha=$"+str(np.round(self.ghalo.alpha,2))+" $\\beta=$"+str(np.round(self.ghalo.beta,2))
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
         plt.legend(loc=0)
-        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(),'s',color=gcol)
-        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(),'^',color=acol)
+        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
+        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
         plt.xlim(self.minplot,self.maxplot)
         #Fits
         plt.tight_layout()
         plt.show()
 
-    def get_rel_sigma_DLA(self):
+    def get_rel_sigma_DLA(self,DLA_cut=20.3):
         """Get the change in sigma_DLA for a particular halo.
          and the mass of each halo averaged across arepo and gadget.
         """
-        aDLA=self.ahalo.get_sigma_DLA()
-        gDLA=self.ghalo.get_sigma_DLA()
+        aDLA=self.ahalo.get_sigma_DLA(DLA_cut)
+        gDLA=self.ghalo.get_sigma_DLA(DLA_cut)
         rDLA=np.empty(np.size(aDLA))
         rmass=np.empty(np.size(aDLA))
         for ii in xrange(0,np.size(aDLA)):
@@ -138,42 +140,46 @@ class HaloHIPlots:
 
     def plot_rel_sigma_DLA(self):
         """Plot sigma_DLA against mass. Figure 10."""
-        (rmass,rDLA)=self.get_rel_sigma_DLA()
-        plt.semilogx(rmass,rDLA,'o',color=rcol)
-        plt.xlim(self.minplot,self.maxplot)
+        (rmass,rDLA)=self.get_rel_sigma_DLA(15)
+        plt.semilogx(rmass,rDLA,'o',color="brown",label="N_HI> 15")
+        (rmass,rDLA)=self.get_rel_sigma_DLA(17)
+        plt.semilogx(rmass,rDLA,'o',color="green",label="N_HI> 17")
+        (rmass,rDLA)=self.get_rel_sigma_DLA(20.3)
+        plt.semilogx(rmass,rDLA,'o',color="silver",label="N_HI> 20.3")
         #Axes
+        plt.xlim(self.minplot,self.maxplot)
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\delta \sigma_\mathrm{DLA} / \sigma_\mathrm{DLA}$ (kpc$^2$/h$^2$)")
-        #Fits
+        plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 
-    def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
-        """Plots dN_DLA/dz for the halos. Figure 11"""
-        Mmax=np.min([Mmax,10**self.aDLAdz.log_mass_lim[1]])
-        mass=np.logspace(np.log10(Mmin),np.log10(Mmax),num=100)
-        aDLA_dz_tab = np.empty(np.size(mass))
-        gDLA_dz_tab = np.empty(np.size(mass))
-        for (i,m) in enumerate(mass):
-            aDLA_dz_tab[i] = self.aDLAdz.get_N_DLA_dz(m)
-            gDLA_dz_tab[i] = self.gDLAdz.get_N_DLA_dz(m)
-        print "AREPO: alpha=",self.aDLAdz.alpha," beta=",self.aDLAdz.beta
-        print "GADGET: alpha=",self.gDLAdz.alpha," beta=",self.gDLAdz.beta
-        plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle)
-        plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$dN_{DLA} / dz (> M_\mathrm{tot})$")
-        plt.legend(loc=3)
-        plt.xlim(self.minplot,self.maxplot)
-        plt.tight_layout()
-        plt.show()
+#     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
+#         """Plots dN_DLA/dz for the halos. Figure 11"""
+#         Mmax=np.min([Mmax,10**self.aDLAdz.log_mass_lim[1]])
+#         mass=np.logspace(np.log10(Mmin),np.log10(Mmax),num=100)
+#         aDLA_dz_tab = np.empty(np.size(mass))
+#         gDLA_dz_tab = np.empty(np.size(mass))
+#         for (i,m) in enumerate(mass):
+#             aDLA_dz_tab[i] = self.aDLAdz.get_N_DLA_dz(m)
+#             gDLA_dz_tab[i] = self.gDLAdz.get_N_DLA_dz(m)
+#         print "AREPO: alpha=",self.aDLAdz.alpha," beta=",self.aDLAdz.beta
+#         print "GADGET: alpha=",self.gDLAdz.alpha," beta=",self.gDLAdz.beta
+#         plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle)
+#         plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
+#         plt.xlabel(r"Mass ($M_\odot$/h)")
+#         plt.ylabel(r"$dN_{DLA} / dz (> M_\mathrm{tot})$")
+#         plt.legend(loc=3)
+#         plt.xlim(self.minplot,self.maxplot)
+#         plt.tight_layout()
+#         plt.show()
 
     def plot_column_density(self,minN=10,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
-        plt.loglog(aNHI,gf_N,color=gcol, ls=gstyle,label="Arepo / Gadget")
+        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Arepo / Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
@@ -186,8 +192,8 @@ class HaloHIPlots:
 
     def plot_rel_column_density(self,minN=10,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
         plt.loglog(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
         ax=plt.gca()
@@ -199,25 +205,25 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_halo_mass_func(self):
-        """Plots the halo mass function as well as Sheth-Torman. Figure 5."""
-        mass=np.logspace(np.log10(self.minplot),np.log10(self.maxplot),51)
-        shdndm=[self.aDLAdz.halo_mass.dndm(mm) for mm in mass]
-        adndm=np.empty(50)
-        gdndm=np.empty(50)
-        for ii in range(0,50):
-            adndm[ii]=self.ahalo.get_dndm(mass[ii],mass[ii+1])
-            gdndm[ii]=self.ghalo.get_dndm(mass[ii],mass[ii+1])
-        plt.loglog(mass,shdndm,color="black",ls='--',label="Sheth-Tormen")
-        plt.loglog(mass[0:-1],adndm,color=acol,ls=astyle,label="Arepo")
-        plt.loglog(mass[0:-1],gdndm,color=gcol,ls=gstyle,label="Gadget")
-        #Make the ticks be less-dense
-        ax=plt.gca()
-        ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(shdndm[-1])),int(np.log10(shdndm[0])),2)))
-
-        plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.legend(loc=0)
-        plt.xlim(self.minplot,self.maxplot)
-        plt.tight_layout()
-        plt.show()
+#     def plot_halo_mass_func(self):
+#         """Plots the halo mass function as well as Sheth-Torman. Figure 5."""
+#         mass=np.logspace(np.log10(self.minplot),np.log10(self.maxplot),51)
+#         shdndm=[self.aDLAdz.halo_mass.dndm(mm) for mm in mass]
+#         adndm=np.empty(50)
+#         gdndm=np.empty(50)
+#         for ii in range(0,50):
+#             adndm[ii]=self.ahalo.get_dndm(mass[ii],mass[ii+1])
+#             gdndm[ii]=self.ghalo.get_dndm(mass[ii],mass[ii+1])
+#         plt.loglog(mass,shdndm,color="black",ls='--',label="Sheth-Tormen")
+#         plt.loglog(mass[0:-1],adndm,color=acol,ls=astyle,label="Arepo")
+#         plt.loglog(mass[0:-1],gdndm,color=gcol,ls=gstyle,label="Gadget")
+#         #Make the ticks be less-dense
+#         ax=plt.gca()
+#         ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(shdndm[-1])),int(np.log10(shdndm[0])),2)))
+#
+#         plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
+#         plt.xlabel(r"Mass ($M_\odot$/h)")
+#         plt.legend(loc=0)
+#         plt.xlim(self.minplot,self.maxplot)
+#         plt.tight_layout()
+#         plt.show()
