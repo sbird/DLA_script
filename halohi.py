@@ -188,8 +188,7 @@ class HaloHI:
             self.omegam=f["Header"].attrs["Omega0"]
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
-            self.sub_nHI_grid=self.set_nHI_grid(ngrid,maxdist)
-            self.sub_gas_grid=self.set_gas_grid(ngrid,maxdist)
+            (self.sub_gas_grid,self.sub_nHI_grid)=self.set_nHI_grid(ngrid,maxdist)
         return
 
     def save_file(self):
@@ -214,6 +213,7 @@ class HaloHI:
         if maxdist != None:
             self.maxdist=maxdist
         sub_nHI_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
+        sub_gas_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
         star=cold_gas.StarFormation(hubble=self.hubble)
         self.once=True
         #Now grid the HI for each halo
@@ -228,11 +228,15 @@ class HaloHI:
             #Returns neutral density in atoms/cm^3
             irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
+            #Returns gas density in hydrogen atoms/cm^3
+            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            protonmass=1.66053886e-24
+            hy_mass = 0.76 # Hydrogen massfrac
             f.close()
             #Convert smoothing lengths to grid coordinates.
             smooth*=(self.ngrid/(2*self.maxdist))
             #Perform the grid interpolation
-            self.sub_gridize_single_file(ipos,irhoH0,smooth,sub_nHI_grid)
+            self.sub_gridize_single_file(ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid)
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
@@ -241,53 +245,9 @@ class HaloHI:
             ind=np.where(grid > 0)
             grid[ind]=np.log10(grid[ind])
             sub_nHI_grid[ii]=grid
-        return sub_nHI_grid
+        return (sub_gas_grid,sub_nHI_grid)
 
-    def set_gas_grid(self,ngrid=None,maxdist=None):
-        """Set up the grid around each halo where the column density
-           of hydrogen (neutral and ionised) is calculated.
-            ngrid - Size of grid to store values on
-            maxdist - Maximum extent of grid in kpc/h
-        Returns:
-            sub_gas_grid - a grid containing the integrated N_HI in neutral atoms/cm^-2
-                           summed along the z-axis
-        """
-        if ngrid != None:
-            self.ngrid=ngrid
-        if maxdist != None:
-            self.maxdist=maxdist
-        sub_gas_grid=[np.zeros((self.ngrid,self.ngrid)) for i in self.sub_cofm]
-        #Now grid the gas for each halo
-        for fnum in xrange(0,500):
-            try:
-                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
-            except IOError:
-                break
-            print "Starting file ",fnum
-            bar=f["PartType0"]
-            ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            #Returns neutral gas density in atoms/cm^3
-            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
-            protonmass=1.66053886e-24
-            hy_mass = 0.76 # Hydrogen massfrac
-            irho*=(hy_mass/protonmass)
-            smooth = hsml.get_smooth_length(bar)
-            f.close()
-            #Convert smoothing lengths to grid coordinates.
-            smooth*=(self.ngrid/(2*self.maxdist))
-            #Perform the grid interpolation
-            self.sub_gridize_single_file(ipos,irho,smooth,sub_gas_grid)
-        #Linear dimension of each cell in cm:
-        #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
-        sub_gas_grid=[g*epsilon/(1+self.redshift)**2 for g in sub_gas_grid]
-        for ii,grid in enumerate(sub_gas_grid):
-            ind=np.where(grid > 0)
-            grid[ind]=np.log10(grid[ind])
-            sub_gas_grid[ii]=grid
-        return sub_gas_grid
-
-    def sub_gridize_single_file(self,ipos,irho,ismooth,sub_grid):
+    def sub_gridize_single_file(self,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
         """Helper function for sub_gas_grid and sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -307,12 +267,14 @@ class HaloHI:
             #coords in grid units
             coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
             #NH0
-            rho=(irho[indx])[indz]
             smooth = (ismooth[indx])[indz]
             if self.once:
                 print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
                 self.once=False
-            fieldize.cic_str(coords,rho,sub_grid[ii],smooth)
+            rho=(irho[indx])[indz]
+            fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
+            rhoH0=(irhoH0[indx])[indz]
+            fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 
     def get_sigma_DLA(self):
@@ -431,7 +393,7 @@ class DNdlaDz:
         s_DLA=np.array(sigma_DLA)
         h_mass=np.array(halo_mass)
         #Fit to the DLA abundance
-        ind=np.where((s_DLA > 0.)*(h_mass > 1e10) )
+        ind=np.where((s_DLA > 0.))
         logmass=np.log(h_mass[ind])-12
         logsigma=np.log(s_DLA[ind])
         if np.size(logsigma) == 0:
