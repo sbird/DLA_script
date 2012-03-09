@@ -10,8 +10,9 @@
 
     There are also helper functions (convert and convert_centered) to rescale arrays to grid units.
 """
-
+import math
 import numpy as np
+
 #Try to import scipy.weave. If we can't, don't worry, we just use the unaccelerated versions
 try :
     import scipy.weave
@@ -337,9 +338,15 @@ def cic_str(pos,value,field,in_radii,periodic=False):
     dim=np.size(dim)
     if dim != 2:
         raise ValueError("Non 2D grid not supported!")
+    #Use a grid cell radius of 2/3 (4 \pi /3 )**(1/3) s
+    #This means that l^3 = cell volume for AREPO (so it should be more or less exact)
+    #and is close to the l = 0.5 (4\pi/3)**(1/3) s
+    #cic interpolation that Nagamine, Springel & Hernquist used
+    #to approximate their SPH smoothing
+    corr=2./3.*(4*math.pi/3.)**0.3333333333
+    radii=np.array(corr*in_radii)
     #If the smoothing length is below a single grid cell,
     #stretch it.
-    radii=np.array(in_radii)
     ind = np.where(radii < 0.5)
     radii[ind]=0.5
     #Weight of each cell
@@ -347,17 +354,19 @@ def cic_str(pos,value,field,in_radii,periodic=False):
     #Upper and lower bounds
     up = pos[:,0:dim]+np.repeat(np.transpose([radii,]),dim,axis=1)
     low = pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)
+    #Upper and lower grid cells to add to
+    upg = np.array(np.floor(up),dtype=int)
+    lowg = np.array(np.floor(low),dtype=int)
     #Deal with the edges
     if periodic:
         raise ValueError("Periodic grid not supported")
     else:
         ind=np.where(up > nx-1)
-        up[ind] = nx-1
+        up[ind] = nx
+        upg[ind]=nx-1
         ind=np.where(low < 0)
         low[ind]=0
-    #Upper and lower grid cells to add to
-    upg = np.array(np.floor(up),dtype=int)
-    lowg = np.array(np.floor(low),dtype=int)
+        lowg[ind]=0
 
     expr="""for(int p=0;p<nval;p++){
             //Temp variables
@@ -373,8 +382,13 @@ def cic_str(pos,value,field,in_radii,periodic=False):
             //Deal with corner values
             field(ilx,ily)+=(ilx+1-lx)*(ily+1-ly)*wght;
             field(iux,ily)+=(ux-iux)*(ily+1-ly)*wght;
-            field(ilx,iuy)+=(ilx+1-lx)*(iuy+1-uy)*wght;
-            field(iux,iuy)+=(ux-iux)*(iuy+1-uy)*wght;
+            field(ilx,iuy)+=(ilx+1-lx)*(uy-iuy)*wght;
+            field(iux,iuy)+=(ux-iux)*(uy-iuy)*wght;
+            //Edges in y
+            for(int gx=ilx+1;gx<iux;gx++){
+                field(gx,ily)+=(ily+1-ly)*wght;
+                field(gx,iuy)+=(uy-iuy)*wght;
+            }
             //Central region
             for(int gy=ily+1;gy< iuy;gy++){
                 //Edges.
@@ -394,11 +408,15 @@ def cic_str(pos,value,field,in_radii,periodic=False):
             #Deal with corner values
             field[lowg[p,0],lowg[p,1]]+=(lowg[p,0]+1-low[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
             field[upg[p,0],lowg[p,1]]+=(up[p,0]-upg[p,0])*(lowg[p,1]+1-low[p,1])*weight[p]
-            field[lowg[p,0],upg[p,1]]+=(lowg[p,0]+1-low[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
-            field[upg[p,0], upg[p,1]]+=(up[p,0]-upg[p,0])*(upg[p,1]+1-up[p,1])*weight[p]
+            field[lowg[p,0],upg[p,1]]+=(lowg[p,0]+1-low[p,0])*(up[p,1]-upg[p,1])*weight[p]
+            field[upg[p,0], upg[p,1]]+=(up[p,0]-upg[p,0])*(up[p,1]-upg[p,1])*weight[p]
+            #Edges in y
+            for gx in xrange(lowg[p,0]+1,upg[p,0]):
+                field[gx,lowg[p,1]]+=(lowg[p,1]+1-low[p,1])*weight[p]
+                field[gx,upg[p,1]]+=(up[p,1]-upg[p,1])*weight[p]
             #Central region
             for gy in xrange(lowg[p,1]+1,upg[p,1]):
-                #Edges.
+                #Edges in x
                 field[lowg[p,0],gy]+=(lowg[p,0]+1-low[p,0])*weight[p]
                 field[upg[p,0],gy]+=(up[p,0]-upg[p,0])*weight[p]
                 #x-values
