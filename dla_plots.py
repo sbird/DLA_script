@@ -14,24 +14,14 @@ import matplotlib.pyplot as plt
 
 acol="blue"
 gcol="red"
+rcol="black"
 astyle="-"
 gstyle="-."
 
 class PrettyHalo(halohi.HaloHI):
     """
-    Derived class with one method that plots a pretty (high-resolution) picture of the grid around a halo.
-    Like Figure 6 of Tescari & Viel
+    Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
     """
-    def __init__(self,snap_dir,snapnum,halo=0,ngrid=255,maxdist=100.):
-        #Get data
-        if np.size(halo) == 0:
-            raise ValueError("Must specify a list of halos to pretty plot!")
-        if np.size(halo) ==1:
-            halo_list=[halo,]
-        else:
-            halo_list=list(halo)
-        halohi.HaloHI.__init__(self,snap_dir,snapnum,100,ngrid,maxdist,halo_list)
-        self.halo_list=halo_list
 
     def plot_pretty_halo(self,num=0):
         """
@@ -92,14 +82,14 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=10**5,ngrid=33,maxdist=100.,minplot=1e9, maxplot=5e12):
+    def __init__(self,base,snapnum,minpart=10**5,ngrid=None,maxdist=100.,minplot=1e9, maxplot=5e12):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
-        self.ahalo=halohi.HaloHI(self.adir,snapnum,minpart,ngrid,maxdist)
+        self.ahalo=PrettyHalo(self.adir,snapnum,minpart,ngrid,maxdist)
         self.ahalo.save_file()
-        self.ghalo=halohi.HaloHI(self.gdir,snapnum,minpart,ngrid,maxdist)
+        self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,ngrid,maxdist)
         self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
@@ -125,6 +115,39 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    def get_rel_sigma_DLA(self):
+        """Get the change in sigma_DLA for a particular halo.
+         and the mass of each halo averaged across arepo and gadget.
+        """
+        aDLA=self.ahalo.get_sigma_DLA()
+        gDLA=self.ghalo.get_sigma_DLA()
+        rDLA=np.empty(np.size(aDLA))
+        rmass=np.empty(np.size(aDLA))
+        for ii in xrange(0,np.size(aDLA)):
+            aindex=self.ahalo.ind[0][ii]
+            gg=np.where(self.ghalo.ind[0] == aindex)
+            if np.size(gg) > 0 and aDLA[ii]+gDLA[gg] > 0:
+                rDLA[ii] = 2*(aDLA[ii]-gDLA[gg])/(aDLA[ii]+gDLA[gg])
+                rmass[ii]=0.5*(self.ahalo.sub_mass[ii]+self.ghalo.sub_mass[gg])
+            else:
+                rDLA[ii]=np.NaN
+                rmass[ii]=np.NaN
+        ind=np.where(np.isnan(rDLA) != True)
+        return (rmass[ind],rDLA[ind])
+
+
+    def plot_rel_sigma_DLA(self):
+        """Plot sigma_DLA against mass. Figure 10."""
+        (rmass,rDLA)=self.get_rel_sigma_DLA()
+        plt.semilogx(rmass,rDLA,'o',color=rcol)
+        plt.xlim(self.minplot,self.maxplot)
+        #Axes
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.ylabel(r"$\delta \sigma_\mathrm{DLA} / \sigma_\mathrm{DLA}$ (kpc$^2$/h$^2$)")
+        #Fits
+        plt.tight_layout()
+        plt.show()
+
     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
         """Plots dN_DLA/dz for the halos. Figure 11"""
         Mmax=np.min([Mmax,10**self.aDLAdz.log_mass_lim[1]])
@@ -145,18 +168,34 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_column_density(self,minN=20.3,maxN=25.):
+    def plot_column_density(self,minN=10,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
-        plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget")
+        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
+        plt.loglog(aNHI,gf_N,color=gcol, ls=gstyle,label="Arepo / Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
-        plt.legend(loc=3)
+        plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_rel_column_density(self,minN=10,maxN=25.):
+        """Plots the column density distribution function. Figures 12 and 13"""
+        (aNHI,af_N)=self.ahalo.column_density_function(0.2,minN,maxN)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.2,minN,maxN)
+        plt.loglog(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
+        #Make the ticks be less-dense
+        ax=plt.gca()
+        ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
+        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
+        plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
+        plt.ylabel(r"$ \delta f(N) (\mathrm{cm}^2)$")
+        plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 
