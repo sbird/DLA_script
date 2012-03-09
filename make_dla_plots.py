@@ -24,20 +24,21 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     outdir=path.join(base,"plots")
     print "Saving plots for snapshot ",snapnum," to ",outdir
 
+    hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart)
     #Fig 6
     plt.figure()
-    gdir=path.join(base,"Gadget")
-    adir=path.join(base,"Arepo_ENERGY")
-    ahalo=dp.PrettyHalo(adir,snapnum,halo=0)
-    ahalo.save_file()
-    ahalo.plot_pretty_halo()
+    hplots.ahalo.plot_pretty_halo()
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_halo"))
+    plt.figure()
+    hplots.ahalo.plot_pretty_gas_halo()
+    save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_gas_halo"))
 
     plt.figure()
-    ghalo=dp.PrettyHalo(gdir,snapnum,halo=0)
-    ghalo.plot_pretty_halo()
-    ghalo.save_file()
+    hplots.ghalo.plot_pretty_halo()
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
+    plt.figure()
+    hplots.ghalo.plot_pretty_gas_halo()
+    save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_gas_halo"))
 
     #Fig 9
     plt.figure()
@@ -45,20 +46,28 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
 
     #Fig 10
-    hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart)
     plt.figure()
     hplots.plot_sigma_DLA()
     save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
-    #Fig 11
     plt.figure()
-    hplots.plot_dN_dla()
-    save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
+    hplots.plot_rel_sigma_DLA()
+    save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
+
+#    #Fig 11
+#    plt.figure()
+#    hplots.plot_dN_dla()
+#    save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
 
     #Fig 12
     plt.figure()
     hplots.plot_column_density()
     save_figure(path.join(outdir,"columden_"+str(snapnum)))
+
+    #Fig 12
+    plt.figure()
+    hplots.plot_rel_column_density()
+    save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
     #Fig 5
     plt.figure()
