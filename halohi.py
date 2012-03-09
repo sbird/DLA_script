@@ -291,18 +291,33 @@ class HaloHI:
             fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
         return
 
-    def get_sigma_DLA(self):
+    def get_sigma_DLA(self,DLA_cut=20.3):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
-        This is defined as the area of all the cells with column density above 10^20.3 cm^-2.
+        This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
         Returns result in (kpc/h)^2."""
         cell_area=(2.*self.maxdist/self.ngrid)**2
-        sigma_DLA = np.array([ np.shape(np.where(grid > 20.3))[1]*cell_area for grid in self.sub_nHI_grid])
+        sigma_DLA = np.array([ np.shape(np.where(grid > DLA_cut))[1]*cell_area for grid in self.sub_nHI_grid])
         return sigma_DLA
+
+    def sigma_DLA_fit(self,M,DLA_cut=20.3):
+        """Returns sigma_DLA(M) for the linear regression fit"""
+        #Fit to the DLA abundance
+        s_DLA=self.get_sigma_DLA(DLA_cut)
+        ind=np.where((s_DLA > 0.))
+        logmass=np.log(self.sub_mass[ind])-12
+        logsigma=np.log(s_DLA[ind])
+        if np.size(logsigma) == 0:
+            (self.alpha,self.beta)=(0,0)
+        else:
+            (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
+        return np.exp(self.alpha*(np.log(M)-12)+self.beta)
+
 
     def get_absorber_area(self,minN,maxN):
         """Return the total area (in kpc/h^2) covered by absorbers with column density covered by a given bin"""
         #Number of grid cells
-        cells=np.sum([np.shape(np.where((grid > minN)* (grid < maxN)))[1] for grid in self.sub_nHI_grid])
+        flat_grid=np.ravel(self.sub_nHI_grid)
+        cells=np.shape(np.where(np.logical_and(flat_grid > minN,flat_grid < maxN)))[1]
         #Area of grid cells in kpc/h^2
         cell_area=(1./self.ngrid)**2
         return cells*cell_area
@@ -342,17 +357,16 @@ class HaloHI:
             (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
         """
         NHI_table = np.logspace(minN, maxN,(maxN-minN)/dlogN,endpoint=True)
-        f_N = np.empty(np.size(NHI_table))
+        #Grid size (in cm^2)
+        cell_area=(1./self.ngrid)**2
+        dX=self.absorption_distance()
+        flat_grid=np.ravel(self.sub_nHI_grid)
+        (f_N,NHI_table)=np.histogram(flat_grid,np.log10(NHI_table))
+        NHI_table=(10.)**NHI_table
         #To compensate for any rounding
         dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
-        #Grid size (in cm^2)
-        dX=self.absorption_distance()
-        for ii,N in enumerate(NHI_table):
-            logN=np.log10(N)
-            n_DLA_N = self.get_absorber_area(logN,logN+dlogN_real)
-            f_N[ii] = n_DLA_N/(N*10**dlogN_real-N)/dX
-
-        return (NHI_table, f_N)
+        f_N=(1.*f_N*cell_area)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX)
+        return (NHI_table[0:-1]*(10.)**(dlogN_real/2.), f_N)
 
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
