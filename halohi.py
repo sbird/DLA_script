@@ -249,19 +249,26 @@ class HaloHI:
             #Convert smoothing lengths to grid coordinates.
             smooth*=(self.ngrid/(2*self.maxdist))
             #Perform the grid interpolation
-            self.sub_gridize_single_file(ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid)
+            [self.sub_gridize_single_file(ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            #Explicitly delete some things.
+            del ipos
+            del irhoH0
+            del irho
+            del smooth
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
         sub_nHI_grid*=(epsilon/(1+self.redshift)**2)
         sub_gas_grid*=(epsilon/(1+self.redshift)**2)
-        ind = np.where(sub_gas_grid > 0)
+        ind=np.where(sub_gas_grid > 0)
         sub_gas_grid[ind] = np.log10(sub_gas_grid[ind])
-        ind = np.where(sub_nHI_grid > 0)
+        del ind
+        ind=np.where(sub_nHI_grid > 0)
         sub_nHI_grid[ind] = np.log10(sub_nHI_grid[ind])
+        del ind
         return (sub_gas_grid,sub_nHI_grid)
 
-    def sub_gridize_single_file(self,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
+    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
         """Helper function for sub_gas_grid and sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -271,24 +278,23 @@ class HaloHI:
                 sub_grid - Grid to add the interpolated data to
         """
         #Find particles near each halo
-        for ii in range(0,self.nhalo):
-            sub_pos=self.sub_cofm[ii]
-            indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
-            pposx=ipos[indx]
-            indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
-            if np.size(indz) == 0:
-                continue
-            #coords in grid units
-            coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
-            #NH0
-            smooth = (ismooth[indx])[indz]
-            if self.once:
-                print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
-                self.once=False
-            rho=(irho[indx])[indz]
-            fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
-            rhoH0=(irhoH0[indx])[indz]
-            fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
+        sub_pos=self.sub_cofm[ii]
+        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
+        pposx=ipos[indx]
+        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
+        if np.size(indz) == 0:
+            return
+        #coords in grid units
+        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
+        #NH0
+        smooth = (ismooth[indx])[indz]
+        if self.once:
+            print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            self.once=False
+        rho=(irho[indx])[indz]
+        fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
+        rhoH0=(irhoH0[indx])[indz]
+        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
         return
 
     def get_sigma_DLA(self,DLA_cut=20.3):
