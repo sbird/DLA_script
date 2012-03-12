@@ -322,6 +322,35 @@ class HaloHI:
         cell_area=(1./self.ngrid)**2
         return cells*cell_area
 
+    def get_radial_profile(self,halo,minR,maxR):
+        """Returns the nHI density summed radially
+           (but really in Cartesian coordinates).
+           So returns R_HI (cm^-1).
+           Should use bins in r significantly larger
+           than the grid size.
+        """
+        #This is an integral over an annulus in Cartesians
+        #Find r in grid units:
+        total=0
+        gminR=minR/(2.*self.maxdist)*self.ngrid
+        gmaxR=maxR/(2.*self.maxdist)*self.ngrid
+        cen=self.ngrid/2.
+        #Broken part of the annulus:
+        for x in xrange(-gminR,gminR):
+            miny=np.sqrt(gminR**2-x**2)+cen
+            maxy=np.sqrt(gmaxR**2-x**2)+cen
+            total+=np.sum(self.sub_nHI_grid[halo,x+self.ngrid/2,miny:maxy],axis=2)
+            total+=np.sum(self.sub_nHI_grid[halo,x+self.ngrid/2,-maxy:-miny],axis=2)
+        #Complete part of annulus
+        for x in xrange(gminR,gmaxR):
+            maxy=np.sqrt(gmaxR**2-x**2)+cen
+            maxy=-np.sqrt(gmaxR**2-x**2)+cen
+            total+=np.sum(self.sub_nHI_grid[halo,x+cen,miny:maxy],axis=2)
+            total+=np.sum(self.sub_nHI_grid[halo,-x+cen,miny:maxy],axis=2)
+        return total*(2.*self.maxdist)/self.ngrid
+
+
+
     def absorption_distance(self):
         """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
         in dimensionless units."""
