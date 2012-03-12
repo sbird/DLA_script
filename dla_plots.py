@@ -16,7 +16,7 @@ acol="blue"
 gcol="red"
 rcol="black"
 astyle="-"
-gstyle="-."
+gstyle="--"
 
 class PrettyHalo(halohi.HaloHI):
     """
@@ -140,8 +140,6 @@ class HaloHIPlots:
 
     def plot_rel_sigma_DLA(self):
         """Plot sigma_DLA against mass. Figure 10."""
-        (rmass,rDLA)=self.get_rel_sigma_DLA(15)
-        plt.semilogx(rmass,rDLA,'o',color="brown",label="N_HI> 15")
         (rmass,rDLA)=self.get_rel_sigma_DLA(17)
         plt.semilogx(rmass,rDLA,'o',color="green",label="N_HI> 17")
         (rmass,rDLA)=self.get_rel_sigma_DLA(20.3)
@@ -174,7 +172,7 @@ class HaloHIPlots:
 #         plt.tight_layout()
 #         plt.show()
 
-    def plot_column_density(self,minN=10,maxN=25.):
+    def plot_column_density(self,minN=17,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
@@ -190,7 +188,29 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_rel_column_density(self,minN=10,maxN=25.):
+    def plot_radial_profile(self,halo,minR=0,maxR=100.):
+        """Plots the radial density of neutral hydrogen."""
+        Rbins=np.linspace(minR,maxR,20)
+        aRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        gRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        #Gas profiles
+        agRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+        ggRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+        plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="Arepo HI")
+        plt.semilogy(Rbins[0:-1],gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+        plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Arepo Gas")
+        plt.semilogy(Rbins[0:-1],ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+        #Make the ticks be less-dense
+        #ax=plt.gca()
+        #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
+        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
+        plt.xlabel(r"R (kpc/h)")
+        plt.ylabel(r"Density $N_HI$ (cm$^{-1}$)")
+        plt.legend(loc=1)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_rel_column_density(self,minN=17,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)

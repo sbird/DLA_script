@@ -322,7 +322,7 @@ class HaloHI:
         cell_area=(1./self.ngrid)**2
         return cells*cell_area
 
-    def get_radial_profile(self,halo,minR,maxR):
+    def get_radial_profile(self,halo,minR,maxR,gas_grid=False):
         """Returns the nHI density summed radially
            (but really in Cartesian coordinates).
            So returns R_HI (cm^-1).
@@ -330,24 +330,29 @@ class HaloHI:
            than the grid size.
         """
         #This is an integral over an annulus in Cartesians
+        if gas_grid:
+            grid=self.sub_gas_grid[halo,:,:]
+        else:
+            grid=self.sub_nHI_grid[halo,:,:]
+
         #Find r in grid units:
-        total=0
+        total=0.
         gminR=minR/(2.*self.maxdist)*self.ngrid
         gmaxR=maxR/(2.*self.maxdist)*self.ngrid
         cen=self.ngrid/2.
         #Broken part of the annulus:
-        for x in xrange(-gminR,gminR):
-            miny=np.sqrt(gminR**2-x**2)+cen
-            maxy=np.sqrt(gmaxR**2-x**2)+cen
-            total+=np.sum(self.sub_nHI_grid[halo,x+self.ngrid/2,miny:maxy],axis=2)
-            total+=np.sum(self.sub_nHI_grid[halo,x+self.ngrid/2,-maxy:-miny],axis=2)
+        for x in xrange(-int(gminR),int(gminR)):
+            miny=int(np.sqrt(gminR**2-x**2))
+            maxy=int(np.sqrt(gmaxR**2-x**2))
+            total+=np.sum(10**grid[x+self.ngrid/2,(cen+miny):(cen+maxy)])
+            total+=np.sum(10**grid[x+self.ngrid/2,(cen-maxy):(cen-miny)])
         #Complete part of annulus
-        for x in xrange(gminR,gmaxR):
-            maxy=np.sqrt(gmaxR**2-x**2)+cen
-            maxy=-np.sqrt(gmaxR**2-x**2)+cen
-            total+=np.sum(self.sub_nHI_grid[halo,x+cen,miny:maxy],axis=2)
-            total+=np.sum(self.sub_nHI_grid[halo,-x+cen,miny:maxy],axis=2)
-        return total*(2.*self.maxdist)/self.ngrid
+        for x in xrange(int(gminR),int(gmaxR)):
+            maxy=int(np.sqrt(gmaxR**2-x**2)+cen)
+            miny=int(-np.sqrt(gmaxR**2-x**2)+cen)
+            total+=np.sum(10**grid[x+cen,miny:maxy])
+            total+=np.sum(10**grid[-x+cen,miny:maxy])
+        return total*(2.*self.maxdist)/self.ngrid/self.UnitLength_in_cm
 
 
 

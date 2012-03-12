@@ -40,6 +40,11 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.ghalo.plot_pretty_gas_halo()
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_gas_halo"))
 
+    #Radial profiles
+    plt.figure()
+    hplots.plot_radial_profile(0)
+    save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
+
     #Fig 9
     plt.figure()
     dp.plot_totalHI(base,snapnum)
@@ -56,10 +61,6 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"sigma_DLA_17_"+str(snapnum)))
 
     #Fig 10
-    plt.figure()
-    hplots.plot_sigma_DLA(15)
-    save_figure(path.join(outdir,"sigma_DLA_15_"+str(snapnum)))
-
     plt.figure()
     hplots.plot_rel_sigma_DLA()
     save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
