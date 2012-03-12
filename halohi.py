@@ -260,13 +260,7 @@ class HaloHI:
         epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
         sub_nHI_grid*=(epsilon/(1+self.redshift)**2)
         sub_gas_grid*=(epsilon/(1+self.redshift)**2)
-        ind=np.where(sub_gas_grid > 0)
-        sub_gas_grid[ind] = np.log10(sub_gas_grid[ind])
-        del ind
-        ind=np.where(sub_nHI_grid > 0)
-        sub_nHI_grid[ind] = np.log10(sub_nHI_grid[ind])
-        del ind
-        return (sub_gas_grid,sub_nHI_grid)
+        return (np.log1p(sub_gas_grid)/np.log(10),np.log1p(sub_nHI_grid)/np.log(10))
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
         """Helper function for sub_gas_grid and sub_nHI_grid
