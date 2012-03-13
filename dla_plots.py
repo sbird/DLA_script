@@ -28,9 +28,9 @@ class PrettyHalo(halohi.HaloHI):
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
         #Plot a figure
-        vmax=np.max(self.sub_nHI_grid[num])
+        vmax=np.max(self.sub_nHI_grid[num,:,:])
         maxdist=self.maxdist
-        plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        plt.imshow(self.sub_nHI_grid[num,:,:],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
         plt.xlabel("x (kpc/h)")
@@ -43,9 +43,9 @@ class PrettyHalo(halohi.HaloHI):
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
         #Plot a figure
-        vmax=np.max(self.sub_gas_grid[num])
+        vmax=np.max(self.sub_gas_grid[num,:,:])
         maxdist=self.maxdist
-        plt.imshow(self.sub_gas_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        plt.imshow(self.sub_gas_grid[num,:,:],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label("log$_{10}$ N$_{H}$ (cm$^{-2}$)")
         plt.xlabel("x (kpc/h)")
