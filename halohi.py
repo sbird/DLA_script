@@ -9,6 +9,7 @@ Classes:
 import numpy as np
 import readsubf
 import hdfsim
+import h5py
 import math
 import os.path as path
 import cold_gas
@@ -136,30 +137,30 @@ class HaloHI:
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
-        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.npz")
+        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
         #For printing
         self.once=False
         try:
             if reload_file:
                 raise KeyError("reloading")
             #First try to load from a file
-            grid_file=np.load(self.savefile)
-
-            if  not (grid_file["maxdist"] == self.maxdist and grid_file["minpart"] == self.minpart):
+            f=h5py.File(self.savefile)
+            grid_file=f["HaloData"]
+            if  not (grid_file.attrs["maxdist"] == self.maxdist and grid_file.attrs["minpart"] == self.minpart):
                 raise KeyError("File not for this structure")
             #Otherwise...
-            self.sub_nHI_grid = grid_file["sub_nHI_grid"]
-            self.sub_gas_grid = grid_file["sub_gas_grid"]
-            self.sub_mass = grid_file["sub_mass"]
-            self.sub_cofm=grid_file["sub_cofm"]
-            self.redshift=grid_file["redshift"]
-            self.ind=grid_file["halo_ind"]
-            self.omegam=grid_file["omegam"]
-            self.omegal=grid_file["omegal"]
-            self.hubble=grid_file["hubble"]
-            self.box=grid_file["box"]
-            self.ngrid=grid_file["ngrid"]
-            grid_file.close()
+            self.redshift=grid_file.attrs["redshift"]
+            self.omegam=grid_file.attrs["omegam"]
+            self.omegal=grid_file.attrs["omegal"]
+            self.hubble=grid_file.attrs["hubble"]
+            self.box=grid_file.attrs["box"]
+            self.ngrid=grid_file.attrs["ngrid"]
+            self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"],dtype=np.float64)
+            self.sub_gas_grid = np.array(grid_file["sub_gas_grid"],dtype=np.float64)
+            self.sub_mass = np.array(grid_file["sub_mass"],dtype=np.float64)
+            self.sub_cofm=np.array(grid_file["sub_cofm"],dtype=np.float64)
+            self.ind=np.array(grid_file["halo_ind"])
+            f.close()
             if halo_list != None:
                 self.sub_nHI_grid=self.sub_nHI_grid[halo_list]
                 self.sub_gas_grid=self.sub_gas_grid[halo_list]
@@ -199,32 +200,37 @@ class HaloHI:
                 self.ngrid=int(np.ceil(40*npart[1]**(1./3)/self.box*2*self.maxdist))
             else:
                 self.ngrid=int(ngrid)
-            (self.sub_gas_grid,self.sub_nHI_grid)=self.set_nHI_grid()
+            self.sub_nHI_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
+            self.sub_gas_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
+            self.set_nHI_grid()
         return
 
     def save_file(self):
         """
         Saves grids to a file, because they are slow to generate.
-        File is hard-coded to be $snap_dir/snapdir_$snapnum/hi_grid_$ngrid.npz.
+        File is hard-coded to be $snap_dir/snapdir_$snapnum/halohi_grid.hdf5.
         """
-        np.savez_compressed(self.savefile,maxdist=self.maxdist,minpart=self.minpart,ngrid=self.ngrid,sub_mass=self.sub_mass,sub_nHI_grid=self.sub_nHI_grid,sub_gas_grid=self.sub_gas_grid,sub_cofm=self.sub_cofm,redshift=self.redshift,hubble=self.hubble,box=self.box,omegam=self.omegam,omegal=self.omegal,halo_ind=self.ind)
+        f=h5py.File(self.savefile,'w-')
+        grp = f.create_group("HaloData")
+        grp.attrs["maxdist"]=self.maxdist
+        grp.attrs["minpart"]=self.minpart
+        grp.attrs["ngrid"]=self.ngrid
+        grp.attrs["redshift"]=self.redshift
+        grp.attrs["hubble"]=self.hubble
+        grp.attrs["box"]=self.box
+        grp.attrs["omegam"]=self.omegam
+        grp.attrs["omegal"]=self.omegal
+        grp.create_dataset('sub_gas_grid',data=self.sub_gas_grid)
+        grp.create_dataset('sub_nHI_grid',data=self.sub_nHI_grid)
+        grp.create_dataset('sub_mass',data=self.sub_mass)
+        grp.create_dataset('sub_cofm',data=self.sub_cofm)
+        grp.create_dataset('halo_ind',data=self.ind)
+        f.close()
 
 
-
-    def set_nHI_grid(self,ngrid=None,maxdist=None):
+    def set_nHI_grid(self):
         """Set up the grid around each halo where the HI is calculated.
-            ngrid - Size of grid to store values on
-            maxdist - Maximum extent of grid in kpc/h
-        Returns:
-            sub_nHI_grid - a grid containing the integrated N_HI in neutral atoms/cm^-2
-                           summed along the z-axis
         """
-        if ngrid != None:
-            self.ngrid=ngrid
-        if maxdist != None:
-            self.maxdist=maxdist
-        sub_nHI_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
-        sub_gas_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
         star=cold_gas.StarFormation(hubble=self.hubble)
         self.once=True
         #Now grid the HI for each halo
@@ -249,18 +255,20 @@ class HaloHI:
             #Convert smoothing lengths to grid coordinates.
             smooth*=(self.ngrid/(2*self.maxdist))
             #Perform the grid interpolation
-            [self.sub_gridize_single_file(ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
             del ipos
             del irhoH0
             del irho
             del smooth
-        #Linear dimension of each cell in cm:
-        #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
-        sub_nHI_grid*=(epsilon/(1+self.redshift)**2)
-        sub_gas_grid*=(epsilon/(1+self.redshift)**2)
-        return (np.log1p(sub_gas_grid)/np.log(10),np.log1p(sub_nHI_grid)/np.log(10))
+        print "Doing logs"
+        np.log1p(self.sub_gas_grid,self.sub_gas_grid)
+        np.log1p(self.sub_nHI_grid,self.sub_nHI_grid)
+        print "Done logs, doing division"
+        self.sub_gas_grid/=np.log(10)
+        self.sub_nHI_grid/=np.log(10)
+        print "returning"
+        return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
         """Helper function for sub_gas_grid and sub_nHI_grid
@@ -271,6 +279,9 @@ class HaloHI:
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
         indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
@@ -285,9 +296,9 @@ class HaloHI:
         if self.once:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        rho=(irho[indx])[indz]
+        rho=((irho[indx])[indz])*(epsilon/(1+self.redshift)**2)
         fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
-        rhoH0=(irhoH0[indx])[indz]
+        rhoH0=(irhoH0[indx])[indz]*(epsilon/(1+self.redshift)**2)
         fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
         return
 
