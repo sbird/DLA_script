@@ -124,7 +124,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,halo_list=None,reload_file=False):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,halo_list=None,reload_file=False,skip_grid=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -144,7 +144,7 @@ class HaloHI:
             if reload_file:
                 raise KeyError("reloading")
             #First try to load from a file
-            f=h5py.File(self.savefile)
+            f=h5py.File(self.savefile,'r')
             grid_file=f["HaloData"]
             if  not (grid_file.attrs["maxdist"] == self.maxdist and grid_file.attrs["minpart"] == self.minpart):
                 raise KeyError("File not for this structure")
@@ -155,10 +155,12 @@ class HaloHI:
             self.hubble=grid_file.attrs["hubble"]
             self.box=grid_file.attrs["box"]
             self.ngrid=grid_file.attrs["ngrid"]
-            self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"],dtype=np.float64)
-            self.sub_gas_grid = np.array(grid_file["sub_gas_grid"],dtype=np.float64)
-            self.sub_mass = np.array(grid_file["sub_mass"],dtype=np.float64)
-            self.sub_cofm=np.array(grid_file["sub_cofm"],dtype=np.float64)
+            if not skip_grid == 1:
+                self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"])
+            if not skip_grid == 2:
+                self.sub_gas_grid = np.array(grid_file["sub_gas_grid"])
+            self.sub_mass = np.array(grid_file["sub_mass"])
+            self.sub_cofm=np.array(grid_file["sub_cofm"])
             self.ind=np.array(grid_file["halo_ind"])
             f.close()
             if halo_list != None:
@@ -210,7 +212,7 @@ class HaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/halohi_grid.hdf5.
         """
-        f=h5py.File(self.savefile,'w-')
+        f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
         grp.attrs["maxdist"]=self.maxdist
         grp.attrs["minpart"]=self.minpart

@@ -82,14 +82,14 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=10**5,ngrid=None,maxdist=100.,minplot=1e9, maxplot=5e12,reload_file=False):
+    def __init__(self,base,snapnum,minpart=10**5,ngrid=None,maxdist=100.,minplot=1e9, maxplot=5e12,reload_file=False,skip_grid=None):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
-        self.ahalo=PrettyHalo(self.adir,snapnum,minpart,ngrid,maxdist,reload_file=reload_file)
+        self.ahalo=PrettyHalo(self.adir,snapnum,minpart,ngrid,maxdist,reload_file=reload_file,skip_grid=skip_grid)
 #         self.ahalo.save_file()
-        self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,ngrid,maxdist,reload_file=reload_file)
+        self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,ngrid,maxdist,reload_file=reload_file,skip_grid=skip_grid)
 #         self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
@@ -191,15 +191,22 @@ class HaloHIPlots:
     def plot_radial_profile(self,halo,minR=0,maxR=100.):
         """Plots the radial density of neutral hydrogen."""
         Rbins=np.linspace(minR,maxR,20)
-        aRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-        gRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        try:
+            aRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            gRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="Arepo HI")
+            plt.semilogy(Rbins[0:-1],gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+            #If we didn't load the HI grid this time
+        except AttributeError:
+            pass
         #Gas profiles
-        agRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-        ggRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-        plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="Arepo HI")
-        plt.semilogy(Rbins[0:-1],gRprof,color=gcol, ls=gstyle,label="Gadget HI")
-        plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Arepo Gas")
-        plt.semilogy(Rbins[0:-1],ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+        try:
+            agRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            ggRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Arepo Gas")
+            plt.semilogy(Rbins[0:-1],ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+        except AttributeError:
+            pass
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
