@@ -124,7 +124,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,halo_list=None,reload_file=False,skip_grid=None):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,reload_file=False,skip_grid=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -159,35 +159,21 @@ class HaloHI:
                 self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"])
             if not skip_grid == 2:
                 self.sub_gas_grid = np.array(grid_file["sub_gas_grid"])
-            self.sub_mass = np.array(grid_file["sub_mass"])
-            self.sub_cofm=np.array(grid_file["sub_cofm"])
-            self.ind=np.array(grid_file["halo_ind"])
+            try:
+                self.sub_mass = np.array(grid_file["sub_mass"])
+                self.sub_cofm=np.array(grid_file["sub_cofm"])
+                self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
+                self.ind=np.array(grid_file["halo_ind"])
+            except KeyError:
+                (self.ind,self.sub_mass,self.sub_cofm,self.sub_gas_mass)=self.find_wanted_halos()
             f.close()
-            if halo_list != None:
-                self.sub_nHI_grid=self.sub_nHI_grid[halo_list]
-                self.sub_gas_grid=self.sub_gas_grid[halo_list]
-                self.sub_mass=self.sub_mass[halo_list]
-                self.sub_cofm=self.sub_cofm[halo_list]
-                self.nhalo=np.size(halo_list)
+            del grid_file
+            del f
         except (IOError,KeyError):
             #Otherwise regenerate from the raw data
-            #Get halo catalog
-            subs=readsubf.subfind_catalog(self.snap_dir,snapnum,masstab=True,long_ids=True)
-            #Get list of halos resolved with > minpart particles
-            ind=np.where(subs.sub_len > minpart)
-            #Store the indices of the halos we are using
-            self.ind=ind
+            (self.ind,self.sub_mass,self.sub_cofm,self.sub_gas_mass)=self.find_wanted_halos()
             self.nhalo=np.size(self.ind)
             print "Found ",self.nhalo," halos with > ",minpart,"particles"
-            #Get particle center of mass
-            self.sub_cofm=np.array(subs.sub_pos[ind])
-            #halo masses in M_sun/h
-            self.sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-            del subs
-            if halo_list != None:
-                self.sub_mass=self.sub_mass[halo_list]
-                self.sub_cofm=self.sub_cofm[halo_list]
-                self.nhalo=np.size(halo_list)
             #Simulation parameters
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.redshift=f["Header"].attrs["Redshift"]
@@ -225,6 +211,7 @@ class HaloHI:
         grp.create_dataset('sub_gas_grid',data=self.sub_gas_grid)
         grp.create_dataset('sub_nHI_grid',data=self.sub_nHI_grid)
         grp.create_dataset('sub_mass',data=self.sub_mass)
+        grp.create_dataset('sub_gas_mass',data=self.sub_gas_mass)
         grp.create_dataset('sub_cofm',data=self.sub_cofm)
         grp.create_dataset('halo_ind',data=self.ind)
         f.close()
@@ -314,6 +301,35 @@ class HaloHI:
         fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
         return
 
+    def find_wanted_halos(self):
+        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos"""
+        #Array to note the halos we don't want
+        #Get halo catalog
+        subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
+        #Get list of halos resolved with > minpart particles
+        ind=np.where(subs.sub_len > self.minpart)
+        #Store the indices of the halos we are using
+        #Get particle center of mass
+        sub_cofm=np.array(subs.sub_pos[ind])
+        #halo masses in M_sun/h
+        sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        #Gas mass in M_sun/h
+        sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+        del subs
+        #For each halo
+        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
+        ind=(np.ravel(ind)[ind2],)
+        sub_mass=sub_mass[ind2]
+        sub_cofm=sub_cofm[ind2]
+        sub_gas_mass=sub_gas_mass[ind2]
+        return (ind, sub_mass,sub_cofm,sub_gas_mass)
+
+    def is_masked(self,halo,sub_mass,sub_cofm):
+        """Find out whether a halo is a mere satellite and if so mask it"""
+        near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < self.maxdist),axis=1))
+        #If there is a larger halo nearby, mask this halo
+        return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
+
     def get_sigma_DLA(self,DLA_cut=20.3):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
@@ -344,6 +360,26 @@ class HaloHI:
         #Area of grid cells in kpc/h^2
         cell_area=(1./self.ngrid)**2
         return cells*cell_area
+
+    def identify_eq_halo(self,mass,pos,maxmass=0.05,maxpos=100.):
+        """Given a mass and position, identify the
+        nearest halo. Maximum tolerances are in maxmass and maxpos.
+        maxmass is a percentage difference
+        maxpos is an absolute difference.
+        Returns an array index for self.sub_mass"""
+        #First find nearby masses
+        dmass=np.abs(self.sub_mass-mass)
+        ind = np.where(dmass < mass*maxmass)
+        #Find which of these are also nearby in positions
+        ind2=np.where(np.all(np.abs(self.sub_cofm[ind]-pos) < maxpos,axis=1))
+        #Is the intersection of these two sets non-zero?
+        #Return the nearest mass halo
+        if np.size(ind2):
+            ind3=np.where(np.min(dmass[ind][ind2]) == dmass[ind][ind2])
+            return ind[0][ind2][ind3]
+        else:
+            return np.array([])
+
 
     def get_radial_profile(self,halo,minR,maxR,gas_grid=False):
         """Returns the nHI density summed radially
