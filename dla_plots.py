@@ -139,33 +139,37 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def get_rel_sigma_DLA(self,DLA_cut=20.3):
-        """Get the change in sigma_DLA for a particular halo.
-         and the mass of each halo averaged across arepo and gadget.
+    def get_rel_sigma_DLA(self,DLA_cut=20.3, min_sigma=15.):
+        """
+        Get the change in sigma_DLA for a particular halo.
+        and the mass of each halo averaged across arepo and gadget.
+        DLA_cut is the column density above which to consider a DLA
+        min_sigma is the minimal sigma_DLA to look at (in grid cell units)
         """
         aDLA=self.ahalo.get_sigma_DLA(DLA_cut)
         gDLA=self.ghalo.get_sigma_DLA(DLA_cut)
         rDLA=np.empty(np.size(aDLA))
         rmass=np.empty(np.size(aDLA))
+        cell_area=(2*self.ahalo.maxdist/self.ahalo.ngrid)**2
         for ii in xrange(0,np.size(aDLA)):
-            aindex=self.ahalo.ind[0][ii]
-            gg=np.where(self.ghalo.ind[0] == aindex)
-            if np.size(gg) > 0 and aDLA[ii]+gDLA[gg] > 0:
+            gg=self.ghalo.identify_eq_halo(self.ahalo.sub_mass[ii],self.ahalo.sub_cofm[ii])
+            if np.size(gg) > 0 and aDLA[ii]+gDLA[gg] > min_sigma*cell_area:
                 rDLA[ii] = 2*(aDLA[ii]-gDLA[gg])/(aDLA[ii]+gDLA[gg])
                 rmass[ii]=0.5*(self.ahalo.sub_mass[ii]+self.ghalo.sub_mass[gg])
             else:
                 rDLA[ii]=np.NaN
                 rmass[ii]=np.NaN
-        ind=np.where(np.isnan(rDLA) != True)
-        return (rmass[ind],rDLA[ind])
+        return (rmass,rDLA)
 
 
     def plot_rel_sigma_DLA(self):
         """Plot sigma_DLA against mass. Figure 10."""
-        (rmass,rDLA)=self.get_rel_sigma_DLA(17)
-        plt.semilogx(rmass,rDLA,'o',color="green",label="N_HI> 17")
-        (rmass,rDLA)=self.get_rel_sigma_DLA(20.3)
-        plt.semilogx(rmass,rDLA,'o',color="silver",label="N_HI> 20.3")
+#         (rmass,rDLA)=self.get_rel_sigma_DLA(17,25)
+#         ind=np.where(np.isnan(rDLA) != True)
+#         plt.semilogx(rmass[ind],rDLA[ind],'o',color="green",label="N_HI> 17")
+        (rmass,rDLA)=self.get_rel_sigma_DLA(20.3,15)
+        ind=np.where(np.isnan(rDLA) != True)
+        plt.semilogx(rmass[ind],rDLA[ind],'o',color="silver",label="N_HI> 20.3")
         #Axes
         plt.xlim(self.minplot,self.maxplot)
         plt.xlabel(r"Mass ($M_\odot$/h)")
@@ -211,7 +215,8 @@ class HaloHIPlots:
         plt.show()
 
     def plot_radial_profile(self,halo,minR=0,maxR=100.):
-        """Plots the radial density of neutral hydrogen."""
+        """Plots the radial density of neutral hydrogen.
+        TODO: Figure out some way to stack these."""
         Rbins=np.linspace(minR,maxR,20)
         try:
             aRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
