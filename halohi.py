@@ -229,6 +229,19 @@ class HaloHI:
         grp.create_dataset('halo_ind',data=self.ind)
         f.close()
 
+    def __del__(self):
+        """Delete big arrays"""
+        try:
+            del self.sub_gas_grid
+        except AttributeError:
+            pass
+        try:
+            del self.sub_nHI_grid
+        except AttributeError:
+            pass
+        del self.sub_mass
+        del self.sub_cofm
+        del self.ind
 
     def set_nHI_grid(self):
         """Set up the grid around each halo where the HI is calculated.
@@ -263,13 +276,10 @@ class HaloHI:
             del irhoH0
             del irho
             del smooth
-        print "Doing logs"
         np.log1p(self.sub_gas_grid,self.sub_gas_grid)
         np.log1p(self.sub_nHI_grid,self.sub_nHI_grid)
-        print "Done logs, doing division"
         self.sub_gas_grid/=np.log(10)
         self.sub_nHI_grid/=np.log(10)
-        print "returning"
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
