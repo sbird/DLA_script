@@ -53,6 +53,28 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
+    def plot_radial_profile(self,num=0,minR=0,maxR=100.):
+        """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo."""
+        Rbins=np.linspace(minR,maxR,20)
+        try:
+            aRprof=[self.get_radial_profile(num,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
+            #If we didn't load the HI grid this time
+        except AttributeError:
+            pass
+        #Gas profiles
+        try:
+            agRprof=[self.get_radial_profile(num,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
+        except AttributeError:
+            pass
+        plt.xlabel(r"R (kpc/h)")
+        plt.ylabel(r"Density $N_HI$ (cm$^{-1}$)")
+        plt.legend(loc=1)
+        plt.tight_layout()
+        plt.show()
+
+
 
 def plot_totalHI(base,snapnum,minpart=1000):
     """Make the plot of total neutral hydrogen density in a halo:
