@@ -34,14 +34,13 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_gas_halo"))
     #Radial profiles
     plt.clf()
-    hplots.plot_radial_profile(0)
+    hplots.plot_radial_profile()
 
     del hplots
     #Load only the nHI grids
     hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=2)
-    hplots.plot_radial_profile(0)
+    hplots.plot_radial_profile()
     save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
-
 
     #Fig 6
     plt.clf()
@@ -61,10 +60,26 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_sigma_DLA()
     save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
+    #Same but against gas mass
+    plt.clf()
+    hplots.plot_sigma_DLA_gas()
+    save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
+
     #Fig 10
     plt.clf()
     hplots.plot_sigma_DLA(17)
     save_figure(path.join(outdir,"sigma_DLA_17_"+str(snapnum)))
+
+    #Same but against gas mass
+    plt.clf()
+    hplots.plot_sigma_DLA_gas()
+    save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
+
+    #Same but against gas mass
+    plt.clf()
+    hplots.plot_sigma_DLA_gas(17)
+    save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
+
 
     #Fig 10
     plt.clf()
