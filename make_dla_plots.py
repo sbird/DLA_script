@@ -51,9 +51,14 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
 
     #Fig 9
+    #plt.clf()
+    #dp.plot_totalHI(base,snapnum)
+    #save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
+
+    #Fig 10
     plt.clf()
-    dp.plot_totalHI(base,snapnum)
-    save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
+    hplots.plot_gas_vs_halo_mass()
+    save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
 
     #Fig 10
     plt.clf()

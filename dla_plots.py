@@ -9,6 +9,7 @@ Possible but not implemented:
 
 import halohi
 import numpy as np
+import scipy
 import os.path as path
 import matplotlib.pyplot as plt
 
@@ -74,6 +75,27 @@ class PrettyHalo(halohi.HaloHI):
         plt.legend(loc=1)
         plt.tight_layout()
         plt.show()
+
+    def plot_gas_vs_halo_mass(self,label="",color="black"):
+        """Plot Gas mass vs total halo mass"""
+        #Plot.
+        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color,label=label)
+        #Make a best-fit curve.
+        ind=np.where(self.sub_gas_mass > 0.)
+        logmass=np.log10(self.sub_mass[ind])-12
+        loggas=np.log10(self.sub_gas_mass[ind])
+        (alpha,beta)=scipy.polyfit(logmass,loggas,1)
+        mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
+        gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
+        plt.loglog(mass_bins,gas_fit, color=color,label=r"$\alpha$="+str(np.round(alpha,2))+r"$\beta$ = "+str(np.round(beta,2)))
+        #Axes
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.ylabel("Gas Mass ($M_\odot$/h)")
+        plt.xlim(1e9,5e12)
+        plt.tight_layout()
+        plt.show()
+        return
+
 
 class PrettyBox(halohi.BoxHI,PrettyHalo):
     """
@@ -163,6 +185,16 @@ class HaloHIPlots:
         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
         plt.xlim(self.minplot/100.,self.maxplot/100.)
         #Fits
+        plt.tight_layout()
+        plt.show()
+
+    def plot_gas_vs_halo_mass(self):
+        """Plot Gas mass vs total halo mass"""
+        #Plot.
+        self.ahalo.plot_gas_vs_halo_mass(label="Arepo",color=acol)
+        self.ghalo.plot_gas_vs_halo_mass(label="Gadget",color=gcol)
+        #Axes
+        plt.legend()
         plt.tight_layout()
         plt.show()
 
