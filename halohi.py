@@ -124,7 +124,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,reload_file=False,skip_grid=None):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,reload_file=False,skip_grid=None,savefile=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -137,7 +137,10 @@ class HaloHI:
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
         #Name of savefile
-        self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
+        if savefile == None:
+            self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
+        else:
+            self.savefile=savefile
         #For printing
         self.once=False
         try:
@@ -579,4 +582,48 @@ class DNdlaDz:
         M=10**log10M
         #sigma_DLA is in kpc/h^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), so convert.
         return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M/(10**9)
+
+class BoxHI(HaloHI):
+    """Class for calculating a large grid encompassing the whole simulation.
+    Stores a big grid projecting the neutral hydrogen along the line of sight for the whole box.
+
+    Parameters:
+        dir - Simulation directory
+        snapnum - Number of simulation
+        ngrid - Size of grid to store values on
+        reload_file - Ignore saved files if true
+        self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
+        self.sub_mass is a list of halo masses
+        self.sub_cofm is a list of halo positions"""
+    def __init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None):
+        if savefile==None:
+            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
+        else:
+            savefile_s = savefile
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,ngrid=ngrid,maxdist=20000.,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        return
+
+    def sub_gridize_single_file(self,ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
+        """Helper function for sub_gas_grid and sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        #coords in grid units
+        coords=fieldize.convert(ipos,self.ngrid,2*self.maxdist)
+        #NH0
+        if self.once:
+            print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            self.once=False
+        rho=(irho)*(epsilon/(1+self.redshift)**2)
+        fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
+        rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
+        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
+        return
 

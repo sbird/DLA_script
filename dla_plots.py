@@ -75,6 +75,12 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
+class PrettyBox(halohi.BoxHI,PrettyHalo):
+    """
+    As above but for the whole box grid
+    """
+    def __init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None):
+        halohi.BoxHI.__init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None)
 
 
 def plot_totalHI(base,snapnum,minpart=1000):
@@ -155,7 +161,7 @@ class HaloHIPlots:
         plt.legend(loc=0)
         plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
-        plt.xlim(self.minplot,self.maxplot)
+        plt.xlim(self.minplot/100.,self.maxplot/100.)
         #Fits
         plt.tight_layout()
         plt.show()
