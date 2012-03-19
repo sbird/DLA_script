@@ -349,26 +349,26 @@ class HaloHI:
         #Fit to the DLA abundance
         s_DLA=self.get_sigma_DLA(DLA_cut)
         ind=np.where((s_DLA > 0.))
-        logmass=np.log(self.sub_mass[ind])-12
-        logsigma=np.log(s_DLA[ind])
+        logmass=np.log10(self.sub_mass[ind])-12
+        logsigma=np.log10(s_DLA[ind])
         if np.size(logsigma) == 0:
             (self.alpha,self.beta)=(0,0)
         else:
             (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
-        return np.exp(self.alpha*(np.log(M)-12)+self.beta)
+        return 10**(self.alpha*(np.log10(M)-12)+self.beta)
 
     def sigma_DLA_fit_gas(self,M,DLA_cut=20.3):
         """Returns sigma_DLA(M_g) for the linear regression fit"""
         #Fit to the DLA abundance
         s_DLA=self.get_sigma_DLA(DLA_cut)
-        ind=np.where((s_DLA > 0.))
-        logmass=np.log(self.sub_gas_mass[ind])-12
-        logsigma=np.log(s_DLA[ind])
+        ind=np.where(np.logical_and(s_DLA > 0.,self.sub_gas_mass > 0.))
+        logmass=np.log10(self.sub_gas_mass[ind])-12
+        logsigma=np.log10(s_DLA[ind])
         if np.size(logsigma) == 0:
             (self.alpha_g,self.beta_g)=(0,0)
         else:
             (self.alpha_g,self.beta_g)=scipy.polyfit(logmass,logsigma,1)
-        return np.exp(self.alpha_g*(np.log(M)-12)+self.beta_g)
+        return 10**(self.alpha_g*(np.log10(M)-12)+self.beta_g)
 
 
     def get_absorber_area(self,minN,maxN):
