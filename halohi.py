@@ -173,7 +173,6 @@ class HaloHI:
             #Otherwise regenerate from the raw data
             (self.ind,self.sub_mass,self.sub_cofm,self.sub_gas_mass)=self.find_wanted_halos()
             self.nhalo=np.size(self.ind)
-            print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Simulation parameters
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.redshift=f["Header"].attrs["Redshift"]
@@ -183,6 +182,12 @@ class HaloHI:
             self.omegam=f["Header"].attrs["Omega0"]
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
+            if minpart == -1:
+                #global grid
+                self.nhalo = 1
+                self.maxdist=self.box/2.
+            else:
+                print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
             if ngrid == None:
                 self.ngrid=int(np.ceil(40*npart[1]**(1./3)/self.box*2*self.maxdist))
@@ -227,6 +232,7 @@ class HaloHI:
         except AttributeError:
             pass
         del self.sub_mass
+        del self.sub_gas_mass
         del self.sub_cofm
         del self.ind
 
@@ -351,6 +357,19 @@ class HaloHI:
             (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
         return np.exp(self.alpha*(np.log(M)-12)+self.beta)
 
+    def sigma_DLA_fit_gas(self,M,DLA_cut=20.3):
+        """Returns sigma_DLA(M_g) for the linear regression fit"""
+        #Fit to the DLA abundance
+        s_DLA=self.get_sigma_DLA(DLA_cut)
+        ind=np.where((s_DLA > 0.))
+        logmass=np.log(self.sub_gas_mass[ind])-12
+        logsigma=np.log(s_DLA[ind])
+        if np.size(logsigma) == 0:
+            (self.alpha_g,self.beta_g)=(0,0)
+        else:
+            (self.alpha_g,self.beta_g)=scipy.polyfit(logmass,logsigma,1)
+        return np.exp(self.alpha_g*(np.log(M)-12)+self.beta_g)
+
 
     def get_absorber_area(self,minN,maxN):
         """Return the total area (in kpc/h^2) covered by absorbers with column density covered by a given bin"""
@@ -380,6 +399,11 @@ class HaloHI:
         else:
             return np.array([])
 
+    def get_stacked_radial_profile(self,minM,maxM,minR,maxR,gas_grid=False):
+        """Stacks several radial profiles in mass bins"""
+        ind = np.where(np.logical_and(self.sub_mass > minM, self.sub_mass < maxM))
+        stack_element=[self.get_radial_profile(ii, minR, maxR,gas_grid) for ii in np.ravel(ind)]
+        return np.mean(stack_element)
 
     def get_radial_profile(self,halo,minR,maxR,gas_grid=False):
         """Returns the nHI density summed radially

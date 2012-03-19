@@ -53,23 +53,24 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
-    def plot_radial_profile(self,num=0,minR=0,maxR=100.):
-        """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo."""
+    def plot_radial_profile(self,minM=2e11,maxM=1e12,minR=0,maxR=100.):
+        """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
+        stacking several halo profiles together."""
         Rbins=np.linspace(minR,maxR,20)
         try:
-            aRprof=[self.get_radial_profile(num,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
             #If we didn't load the HI grid this time
         except AttributeError:
             pass
         #Gas profiles
         try:
-            agRprof=[self.get_radial_profile(num,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            agRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
         except AttributeError:
             pass
         plt.xlabel(r"R (kpc/h)")
-        plt.ylabel(r"Density $N_HI$ (cm$^{-1}$)")
+        plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         plt.legend(loc=1)
         plt.tight_layout()
         plt.show()
@@ -139,6 +140,26 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    def plot_sigma_DLA_gas(self, DLA_cut=20.3):
+        """Plot sigma_DLA against gas mass. """
+        gas_mass=np.logspace(np.log10(np.min(self.ahalo.sub_gas_mass)),np.log10(np.max(self.ahalo.sub_gas_mass)),num=100)
+        asfit=self.ahalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
+        gsfit=self.ghalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
+        alabel = r"Arepo: $\alpha=$"+str(np.round(self.ahalo.alpha_g,2))+" $\\beta=$"+str(np.round(self.ahalo.beta_g,2))
+        glabel = r"Gadget: $\alpha=$"+str(np.round(self.ghalo.alpha_g,2))+" $\\beta=$"+str(np.round(self.ghalo.beta_g,2))
+        plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        #Axes
+        plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.legend(loc=0)
+        plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
+        plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.xlim(self.minplot,self.maxplot)
+        #Fits
+        plt.tight_layout()
+        plt.show()
+
     def get_rel_sigma_DLA(self,DLA_cut=20.3, min_sigma=15.):
         """
         Get the change in sigma_DLA for a particular halo.
@@ -154,7 +175,7 @@ class HaloHIPlots:
         for ii in xrange(0,np.size(aDLA)):
             gg=self.ghalo.identify_eq_halo(self.ahalo.sub_mass[ii],self.ahalo.sub_cofm[ii])
             if np.size(gg) > 0 and aDLA[ii]+gDLA[gg] > min_sigma*cell_area:
-                rDLA[ii] = 2*(aDLA[ii]-gDLA[gg])/(aDLA[ii]+gDLA[gg])
+                rDLA[ii] = aDLA[ii]-gDLA[gg]
                 rmass[ii]=0.5*(self.ahalo.sub_mass[ii]+self.ghalo.sub_mass[gg])
             else:
                 rDLA[ii]=np.NaN
@@ -167,13 +188,13 @@ class HaloHIPlots:
 #         (rmass,rDLA)=self.get_rel_sigma_DLA(17,25)
 #         ind=np.where(np.isnan(rDLA) != True)
 #         plt.semilogx(rmass[ind],rDLA[ind],'o',color="green",label="N_HI> 17")
-        (rmass,rDLA)=self.get_rel_sigma_DLA(20.3,15)
+        (rmass,rDLA)=self.get_rel_sigma_DLA(20.3,30.)
         ind=np.where(np.isnan(rDLA) != True)
-        plt.semilogx(rmass[ind],rDLA[ind],'o',color="silver",label="N_HI> 20.3")
+        plt.semilogx(rmass[ind],rDLA[ind],'o',color="blue",label="N_HI> 20.3")
         #Axes
         plt.xlim(self.minplot,self.maxplot)
         plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\delta \sigma_\mathrm{DLA} / \sigma_\mathrm{DLA}$ (kpc$^2$/h$^2$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Arepo) - $\sigma_\mathrm{DLA}$ (Gadget) (kpc$^2$/h$^2$)")
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
@@ -214,13 +235,13 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_radial_profile(self,halo,minR=0,maxR=100.):
-        """Plots the radial density of neutral hydrogen.
-        TODO: Figure out some way to stack these."""
+    def plot_radial_profile(self,minM=2e11,maxM=1e12,minR=0,maxR=100.):
+        """Plots the radial density of neutral hydrogen for all halos stacked in the mass bin.
+        """
         Rbins=np.linspace(minR,maxR,20)
         try:
-            aRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            gRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="Arepo HI")
             plt.semilogy(Rbins[0:-1],gRprof,color=gcol, ls=gstyle,label="Gadget HI")
             #If we didn't load the HI grid this time
@@ -228,8 +249,8 @@ class HaloHIPlots:
             pass
         #Gas profiles
         try:
-            agRprof=[self.ahalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            ggRprof=[self.ghalo.get_radial_profile(halo,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            agRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+            ggRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Arepo Gas")
             plt.semilogy(Rbins[0:-1],ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
         except AttributeError:
