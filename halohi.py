@@ -29,11 +29,11 @@ class TotalHaloHI:
         #proton mass in g
         self.protonmass=1.66053886e-24
         #Internal gadget mass unit: 1e10 M_sun/h in g/h
-        UnitMass_in_g=1.989e43
+        self.UnitMass_in_g=1.989e43
         #1 M_sun in g
-        SolarMass_in_g=1.989e33
+        self.SolarMass_in_g=1.989e33
         #Internal gadget mass unit: 1 kpc/h in cm/h
-        UnitLength_in_cm=3.085678e21
+        self.UnitLength_in_cm=3.085678e21
         self.hy_mass = 0.76 # Hydrogen massfrac
         self.minpart=minpart
         self.hubble=hubble
@@ -53,28 +53,19 @@ class TotalHaloHI:
             self.Mgas = grid_file["Mgas"]
             self.gas_mass = grid_file["gas_mass"]
             self.tot_found=grid_file["tot_found"]
+            self.ind = grid_file["ind"]
+            self.cofm=grid_file["cofm"]
+            self.vmaxrad=grid_file["vmaxrad"]
             grid_file.close()
         except (IOError,KeyError):
             #Get halo catalog
-            subs=readsubf.subfind_catalog(snap_dir,snapnum,masstab=True,long_ids=True)
-            #Get list of halos resolved with > minpart particles
-            ind=np.where(subs.sub_len > minpart)
+            (self.ind,self.mass,self.cofm,self.gas_mass,self.vmaxrad)=self.find_wanted_halos()
             #Initialise arrays
-            self.nHI=np.zeros(np.size(ind))
-            self.MHI=np.zeros(np.size(ind))
-            self.Mgas=np.zeros(np.size(ind))
-            self.tot_found=np.zeros(np.size(ind))
-            #Put masses in M_sun/h
-            self.mass=subs.sub_mass[ind]*UnitMass_in_g/SolarMass_in_g
-            self.gas_mass=np.array(subs.sub_masstab[ind][:,0])*UnitMass_in_g/SolarMass_in_g
-            print "Found ",np.size(ind)," halos with > ",minpart,"particles"
-            #Get particle ids for each subhalo
-            sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
-            #NOTE: this will in general be much larger than the number of particles we want to process,
-            #because it includes the DM.
-            all_sub_ids=np.concatenate(sub_ids)
-            del subs
-            print "Got particle id lists"
+            self.nHI=np.zeros(np.size(self.ind))
+            self.MHI=np.zeros(np.size(self.ind))
+            self.Mgas=np.zeros(np.size(self.ind))
+            self.tot_found=np.zeros(np.size(self.ind))
+            print "Found ",np.size(self.ind)," halos with > ",minpart,"particles"
             star=cold_gas.StarFormation(hubble=self.hubble)
             #Now find the average HI for each halo
             for fnum in range(0,500):
@@ -83,28 +74,75 @@ class TotalHaloHI:
                 except IOError:
                     break
                 bar=f["PartType0"]
-                iids=np.array(bar["ParticleIDs"],dtype=np.uint64)
+                print "Starting file ",fnum
                 #Density in (g/h)/(cm/h)^3 = g/cm^3 h^2
-                irho=np.array(bar["Density"],dtype=np.float64)*(UnitMass_in_g/UnitLength_in_cm**3)
+                irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)
                 #nH0 in atoms/cm^3 (NOTE NO h!)
                 inH0 = star.get_reproc_rhoHI(bar)
                 #Convert to neutral fraction: this is in neutral atoms/total hydrogen.
                 inH0/=(irho*self.hubble**2*self.hy_mass/self.protonmass)
-                #Mass in solar masses
-                imass=np.array(bar["Masses"])*UnitMass_in_g/SolarMass_in_g
                 #So nH0 is dimensionless
-                #Find a superset of all the elements
-                hind=np.where(np.in1d(iids,all_sub_ids))
-                ids=iids[hind]
-                nH0=inH0[hind]
-                mass=imass[hind]
-                print "File ",fnum," has ",np.size(hind)," halo particles"
+                #Mass in solar masses
+                imass=np.array(bar["Masses"])*self.UnitMass_in_g/self.SolarMass_in_g
+                #Positions in kpc/h
+                ipos=np.array(bar["Coordinates"],dtype=np.float64)
                 #Assign each subset to the right halo
-                [self._get_quant(ii,sub_ids[ii],nH0,mass,ids) for ii in xrange(0,np.size(sub_ids))]
+                [self.get_single_file_by_virial(ii,ipos,inH0,imass) for ii in xrange(0,np.size(self.mass))]
             print "Found ",np.sum(self.tot_found)," gas particles"
             #If a halo has no gas particles
             ind=np.where(self.tot_found > 0)
             self.nHI[ind]/=self.tot_found[ind]
+        return
+
+    def find_wanted_halos(self):
+        """When handed a halo catalogue, remove from it the halos that have larger halos within their virial radius"""
+        #Array to note the halos we don't want
+        #Get halo catalog
+        subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
+        #Get list of halos resolved with > minpart particles
+        ind=np.where(subs.sub_len > self.minpart)
+        #Store the indices of the halos we are using
+        #Get particle center of mass
+        sub_cofm=np.array(subs.sub_pos[ind])
+        #halo masses in M_sun/h
+        sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        #This is the largest radius possessed by a bound particle, in kpc/h.
+        sub_vmaxrad=subs.sub_vmaxrad[ind]
+        #Gas mass in M_sun/h
+        sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+        del subs
+        #For each halo
+        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm,sub_vmaxrad) for ii in xrange(0,np.size(sub_mass))])
+        ind=(np.ravel(ind)[ind2],)
+        sub_mass=sub_mass[ind2]
+        sub_cofm=sub_cofm[ind2]
+        sub_gas_mass=sub_gas_mass[ind2]
+        sub_vmaxrad=sub_vmaxrad[ind2]
+        return (ind, sub_mass,sub_cofm,sub_gas_mass,sub_vmaxrad)
+
+    def is_masked(self,halo,sub_mass,sub_cofm,sub_vmaxrad):
+        """Find out whether a halo is a mere satellite and if so mask it"""
+        near=np.where(np.sum((sub_cofm[:,:]-sub_cofm[halo,:])**2,axis=1) < sub_vmaxrad[halo]**2)
+        #If there is a larger halo nearby, mask this halo
+        return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
+
+
+    def get_single_file_by_virial(self,ii,ipos,inH0,imass):
+        """Find all particles within the virial radius of the halo, then sum them"""
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        #Find particles near each halo
+        sub_pos=self.cofm[ii]
+        ind=np.where(np.sum((ipos-sub_pos)**2,axis=1) < self.vmaxrad[ii]**2)
+        if np.size(ind) == 0:
+            return
+        #Find nHI and friends
+        self.tot_found[ii]+=np.size(ind)
+        nH0=inH0[ind]
+        mass=imass[ind]
+        self.nHI[ii]+=np.sum(nH0)
+        self.MHI[ii]+=np.sum(nH0*mass)
+        self.Mgas[ii]+=np.sum(mass)
         return
 
     def _get_quant(self,ii,sub,nH0,mass,ids):
@@ -122,8 +160,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass)
-
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass,ind=self.ind,cofm=self.cofm,vmaxrad=self.vmaxrad)
 
 
 class HaloHI:
