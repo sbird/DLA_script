@@ -47,7 +47,11 @@ class TotalHaloHI:
                 raise KeyError("File not for this structure")
             #Otherwise...
             self.nHI = grid_file["nHI"]
+            self.MHI = grid_file["MHI"]
             self.mass = grid_file["mass"]
+            #These two should really be equal...
+            self.Mgas = grid_file["Mgas"]
+            self.gas_mass = grid_file["gas_mass"]
             self.tot_found=grid_file["tot_found"]
             grid_file.close()
         except (IOError,KeyError):
@@ -57,9 +61,12 @@ class TotalHaloHI:
             ind=np.where(subs.sub_len > minpart)
             #Initialise arrays
             self.nHI=np.zeros(np.size(ind))
+            self.MHI=np.zeros(np.size(ind))
+            self.Mgas=np.zeros(np.size(ind))
             self.tot_found=np.zeros(np.size(ind))
             #Put masses in M_sun/h
             self.mass=subs.sub_mass[ind]*UnitMass_in_g/SolarMass_in_g
+            self.gas_mass=np.array(subs.sub_masstab[ind][:,0])*UnitMass_in_g/SolarMass_in_g
             print "Found ",np.size(ind)," halos with > ",minpart,"particles"
             #Get particle ids for each subhalo
             sub_ids=[readsubf.subf_ids(snap_dir,snapnum,np.sum(subs.sub_len[0:i]),subs.sub_len[i],long_ids=True).SubIDs for i in np.ravel(ind)]
@@ -83,20 +90,31 @@ class TotalHaloHI:
                 inH0 = star.get_reproc_rhoHI(bar)
                 #Convert to neutral fraction: this is in neutral atoms/total hydrogen.
                 inH0/=(irho*self.hubble**2*self.hy_mass/self.protonmass)
+                #Mass in solar masses
+                imass=np.array(bar["Masses"])*UnitMass_in_g/SolarMass_in_g
                 #So nH0 is dimensionless
                 #Find a superset of all the elements
                 hind=np.where(np.in1d(iids,all_sub_ids))
                 ids=iids[hind]
                 nH0=inH0[hind]
+                mass=imass[hind]
                 print "File ",fnum," has ",np.size(hind)," halo particles"
                 #Assign each subset to the right halo
-                tmp=[nH0[np.where(np.in1d(ids,sub))] for sub in sub_ids]
-                self.tot_found+=np.array([np.size(i) for i in tmp])
-                self.nHI+=np.array([np.sum(i) for i in tmp])
+                [self._get_quant(ii,sub_ids[ii],nH0,mass,ids) for ii in xrange(0,np.size(sub_ids))]
             print "Found ",np.sum(self.tot_found)," gas particles"
             #If a halo has no gas particles
             ind=np.where(self.tot_found > 0)
             self.nHI[ind]/=self.tot_found[ind]
+        return
+
+    def _get_quant(self,ii,sub,nH0,mass,ids):
+        """Helper function; takes a halo and gets nHI,
+        total HI mass and total particle and mass number."""
+        ind=np.where(np.in1d(ids,sub))
+        self.tot_found[ii]+=np.size(ind)
+        self.nHI[ii]+=np.sum(nH0[ind])
+        self.MHI[ii]+=np.sum(nH0[ind]*mass[ind])
+        self.Mgas[ii]+=np.sum(mass[ind])
         return
 
     def save_file(self):
@@ -104,7 +122,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez_compressed(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found)
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass)
 
 
 
@@ -149,7 +167,7 @@ class HaloHI:
             #First try to load from a file
             f=h5py.File(self.savefile,'r')
             grid_file=f["HaloData"]
-            if  not (grid_file.attrs["maxdist"] == self.maxdist and grid_file.attrs["minpart"] == self.minpart):
+            if  not (grid_file.attrs["minpart"] == self.minpart):
                 raise KeyError("File not for this structure")
             #Otherwise...
             self.redshift=grid_file.attrs["redshift"]

@@ -79,7 +79,7 @@ class PrettyHalo(halohi.HaloHI):
     def plot_gas_vs_halo_mass(self,label="",color="black"):
         """Plot Gas mass vs total halo mass"""
         #Plot.
-        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color,label=label)
+        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color)
         #Make a best-fit curve.
         ind=np.where(self.sub_gas_mass > 0.)
         logmass=np.log10(self.sub_mass[ind])-12
@@ -87,7 +87,7 @@ class PrettyHalo(halohi.HaloHI):
         (alpha,beta)=scipy.polyfit(logmass,loggas,1)
         mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
         gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
-        plt.loglog(mass_bins,gas_fit, color=color,label=r"$\alpha$="+str(np.round(alpha,2))+r"$\beta$ = "+str(np.round(beta,2)))
+        plt.loglog(mass_bins,gas_fit, color=color,label=label+r" $\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel("Gas Mass ($M_\odot$/h)")
@@ -105,26 +105,69 @@ class PrettyBox(halohi.BoxHI,PrettyHalo):
         halohi.BoxHI.__init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None)
 
 
-def plot_totalHI(base,snapnum,minpart=1000):
-    """Make the plot of total neutral hydrogen density in a halo:
-        Figure 9 of Tescari & Viel 2009"""
-    #Get paths
-    gdir=path.join(base,"Gadget")
-    adir=path.join(base,"Arepo_ENERGY")
-    #Load data
-    atHI=halohi.TotalHaloHI(adir,snapnum,minpart)
-    gtHI=halohi.TotalHaloHI(gdir,snapnum,minpart)
-    #Plot.
-    plt.loglog(gtHI.mass,gtHI.nHI,'o',color=gcol,label="Gadget")
-    plt.loglog(atHI.mass,atHI.nHI,'o',color=acol,label="Arepo")
-    #Axes
-    plt.xlabel(r"Mass ($M_\odot$/h)")
-    plt.ylabel("HI frac")
-    plt.legend(loc=4)
-    plt.xlim(1e9,5e12)
-    plt.show()
-    plt.tight_layout()
-    return
+class PrettyTotalHI(halohi.TotalHaloHI):
+    """Derived class for plotting total nHI frac and total nHI mass
+    against halo mass"""
+    def plot_totalHI(self,color="black",label=""):
+        """Make the plot of total neutral hydrogen density in a halo:
+            Figure 9 of Tescari & Viel 2009"""
+        #Plot.
+        plt.loglog(self.mass,self.nHI,'o',color=color,label=label)
+        #Axes
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.ylabel("HI frac")
+        plt.xlim(1e9,5e12)
+
+    def plot_MHI(self,color="black",label=""):
+        """Total M_HI vs M_halo"""
+        #Plot.
+        plt.loglog(self.mass,self.MHI,'o',color=color)
+        #Make a best-fit curve.
+        ind=np.where(self.MHI > 0.)
+        logmass=np.log10(self.mass[ind])-12
+        loggas=np.log10(self.MHI[ind])
+        (alpha,beta)=scipy.polyfit(logmass,loggas,1)
+        mass_bins=np.logspace(np.log10(np.min(self.mass)),np.log10(np.max(self.mass)),num=100)
+        fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
+        plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
+        #Axes
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.ylabel(r"Mass$_{HI}$ ($M_\odot$/h)")
+        plt.xlim(1e9,5e12)
+
+class TotalHIPlots:
+    """Class for plotting functions from PrettyHaloHI"""
+    def __init__(self,base,snapnum,minpart=1000):
+        #Get paths
+        gdir=path.join(base,"Gadget")
+        adir=path.join(base,"Arepo_ENERGY")
+        #Load data
+        self.atHI=PrettyTotalHI(adir,snapnum,minpart)
+        self.atHI.save_file()
+        self.gtHI=PrettyTotalHI(gdir,snapnum,minpart)
+        self.gtHI.save_file()
+
+    def plot_totalHI(self):
+        """Make the plot of total neutral hydrogen density in a halo:
+            Figure 9 of Tescari & Viel 2009"""
+        #Plot.
+        self.atHI.plot_totalHI(color=acol,label="Arepo")
+        self.gtHI.plot_totalHI(color=gcol,label="Gadget")
+        #Axes
+        plt.legend(loc=4)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_MHI(self):
+        """Make the plot of total neutral hydrogen density in a halo:
+            Figure 9 of Tescari & Viel 2009"""
+        #Plot.
+        self.atHI.plot_MHI(color=acol,label="Arepo")
+        self.gtHI.plot_MHI(color=gcol,label="Gadget")
+        #Axes
+        plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
 
 
 class HaloHIPlots:

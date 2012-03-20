@@ -20,6 +20,21 @@ snaps=[
 191,
 ]
 
+#Plots with all the halo particles
+for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
+    outdir=path.join(base,"plots")
+    print "Saving total plots for snapshot ",snapnum," to ",outdir
+    #Fig 9
+    tot=dp.TotalHIPlots(base,snapnum,minpart)
+    plt.figure()
+    tot.plot_totalHI()
+    save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
+
+    plt.clf()
+    tot.plot_MHI()
+    save_figure(path.join(outdir,"MHI_vs_Mgas"+str(snapnum)))
+
+#Plots with the nearest 200kpc
 for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     outdir=path.join(base,"plots")
     print "Saving plots for snapshot ",snapnum," to ",outdir
@@ -49,11 +64,6 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.ghalo.plot_pretty_halo()
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
-
-    #Fig 9
-    #plt.clf()
-    #dp.plot_totalHI(base,snapnum)
-    #save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
 
     #Fig 10
     plt.clf()
