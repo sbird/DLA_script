@@ -6,6 +6,7 @@ matplotlib.use('PDF')
 import matplotlib.pyplot as plt
 import os.path as path
 import dla_plots as dp
+import numpy as np
 from save_figure import *
 
 bases=[
@@ -41,12 +42,27 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     #Load only the gas grids
     hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
+    #Find a smallish halo
+    a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 2e10))
+    s_mass=hplots.ahalo.sub_mass[a_shalo]
+    s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
+    #Get the right halo for a smaller halo
+    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)[0]
+    #Get the right halo
+    g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:])[0]
+
     plt.figure()
-    hplots.ahalo.plot_pretty_gas_halo()
+    hplots.ahalo.plot_pretty_gas_halo(0)
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_gas_halo"))
     plt.clf()
-    hplots.ghalo.plot_pretty_gas_halo()
+    hplots.ghalo.plot_pretty_gas_halo(g_halo_0)
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_gas_halo"))
+    plt.clf()
+    hplots.ahalo.plot_pretty_gas_halo(a_shalo)
+    save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_gas_halo"))
+    plt.clf()
+    hplots.ghalo.plot_pretty_gas_halo(g_shalo)
+    save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
     #Radial profiles
     plt.clf()
     hplots.plot_radial_profile()
@@ -59,11 +75,18 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     #Fig 6
     plt.clf()
-    hplots.ahalo.plot_pretty_halo()
+    hplots.ahalo.plot_pretty_halo(0)
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_halo"))
     plt.clf()
-    hplots.ghalo.plot_pretty_halo()
+    hplots.ghalo.plot_pretty_halo(g_halo_0)
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
+
+    plt.clf()
+    hplots.ahalo.plot_pretty_halo(a_shalo)
+    save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_halo"))
+    plt.clf()
+    hplots.ghalo.plot_pretty_halo(g_shalo)
+    save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_halo"))
 
     #Fig 10
     plt.clf()

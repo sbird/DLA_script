@@ -449,7 +449,7 @@ class HaloHI:
         cell_area=(1./self.ngrid)**2
         return cells*cell_area
 
-    def identify_eq_halo(self,mass,pos,maxmass=0.05,maxpos=100.):
+    def identify_eq_halo(self,mass,pos,maxmass=0.15,maxpos=100.):
         """Given a mass and position, identify the
         nearest halo. Maximum tolerances are in maxmass and maxpos.
         maxmass is a percentage difference
