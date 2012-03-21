@@ -55,11 +55,10 @@ class TotalHaloHI:
             self.tot_found=grid_file["tot_found"]
             self.ind = grid_file["ind"]
             self.cofm=grid_file["cofm"]
-            self.vmaxrad=grid_file["vmaxrad"]
             grid_file.close()
         except (IOError,KeyError):
             #Get halo catalog
-            (self.ind,self.mass,self.cofm,self.gas_mass,self.vmaxrad)=self.find_wanted_halos()
+            (self.ind,self.mass,self.cofm,self.gas_mass)=self.find_wanted_halos()
             #Initialise arrays
             self.nHI=np.zeros(np.size(self.ind))
             self.MHI=np.zeros(np.size(self.ind))
@@ -106,26 +105,38 @@ class TotalHaloHI:
         sub_cofm=np.array(subs.sub_pos[ind])
         #halo masses in M_sun/h
         sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        #This is the largest radius possessed by a bound particle, in kpc/h.
-        sub_vmaxrad=subs.sub_vmaxrad[ind]
         #Gas mass in M_sun/h
         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
         del subs
         #For each halo
-        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm,sub_vmaxrad) for ii in xrange(0,np.size(sub_mass))])
+        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
         sub_gas_mass=sub_gas_mass[ind2]
-        sub_vmaxrad=sub_vmaxrad[ind2]
-        return (ind, sub_mass,sub_cofm,sub_gas_mass,sub_vmaxrad)
+        return (ind, sub_mass,sub_cofm,sub_gas_mass)
 
-    def is_masked(self,halo,sub_mass,sub_cofm,sub_vmaxrad):
+    def is_masked(self,halo,sub_mass,sub_cofm):
         """Find out whether a halo is a mere satellite and if so mask it"""
-        near=np.where(np.sum((sub_cofm[:,:]-sub_cofm[halo,:])**2,axis=1) < sub_vmaxrad[halo]**2)
+        near=np.where(np.sum((sub_cofm[:,:]-sub_cofm[halo,:])**2,axis=1) < self.get_virial_radius(sub_mass[halo])**2)
         #If there is a larger halo nearby, mask this halo
         return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
 
+    def get_virial_radius(self,mass):
+        """Get the virial radius from a virial mass"""
+        #Virial overdensity
+        virden=200.
+        #in cgs
+        G=6.67259e-8
+        hubble=3.2407789e-18  #in h/sec
+        #rho_c in g/cm^3
+        rho_c = 3*(hubble*self.hubble)**2/8/math.pi/G
+        #rho_c in M_sun  / kpc^3 h^2
+        rho_c*=(self.UnitLength_in_cm**3/self.SolarMass_in_g/self.hubble**2)
+        #Now want radius enclosing mass at avg density of virden*rho_c
+        volume=mass/(rho_c*virden)
+        radius = (volume*3./math.pi/4.)**(1./3)
+        return radius
 
     def get_single_file_by_virial(self,ii,ipos,inH0,imass):
         """Find all particles within the virial radius of the halo, then sum them"""
@@ -133,7 +144,7 @@ class TotalHaloHI:
         #               kpc/h                   1 cm/kpc
         #Find particles near each halo
         sub_pos=self.cofm[ii]
-        ind=np.where(np.sum((ipos-sub_pos)**2,axis=1) < self.vmaxrad[ii]**2)
+        ind=np.where(np.sum((ipos[:,:]-sub_pos[:])**2,axis=1) < self.get_virial_radius(self.mass[ii])**2)
         if np.size(ind) == 0:
             return
         #Find nHI and friends
@@ -160,7 +171,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass,ind=self.ind,cofm=self.cofm,vmaxrad=self.vmaxrad)
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass,ind=self.ind,cofm=self.cofm)
 
 
 class HaloHI:
