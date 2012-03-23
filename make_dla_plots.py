@@ -107,15 +107,20 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_sigma_DLA()
     save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
-    #Same but against gas mass
-    plt.clf()
-    hplots.plot_sigma_DLA_gas()
-    save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
-
     #Fig 10
     plt.clf()
     hplots.plot_sigma_DLA(17)
     save_figure(path.join(outdir,"sigma_DLA_17_"+str(snapnum)))
+
+    #Same but against nHI mass
+    plt.clf()
+    hplots.plot_sigma_DLA_nHI()
+    save_figure(path.join(outdir,"sigma_DLA_nHI"+str(snapnum)))
+
+    #Same but against nHI mass
+    plt.clf()
+    hplots.plot_sigma_DLA_nHI(17)
+    save_figure(path.join(outdir,"sigma_DLA_17_nHI"+str(snapnum)))
 
     #Same but against gas mass
     plt.clf()
@@ -126,7 +131,6 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.plot_sigma_DLA_gas(17)
     save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
-
 
     #Fig 10
     plt.clf()
