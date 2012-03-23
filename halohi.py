@@ -171,9 +171,9 @@ class TotalHaloHI:
     def get_hi_mass(self,dm_mass):
         ind=np.where(np.abs(self.mass/dm_mass -1. ) < 0.01)
         if np.size(ind) == 0:
-            return np.nan
+            return -1
         else:
-            return self.MHI[ind]
+            return np.ravel(self.MHI[ind])[0]
 
     def save_file(self):
         """
