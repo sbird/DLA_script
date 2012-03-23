@@ -43,11 +43,20 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     #Load only the gas grids
     hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
     #Find a smallish halo
-    a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 2e10))
+    a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 1e10))
+    #Get the right halo for a smaller halo
     s_mass=hplots.ahalo.sub_mass[a_shalo]
     s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
-    #Get the right halo for a smaller halo
-    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)[0]
+    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+    #Make sure it has a gadget counterpart
+    if np.size(g_shalo) == 0:
+        for i in np.where(hplots.ahalo.sub_mass < 1e10)[0]:
+            s_mass=hplots.ahalo.sub_mass[i]
+            s_pos=hplots.ahalo.sub_cofm[i,:]
+            g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+            if np.size(g_shalo) != 0 :
+                a_shalo=i
+                break
     #Get the right halo
     g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:])[0]
 
@@ -61,7 +70,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.ahalo.plot_pretty_gas_halo(a_shalo)
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_gas_halo"))
     plt.clf()
-    hplots.ghalo.plot_pretty_gas_halo(g_shalo)
+    hplots.ghalo.plot_pretty_gas_halo(g_shalo[0])
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
     #Radial profiles
     plt.clf()
@@ -85,7 +94,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.ahalo.plot_pretty_halo(a_shalo)
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_halo"))
     plt.clf()
-    hplots.ghalo.plot_pretty_halo(g_shalo)
+    hplots.ghalo.plot_pretty_halo(g_shalo[0])
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_halo"))
 
     #Fig 10
