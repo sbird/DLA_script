@@ -151,8 +151,8 @@ class TotalHIPlots:
         """Make the plot of total neutral hydrogen density in a halo:
             Figure 9 of Tescari & Viel 2009"""
         #Plot.
-        self.atHI.plot_totalHI(color=acol,label="Arepo")
         self.gtHI.plot_totalHI(color=gcol,label="Gadget")
+        self.atHI.plot_totalHI(color=acol,label="Arepo")
         #Axes
         plt.legend(loc=4)
         plt.tight_layout()
@@ -162,8 +162,8 @@ class TotalHIPlots:
         """Make the plot of total neutral hydrogen density in a halo:
             Figure 9 of Tescari & Viel 2009"""
         #Plot.
-        self.atHI.plot_MHI(color=acol,label="Arepo")
         self.gtHI.plot_MHI(color=gcol,label="Gadget")
+        self.atHI.plot_MHI(color=acol,label="Arepo")
         #Axes
         plt.legend(loc=0)
         plt.tight_layout()
@@ -234,20 +234,20 @@ class HaloHIPlots:
     def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
         """Plot sigma_DLA against HI mass."""
         #Get MHI
-        athi=PrettyTotalHI(self.adir,self.snapnum,self.minpart)
-        gthi=PrettyTotalHI(self.gdir,self.snapnum,self.minpart)
-        anHI_mass = [athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass]
-        gnHI_mass = [gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass]
+        athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
+        gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
+        anHI_mass = np.array([athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass])
+        gnHI_mass = np.array([gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass])
         #Filter nan
-        ind = np.where(not isnan(anHI_mass))
+        ind = np.where(anHI_mass > 0)
         anHI_mass=anHI_mass[ind]
         asigDLA=self.ahalo.get_sigma_DLA(DLA_cut)[ind]
-        ind = np.where(not isnan(gnHI_mass))
+        ind = np.where(gnHI_mass > 0)
         gnHI_mass=gnHI_mass[ind]
         gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut)[ind]
         #Plot
-        plt.loglog(anHI_mass,asigDLA,'^',color=acol)
         plt.loglog(gnHI_mass,gsigDLA,'s',color=gcol)
+        plt.loglog(anHI_mass,asigDLA,'^',color=acol)
         hi_mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
         #Get fit parameters
         ind=np.where(np.logical_and(asigDLA > 0.,anHI_mass > 0.))
@@ -265,8 +265,8 @@ class HaloHIPlots:
             glabel = r"Gadget: $\alpha=$"+str(np.round(alpha_g,2))+" $\\beta=$"+str(np.round(beta_g,2))
             gsfit=10**(alpha_g*(np.log10(hi_mass)-12)+beta_g)
             #Plot
+        plt.loglog(hi_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         plt.loglog(hi_mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
         plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
@@ -350,7 +350,7 @@ class HaloHIPlots:
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Arepo / Gadget")
+        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
