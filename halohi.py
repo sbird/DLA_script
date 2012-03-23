@@ -144,13 +144,15 @@ class TotalHaloHI:
         #               kpc/h                   1 cm/kpc
         #Find particles near each halo
         sub_pos=self.cofm[ii]
-        ind=np.where(np.sum((ipos[:,:]-sub_pos[:])**2,axis=1) < self.get_virial_radius(self.mass[ii])**2)
+        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.get_virial_radius(self.mass[ii]))
+        pposx=ipos[indx]
+        ind=np.where(np.sum((pposx[:,:]-sub_pos[:])**2,axis=1) < self.get_virial_radius(self.mass[ii])**2)
         if np.size(ind) == 0:
             return
         #Find nHI and friends
         self.tot_found[ii]+=np.size(ind)
-        nH0=inH0[ind]
-        mass=imass[ind]
+        nH0=(inH0[indx])[ind]
+        mass=(imass[indx])[ind]
         self.nHI[ii]+=np.sum(nH0)
         self.MHI[ii]+=np.sum(nH0*mass)
         self.Mgas[ii]+=np.sum(mass)
