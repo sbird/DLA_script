@@ -166,6 +166,13 @@ class TotalHaloHI:
         self.Mgas[ii]+=np.sum(mass[ind])
         return
 
+    def get_hi_mass(self,dm_mass):
+        ind=np.where(np.abs(self.mass/dm_mass -1. ) < 0.01)
+        if np.size(ind) == 0:
+            return np.nan
+        else:
+            return self.MHI[ind]
+
     def save_file(self):
         """
         Saves grids to a file, because they are slow to generate.

@@ -231,6 +231,51 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
+        """Plot sigma_DLA against HI mass."""
+        #Get MHI
+        athi=PrettyTotalHI(self.adir,self.snapnum,self.minpart)
+        gthi=PrettyTotalHI(self.gdir,self.snapnum,self.minpart)
+        anHI_mass = [athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass]
+        gnHI_mass = [gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass]
+        #Filter nan
+        ind = np.where(not isnan(anHI_mass))
+        anHI_mass=anHI_mass[ind]
+        asigDLA=self.ahalo.get_sigma_DLA(DLA_cut)[ind]
+        ind = np.where(not isnan(gnHI_mass))
+        gnHI_mass=gnHI_mass[ind]
+        gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut)[ind]
+        #Plot
+        plt.loglog(anHI_mass,asigDLA,'^',color=acol)
+        plt.loglog(gnHI_mass,gsigDLA,'s',color=gcol)
+        hi_mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
+        #Get fit parameters
+        ind=np.where(np.logical_and(asigDLA > 0.,anHI_mass > 0.))
+        logmass=np.log10(anHI_mass[ind])-12
+        logsigma=np.log10(asigDLA[ind])
+        if np.size(logsigma) != 0:
+            (alpha_a,beta_a)=scipy.polyfit(logmass,logsigma,1)
+            alabel = r"Arepo: $\alpha=$"+str(np.round(alpha_a,2))+" $\\beta=$"+str(np.round(beta_a,2))
+            asfit=10**(alpha_a*(np.log10(hi_mass)-12)+beta_a)
+        ind=np.where(np.logical_and(gsigDLA > 0.,gnHI_mass > 0.))
+        logmass=np.log10(gnHI_mass[ind])-12
+        logsigma=np.log10(gsigDLA[ind])
+        if np.size(logsigma) != 0:
+            (alpha_g,beta_g)=scipy.polyfit(logmass,logsigma,1)
+            glabel = r"Gadget: $\alpha=$"+str(np.round(alpha_g,2))+" $\\beta=$"+str(np.round(beta_g,2))
+            gsfit=10**(alpha_g*(np.log10(hi_mass)-12)+beta_g)
+            #Plot
+        plt.loglog(hi_mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        #Axes
+        plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.legend(loc=0)
+        plt.xlim(self.minplot/100.,self.maxplot/100.)
+        #Fits
+        plt.tight_layout()
+        plt.show()
+
     def plot_gas_vs_halo_mass(self):
         """Plot Gas mass vs total halo mass"""
         #Plot.
