@@ -10,13 +10,13 @@ import numpy as np
 from save_figure import *
 
 bases=[
-"/home/spb/data/ComparisonProject/128_20Mpc",
-"/home/spb/data/ComparisonProject/256_20Mpc",
+# "/home/spb/data/ComparisonProject/128_20Mpc",
+# "/home/spb/data/ComparisonProject/256_20Mpc",
 "/home/spb/data/ComparisonProject/512_20Mpc",
 ]
 minpart=1000
 snaps=[
-91,
+90,
 124,
 191,
 ]
@@ -137,10 +137,10 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_rel_sigma_DLA()
     save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
 
-#    #Fig 11
-#    plt.clf()
-#    hplots.plot_dN_dla()
-#    save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
+    #Fig 11
+    plt.clf()
+    hplots.plot_dN_dla()
+    save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
 
     #Fig 12
     plt.clf()
@@ -152,7 +152,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     hplots.plot_rel_column_density()
     save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
-#     #Fig 5
-#     plt.clf()
-#     hplots.plot_halo_mass_func()
-#     save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
+    #Fig 5
+    plt.clf()
+    hplots.plot_halo_mass_func()
+    save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
