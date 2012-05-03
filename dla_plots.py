@@ -213,13 +213,17 @@ class HaloHIPlots:
             self.aDLAdz=halohi.DNdlaDz(self.ahalo.get_sigma_DLA(),self.ahalo.sub_mass,self.ahalo.redshift,self.ahalo.omegam,self.ahalo.omegal,self.ahalo.hubble)
             self.gDLAdz=halohi.DNdlaDz(self.ghalo.get_sigma_DLA(),self.ghalo.sub_mass,self.ghalo.redshift,self.ghalo.omegam,self.ghalo.omegal,self.ghalo.hubble)
 
+    def pr_num(self,num):
+        """Return a string rep of a number"""
+        return str(np.round(num,2))
+
     def plot_sigma_DLA(self, DLA_cut=20.3):
         """Plot sigma_DLA against mass. Figure 10."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
         asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut)
         gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut)
-        alabel = r"Arepo: $\alpha=$"+str(np.round(self.ahalo.alpha,2))+" $\\beta=$"+str(np.round(self.ahalo.beta,2))
-        glabel = r"Gadget: $\alpha=$"+str(np.round(self.ghalo.alpha,2))+" $\\beta=$"+str(np.round(self.ghalo.beta,2))
+        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
+        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
@@ -229,6 +233,7 @@ class HaloHIPlots:
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
         plt.xlim(self.minplot,self.maxplot)
+        plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
         plt.show()
@@ -238,8 +243,8 @@ class HaloHIPlots:
         gas_mass=np.logspace(np.log10(np.min(self.ahalo.sub_gas_mass)),np.log10(np.max(self.ahalo.sub_gas_mass)),num=100)
         asfit=self.ahalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
         gsfit=self.ghalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
-        alabel = r"Arepo: $\alpha=$"+str(np.round(self.ahalo.alpha_g,2))+" $\\beta=$"+str(np.round(self.ahalo.beta_g,2))
-        glabel = r"Gadget: $\alpha=$"+str(np.round(self.ghalo.alpha_g,2))+" $\\beta=$"+str(np.round(self.ghalo.beta_g,2))
+        alabel = r"A $\alpha=$"+self.pr_num(self.ahalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ahalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma_g)+" b ="+self.pr_num(self.ahalo.pow_break_g)
+        glabel = r"G $\alpha=$"+self.pr_num(self.ghalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ghalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma_g)+" b ="+self.pr_num(self.ghalo.pow_break_g)
         plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
@@ -249,6 +254,7 @@ class HaloHIPlots:
         plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
         plt.xlim(self.minplot/100.,self.maxplot/100.)
+        plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
         plt.show()
