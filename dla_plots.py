@@ -39,6 +39,25 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
+    def plot_pretty_cut_halo(self,num=0,cut=20.3):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        """
+        #Plot a figure
+        vmax=np.max(self.sub_nHI_grid[num,:,:])
+        maxdist=self.maxdist
+        cut_grid=np.array(self.sub_nHI_grid[num,:,:])
+        ind=np.where(cut_grid < cut)
+        cut_grid[ind]=0
+        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        bar=plt.colorbar(use_gridspec=True)
+        bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        plt.xlabel("x (kpc/h)")
+        plt.xlabel("y (kpc/h)")
+        plt.tight_layout()
+        plt.show()
+
+
     def plot_pretty_gas_halo(self,num=0):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
