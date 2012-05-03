@@ -103,7 +103,8 @@ class PrettyHalo(halohi.HaloHI):
         ind=np.where(self.sub_gas_mass > 0.)
         logmass=np.log10(self.sub_mass[ind])-12
         loggas=np.log10(self.sub_gas_mass[ind])
-        (alpha,beta)=scipy.polyfit(logmass,loggas,1)
+        ind2=np.where(logmass > -2)
+        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
         mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
         gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
         plt.loglog(mass_bins,gas_fit, color=color,label=label+r" $\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
@@ -145,7 +146,8 @@ class PrettyTotalHI(halohi.TotalHaloHI):
         ind=np.where(self.MHI > 0.)
         logmass=np.log10(self.mass[ind])-12
         loggas=np.log10(self.MHI[ind])
-        (alpha,beta)=scipy.polyfit(logmass,loggas,1)
+        ind2=np.where(logmass > -2)
+        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
         mass_bins=np.logspace(np.log10(np.min(self.mass)),np.log10(np.max(self.mass)),num=100)
         fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
         plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
