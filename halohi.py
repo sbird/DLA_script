@@ -169,6 +169,7 @@ class TotalHaloHI:
         return
 
     def get_hi_mass(self,dm_mass):
+        """Get the mass of neutral hydrogen in a halo"""
         ind=np.where(np.abs(self.mass/dm_mass -1. ) < 0.01)
         if np.size(ind) == 0:
             return -1
@@ -425,27 +426,27 @@ class HaloHI:
     def sigma_DLA_fit(self,M,DLA_cut=20.3):
         """Returns sigma_DLA(M) for the linear regression fit"""
         #Fit to the DLA abundance
+        (self.alpha,self.beta)=self.do_power_fit(self.sub_mass,DLA_cut)
+        return 10**(self.alpha*(np.log10(M)-12)+self.beta)
+
+    def do_power_fit(self,masses,DLA_cut=20.3):
+        """Finds the parameters of a power law fit. Helper for sigma_DLA_fit"""
+        #Fit to the DLA abundance
         s_DLA=self.get_sigma_DLA(DLA_cut)
         ind=np.where((s_DLA > 0.))
-        logmass=np.log10(self.sub_mass[ind])-12
+        logmass=np.log10(masses[ind])-12
         logsigma=np.log10(s_DLA[ind])
         if np.size(logsigma) == 0:
-            (self.alpha,self.beta)=(0,0)
+            alpha=0
+            beta=0
         else:
-            (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
-        return 10**(self.alpha*(np.log10(M)-12)+self.beta)
+            (alpha,beta)=scipy.polyfit(logmass,logsigma,1)
+        return (alpha,beta)
 
     def sigma_DLA_fit_gas(self,M,DLA_cut=20.3):
         """Returns sigma_DLA(M_g) for the linear regression fit"""
         #Fit to the DLA abundance
-        s_DLA=self.get_sigma_DLA(DLA_cut)
-        ind=np.where(np.logical_and(s_DLA > 0.,self.sub_gas_mass > 0.))
-        logmass=np.log10(self.sub_gas_mass[ind])-12
-        logsigma=np.log10(s_DLA[ind])
-        if np.size(logsigma) == 0:
-            (self.alpha_g,self.beta_g)=(0,0)
-        else:
-            (self.alpha_g,self.beta_g)=scipy.polyfit(logmass,logsigma,1)
+        (self.alpha_g,self.beta_g)=self.do_power_fit(self.sub_gas_mass,DLA_cut)
         return 10**(self.alpha_g*(np.log10(M)-12)+self.beta_g)
 
 
