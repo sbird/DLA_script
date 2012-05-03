@@ -60,7 +60,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     #Get the right halo
     g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:])[0]
 
-    plt.figure()
+    plt.figure(1)
     hplots.ahalo.plot_pretty_gas_halo(0)
     save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_gas_halo"))
     plt.clf()
@@ -76,9 +76,19 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.plot_radial_profile()
 
+    plt.figure(2)
+    #low-mass halo radial profile
+    hplots.plot_radial_profile(minM=6e9, maxM=1e10)
+
     del hplots
     #Load only the nHI grids
     hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=2)
+    #low-mass halo radial profile
+    hplots.plot_radial_profile(minM=6e9, maxM=1e10)
+    save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
+    plt.clf()
+
+    plt.figure(1)
     hplots.plot_radial_profile()
     save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
 
@@ -89,6 +99,13 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.ghalo.plot_pretty_halo(g_halo_0)
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
+
+    plt.clf()
+    hplots.ahalo.plot_pretty_cut_halo(0)
+    save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_cut_halo"))
+    plt.clf()
+    hplots.ghalo.plot_pretty_cut_halo(g_halo_0)
+    save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_cut_halo"))
 
     plt.clf()
     hplots.ahalo.plot_pretty_halo(a_shalo)
@@ -156,3 +173,4 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.plot_halo_mass_func()
     save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
+    plt.clf()
