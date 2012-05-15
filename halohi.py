@@ -20,6 +20,12 @@ import scipy
 import scipy.integrate as integ
 import scipy.weave
 
+def is_masked(halo,sub_mass,sub_cofm, sub_radii):
+    """Find out whether a halo is a mere satellite and if so mask it"""
+    near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < sub_radii),axis=1))
+    #If there is a larger halo nearby, mask this halo
+    return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
+
 class TotalHaloHI:
     """Find the average HI fraction in a halo
     This is like Figure 9 of Tescari & Viel"""
@@ -51,14 +57,14 @@ class TotalHaloHI:
             self.mass = grid_file["mass"]
             #These two should really be equal...
             self.Mgas = grid_file["Mgas"]
-            self.gas_mass = grid_file["gas_mass"]
+            self.sub_radii = grid_file["sub_radii"]
             self.tot_found=grid_file["tot_found"]
             self.ind = grid_file["ind"]
             self.cofm=grid_file["cofm"]
             grid_file.close()
         except (IOError,KeyError):
             #Get halo catalog
-            (self.ind,self.mass,self.cofm,self.gas_mass)=self.find_wanted_halos()
+            (self.ind,self.mass,self.cofm,self.sub_radii)=self.find_wanted_halos()
             #Initialise arrays
             self.nHI=np.zeros(np.size(self.ind))
             self.MHI=np.zeros(np.size(self.ind))
@@ -107,36 +113,32 @@ class TotalHaloHI:
         sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
         #Gas mass in M_sun/h
 #         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+        #r200 in kpc.
+        sub_radii = np.array(subs.group_r_crit200[ind])
         del subs
         #For each halo
-        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
+        ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
 #         sub_gas_mass=sub_gas_mass[ind2]
-        return (ind, sub_mass,sub_cofm)
+        return (ind, sub_mass,sub_cofm,sub_radii)
 
-    def is_masked(self,halo,sub_mass,sub_cofm):
-        """Find out whether a halo is a mere satellite and if so mask it"""
-        near=np.where(np.sum((sub_cofm[:,:]-sub_cofm[halo,:])**2,axis=1) < self.get_virial_radius(sub_mass[halo])**2)
-        #If there is a larger halo nearby, mask this halo
-        return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
-
-    def get_virial_radius(self,mass):
-        """Get the virial radius from a virial mass"""
-        #Virial overdensity
-        virden=200.
-        #in cgs
-        G=6.67259e-8
-        hubble=3.2407789e-18  #in h/sec
-        #rho_c in g/cm^3
-        rho_c = 3*(hubble*self.hubble)**2/8/math.pi/G
-        #rho_c in M_sun  / kpc^3 h^2
-        rho_c*=(self.UnitLength_in_cm**3/self.SolarMass_in_g/self.hubble**2)
-        #Now want radius enclosing mass at avg density of virden*rho_c
-        volume=mass/(rho_c*virden)
-        radius = (volume*3./math.pi/4.)**(1./3)
-        return radius
+#     def get_virial_radius(self,mass):
+#         """Get the virial radius from a virial mass"""
+#         #Virial overdensity
+#         virden=200.
+#         #in cgs
+#         G=6.67259e-8
+#         hubble=3.2407789e-18  #in h/sec
+#         #rho_c in g/cm^3
+#         rho_c = 3*(hubble*self.hubble)**2/8/math.pi/G
+#         #rho_c in M_sun  / kpc^3 h^2
+#         rho_c*=(self.UnitLength_in_cm**3/self.SolarMass_in_g/self.hubble**2)
+#         #Now want radius enclosing mass at avg density of virden*rho_c
+#         volume=mass/(rho_c*virden)
+#         radius = (volume*3./math.pi/4.)**(1./3)
+#         return radius
 
     def get_single_file_by_virial(self,ii,ipos,inH0,imass):
         """Find all particles within the virial radius of the halo, then sum them"""
@@ -144,9 +146,9 @@ class TotalHaloHI:
         #               kpc/h                   1 cm/kpc
         #Find particles near each halo
         sub_pos=self.cofm[ii]
-        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.get_virial_radius(self.mass[ii]))
+        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
         pposx=ipos[indx]
-        ind=np.where(np.sum((pposx[:,:]-sub_pos[:])**2,axis=1) < self.get_virial_radius(self.mass[ii])**2)
+        ind=np.where(np.sum((pposx[:,:]-sub_pos[:])**2,axis=1) < self.sub_radii[ii]**2)
         if np.size(ind) == 0:
             return
         #Find nHI and friends
@@ -181,7 +183,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,gas_mass=self.gas_mass,ind=self.ind,cofm=self.cofm)
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,sub_radii=self.sub_radii,ind=self.ind,cofm=self.cofm)
 
 
 class HaloHI:
@@ -193,18 +195,15 @@ class HaloHI:
         dir - Simulation directory
         snapnum - Number of simulation
         minpart - Minimum size of halo to consider, in particles
-        ngrid - Size of grid to store values on
-        maxdist - Maximum extent of grid in kpc.
         halo_list - If not None, only consider halos in the list
         reload_file - Ignore saved files if true
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,ngrid=None,maxdist=100.,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,minpart=10**4,reload_file=False,skip_grid=None,savefile=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
-        self.maxdist=maxdist
         #Internal gadget mass unit: 1e10 M_sun/h in g/h
         self.UnitMass_in_g=1.989e43
         #1 M_sun in g
@@ -266,16 +265,13 @@ class HaloHI:
             if minpart == -1:
                 #global grid
                 self.nhalo = 1
-                self.maxdist=self.box/2.
+                self.sub_radii=self.box/2.
             else:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
-            if ngrid == None:
-                self.ngrid=int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*self.maxdist))
-            else:
-                self.ngrid=int(ngrid)
-            self.sub_nHI_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
-            self.sub_gas_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
+            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr for rr in self.sub_radii))])
+            self.sub_nHI_grid=np.array([np.zeros(self.ngrid[i],self.ngrid[i]) for i in xrange(0,self.nhalo)])
+            self.sub_gas_grid=np.array([np.zeros(self.ngrid[i],self.ngrid[i]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid()
         return
 
@@ -286,7 +282,6 @@ class HaloHI:
         """
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
-        grp.attrs["maxdist"]=self.maxdist
         grp.attrs["minpart"]=self.minpart
         grp.attrs["ngrid"]=self.ngrid
         grp.attrs["redshift"]=self.redshift
@@ -317,6 +312,7 @@ class HaloHI:
 #         del self.sub_gas_mass
         del self.sub_cofm
         del self.sub_radii
+        del self.ngrid
         del self.ind
 
     def set_nHI_grid(self):
@@ -343,8 +339,6 @@ class HaloHI:
             # gas density in hydrogen atoms/cm^3
             irho*=(hy_mass/protonmass)
             f.close()
-            #Convert smoothing lengths to grid coordinates.
-            smooth*=(self.ngrid/(2*self.maxdist))
             #Perform the grid interpolation
             [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
@@ -369,20 +363,22 @@ class HaloHI:
         """
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
-        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.maxdist)
+        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
         pposx=ipos[indx]
-        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.maxdist,axis=1))
+        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
         if np.size(indz) == 0:
             return
         #coords in grid units
-        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid,2*self.maxdist)
+        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
         smooth = (ismooth[indx])[indz]
+        #Convert smoothing lengths to grid coordinates.
+        smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
-            print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*(epsilon/(1+self.redshift)**2)
         fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
@@ -413,27 +409,29 @@ class HaloHI:
 #         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
         del subs
         #For each halo
-        ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
+        ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
-        sub_radd=sub_radii[ind2]
+        sub_radii=sub_radii[ind2]
 #         sub_gas_mass=sub_gas_mass[ind2]
         return (ind, sub_mass,sub_cofm,sub_radii)
 
-    def is_masked(self,halo,sub_mass,sub_cofm, sub_radii):
-        """Find out whether a halo is a mere satellite and if so mask it"""
-        near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < self.maxdist),axis=1))
-        #If there is a larger halo nearby, mask this halo
-        return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
+    def get_sigma_DLA_halo(self,halo,DLA_cut):
+        """Get the DLA cross-section for a single halo.
+        This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
+        Returns result in (kpc/h)^2."""
+        cell_area=(2.*self.sub_radii[halo]/self.ngrid[halo])**2
+        sigma_DLA = np.shape(np.where(self.sub_nHI_grid[halo] > DLA_cut))[1]*cell_area
+        return sigma_DLA
 
     def get_sigma_DLA(self,DLA_cut=20.3):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
         Returns result in (kpc/h)^2."""
-        cell_area=(2.*self.maxdist/self.ngrid)**2
-        sigma_DLA = np.array([ np.shape(np.where(grid > DLA_cut))[1]*cell_area for grid in self.sub_nHI_grid])
+        sigma_DLA = np.array([ self.get_sigma_DLA_halo(halo,DLA_cut) for halo in xrange(0,np.size(self.ngrid))])
         return sigma_DLA
+
 
     def sigma_DLA_fit(self,M,DLA_cut=20.3):
         """Returns sigma_DLA(M) for the linear regression fit"""
@@ -492,15 +490,6 @@ class HaloHI:
         (alpha,beta,gamma)=self.broken_power_fit(pow_break,logmass,logsigma)
         return (alpha,beta,gamma,pow_break)
 
-    def get_absorber_area(self,minN,maxN):
-        """Return the total area (in kpc/h^2) covered by absorbers with column density covered by a given bin"""
-        #Number of grid cells
-        flat_grid=np.ravel(self.sub_nHI_grid)
-        cells=np.shape(np.where(np.logical_and(flat_grid > minN,flat_grid < maxN)))[1]
-        #Area of grid cells in kpc/h^2
-        cell_area=(1./self.ngrid)**2
-        return cells*cell_area
-
     def identify_eq_halo(self,mass,pos,maxmass=0.15,maxpos=100.):
         """Given a mass and position, identify the
         nearest halo. Maximum tolerances are in maxmass and maxpos.
@@ -541,23 +530,22 @@ class HaloHI:
 
         #Find r in grid units:
         total=0.
-        gminR=minR/(2.*self.maxdist)*self.ngrid
-        gmaxR=maxR/(2.*self.maxdist)*self.ngrid
-        cen=self.ngrid/2.
+        gminR=minR/(2.*self.sub_radii[halo])*self.ngrid[halo]
+        gmaxR=maxR/(2.*self.sub_radii[halo])*self.ngrid[halo]
+        cen=self.ngrid[halo]/2.
         #Broken part of the annulus:
         for x in xrange(-int(gminR),int(gminR)):
             miny=int(np.sqrt(gminR**2-x**2))
             maxy=int(np.sqrt(gmaxR**2-x**2))
-            total+=np.sum(10**grid[x+self.ngrid/2,(cen+miny):(cen+maxy)])
-            total+=np.sum(10**grid[x+self.ngrid/2,(cen-maxy):(cen-miny)])
+            total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen+miny):(cen+maxy)])
+            total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen-maxy):(cen-miny)])
         #Complete part of annulus
         for x in xrange(int(gminR),int(gmaxR)):
             maxy=int(np.sqrt(gmaxR**2-x**2)+cen)
             miny=int(-np.sqrt(gmaxR**2-x**2)+cen)
             total+=np.sum(10**grid[x+cen,miny:maxy])
             total+=np.sum(10**grid[-x+cen,miny:maxy])
-        return total*((2.*self.maxdist)/self.ngrid*self.UnitLength_in_cm)
-
+        return total*((2.*self.sub_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
 
 
     def absorption_distance(self):
@@ -596,14 +584,15 @@ class HaloHI:
         """
         NHI_table = np.logspace(minN, maxN,(maxN-minN)/dlogN,endpoint=True)
         #Grid size (in cm^2)
-        cell_area=(1./self.ngrid)**2
         dX=self.absorption_distance()
         flat_grid=np.ravel(self.sub_nHI_grid)
-        (f_N,NHI_table)=np.histogram(flat_grid,np.log10(NHI_table))
+        #Ouch memory
+        cell_areas = np.ravel(self.ngrid*np.ones(np.shape(self.sub_nHI_grid)))
+        (f_N,NHI_table)=np.histogram(flat_grid,np.log10(NHI_table),weights=cell_areas)
         NHI_table=(10.)**NHI_table
         #To compensate for any rounding
         dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
-        f_N=(1.*f_N*cell_area)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX)
+        f_N=(1.*f_N)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX)
         return (NHI_table[0:-1]*(10.)**(dlogN_real/2.), f_N)
 
     def omega_DLA(self, maxN):
@@ -708,17 +697,16 @@ class BoxHI(HaloHI):
     Parameters:
         dir - Simulation directory
         snapnum - Number of simulation
-        ngrid - Size of grid to store values on
         reload_file - Ignore saved files if true
         self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
         if savefile==None:
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
             savefile_s = savefile
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,ngrid=ngrid,maxdist=20000.,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
         return
 
     def sub_gridize_single_file(self,ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
@@ -732,12 +720,12 @@ class BoxHI(HaloHI):
         """
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.maxdist/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        epsilon=2.*self.sub_radii/(self.ngrid)*self.UnitLength_in_cm/self.hubble
         #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid,2*self.maxdist)
+        coords=fieldize.convert(ipos,self.ngrid,2*self.sub_radii)
         #NH0
         if self.once:
-            print "Av. smoothing length is ",np.mean(smooth)*2*self.maxdist/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=(irho)*(epsilon/(1+self.redshift)**2)
         fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
