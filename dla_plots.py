@@ -25,54 +25,42 @@ class PrettyHalo(halohi.HaloHI):
     Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
     """
 
-    def plot_pretty_halo(self,num=0):
+    def plot_pretty_something(self,num,grid,bar_label):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
+        Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max(self.sub_nHI_grid[num,:,:])
-        maxdist=self.maxdist
+        vmax=np.max(grid[num,:,:])
+        maxdist = self.sub_radii[num]
         plt.imshow(self.sub_nHI_grid[num,:,:],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
-        bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        bar.set_label(bar_label)
         plt.xlabel("x (kpc/h)")
         plt.xlabel("y (kpc/h)")
         plt.tight_layout()
         plt.show()
+
+    def plot_pretty_halo(self,num=0):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        """
+        self.plot_pretty_something(num,self.sub_nHI_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_cut_halo(self,num=0,cut=20.3):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        #Plot a figure
-        vmax=np.max(self.sub_nHI_grid[num,:,:])
-        maxdist=self.maxdist
         cut_grid=np.array(self.sub_nHI_grid[num,:,:])
         ind=np.where(cut_grid < cut)
         cut_grid[ind]=0
-        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
-        bar=plt.colorbar(use_gridspec=True)
-        bar.set_label("log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
-        plt.xlabel("x (kpc/h)")
-        plt.xlabel("y (kpc/h)")
-        plt.tight_layout()
-        plt.show()
-
+        self.plot_pretty_something(num,cut_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_gas_halo(self,num=0):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        #Plot a figure
-        vmax=np.max(self.sub_gas_grid[num,:,:])
-        maxdist=self.maxdist
-        plt.imshow(self.sub_gas_grid[num,:,:],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
-        bar=plt.colorbar(use_gridspec=True)
-        bar.set_label("log$_{10}$ N$_{H}$ (cm$^{-2}$)")
-        plt.xlabel("x (kpc/h)")
-        plt.xlabel("y (kpc/h)")
-        plt.tight_layout()
-        plt.show()
+        self.plot_pretty_something(num,self.sub_gas_grid,"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
 
     def plot_radial_profile(self,minM=3e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
@@ -96,34 +84,13 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
-#    def plot_gas_vs_halo_mass(self,label="",color="black"):
-#        """Plot Gas mass vs total halo mass"""
-#        #Plot.
-#        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color)
-#        #Make a best-fit curve.
-#        ind=np.where(self.sub_gas_mass > 0.)
-#        logmass=np.log10(self.sub_mass[ind])-12
-#        loggas=np.log10(self.sub_gas_mass[ind])
-#        ind2=np.where(logmass > -2)
-#        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
-#        mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
-#        gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
-#        plt.loglog(mass_bins,gas_fit, color=color,label=label+r" $\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
-#        #Axes
-#        plt.xlabel(r"Mass ($M_\odot$/h)")
-#        plt.ylabel("Gas Mass ($M_\odot$/h)")
-#        plt.xlim(1e9,5e12)
-#        plt.tight_layout()
-#        plt.show()
-#        return
-
 
 class PrettyBox(halohi.BoxHI,PrettyHalo):
     """
     As above but for the whole box grid
     """
-    def __init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None):
-        halohi.BoxHI.__init__(self,snap_dir,snapnum,ngrid=None,reload_file=False,skip_grid=None,savefile=None)
+    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
+        halohi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None)
 
 
 class PrettyTotalHI(halohi.TotalHaloHI):
@@ -157,6 +124,25 @@ class PrettyTotalHI(halohi.TotalHaloHI):
         plt.ylabel(r"Mass$_{HI}$ ($M_\odot$/h)")
         plt.xlim(1e9,5e12)
 
+    def plot_gas(self,color="black",label=""):
+        """Total M_gas vs M_halo"""
+        #Plot.
+        plt.loglog(self.mass,self.Mgas,'o',color=color)
+        #Make a best-fit curve.
+        ind=np.where(self.Mgas > 0.)
+        logmass=np.log10(self.mass[ind])-12
+        loggas=np.log10(self.Mgas[ind])
+        ind2=np.where(logmass > -2)
+        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
+        mass_bins=np.logspace(np.log10(np.min(self.mass)),np.log10(np.max(self.mass)),num=100)
+        fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
+        plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
+        #Axes
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.ylabel(r"Mass$_{gas}$ ($M_\odot$/h)")
+        plt.xlim(1e9,5e12)
+
+
 class TotalHIPlots:
     """Class for plotting functions from PrettyHaloHI"""
     def __init__(self,base,snapnum,minpart=1000):
@@ -181,7 +167,7 @@ class TotalHIPlots:
         plt.show()
 
     def plot_MHI(self):
-        """Make the plot of total neutral hydrogen density in a halo:
+        """Make the plot of total neutral hydrogen mass in a halo:
             Figure 9 of Tescari & Viel 2009"""
         #Plot.
         self.gtHI.plot_MHI(color=gcol,label="Gadget")
@@ -190,6 +176,17 @@ class TotalHIPlots:
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
+
+    def plot_gas(self):
+        """Plot total gas mass in a halo"""
+        #Plot.
+        self.gtHI.plot_gas(color=gcol,label="Gadget")
+        self.atHI.plot_gas(color=acol,label="Arepo")
+        #Axes
+        plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
+
 
 
 class HaloHIPlots:
@@ -236,7 +233,7 @@ class HaloHIPlots:
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
-        plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
+        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
         plt.show()
@@ -309,16 +306,6 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-#     def plot_gas_vs_halo_mass(self):
-#         """Plot Gas mass vs total halo mass"""
-#         #Plot.
-#         self.ghalo.plot_gas_vs_halo_mass(label="Gadget",color=gcol)
-#         self.ahalo.plot_gas_vs_halo_mass(label="Arepo",color=acol)
-#         #Axes
-#         plt.legend()
-#         plt.tight_layout()
-#         plt.show()
-
     def get_rel_sigma_DLA(self,DLA_cut=20.3, min_sigma=15.):
         """
         Get the change in sigma_DLA for a particular halo.
@@ -330,7 +317,7 @@ class HaloHIPlots:
         gDLA=self.ghalo.get_sigma_DLA(DLA_cut)
         rDLA=np.empty(np.size(aDLA))
         rmass=np.empty(np.size(aDLA))
-        cell_area=(2*self.ahalo.maxdist/self.ahalo.ngrid)**2
+        cell_area=(2*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0])**2
         for ii in xrange(0,np.size(aDLA)):
             gg=self.ghalo.identify_eq_halo(self.ahalo.sub_mass[ii],self.ahalo.sub_cofm[ii])
             if np.size(gg) > 0 and aDLA[ii]+gDLA[gg] > min_sigma*cell_area:
@@ -398,7 +385,7 @@ class HaloHIPlots:
         """Plots the radial density of neutral hydrogen for all halos stacked in the mass bin.
         """
         #Use sufficiently large bins
-        space=2.*self.ahalo.maxdist/self.ahalo.ngrid
+        space=2.*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0]
         if maxR/20. > space:
             Rbins=np.linspace(minR,maxR,20)
         else:

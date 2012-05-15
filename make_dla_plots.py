@@ -34,6 +34,11 @@ snaps=[
 #    plt.clf()
 #    tot.plot_MHI()
 #    save_figure(path.join(outdir,"MHI_vs_Mgas"+str(snapnum)))
+#    plt.clf()
+#
+#    tot.plot_gas()
+#    save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
+
 
 #Plots with the nearest 200kpc
 for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
@@ -112,11 +117,6 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     plt.clf()
     hplots.ghalo.plot_pretty_halo(g_shalo[0])
     save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_halo"))
-
-    #Fig 10
-#     plt.clf()
-#     hplots.plot_gas_vs_halo_mass()
-#     save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
 
     #Fig 10
     plt.clf()
