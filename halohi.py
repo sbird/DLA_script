@@ -106,15 +106,15 @@ class TotalHaloHI:
         #halo masses in M_sun/h
         sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
         #Gas mass in M_sun/h
-        sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+#         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
         del subs
         #For each halo
         ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
-        sub_gas_mass=sub_gas_mass[ind2]
-        return (ind, sub_mass,sub_cofm,sub_gas_mass)
+#         sub_gas_mass=sub_gas_mass[ind2]
+        return (ind, sub_mass,sub_cofm)
 
     def is_masked(self,halo,sub_mass,sub_cofm):
         """Find out whether a halo is a mere satellite and if so mask it"""
@@ -233,6 +233,7 @@ class HaloHI:
             self.omegal=grid_file.attrs["omegal"]
             self.hubble=grid_file.attrs["hubble"]
             self.box=grid_file.attrs["box"]
+            self.npart=grid_file.attrs["npart"]
             self.ngrid=grid_file.attrs["ngrid"]
             if not skip_grid == 1:
                 self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"])
@@ -241,23 +242,24 @@ class HaloHI:
             try:
                 self.sub_mass = np.array(grid_file["sub_mass"])
                 self.sub_cofm=np.array(grid_file["sub_cofm"])
-                self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
+                self.sub_radii=np.array(grid_file["sub_radii"])
+#                 self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
                 self.ind=np.array(grid_file["halo_ind"])
             except KeyError:
-                (self.ind,self.sub_mass,self.sub_cofm,self.sub_gas_mass)=self.find_wanted_halos()
+                (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=self.find_wanted_halos()
             f.close()
             del grid_file
             del f
         except (IOError,KeyError):
             #Otherwise regenerate from the raw data
-            (self.ind,self.sub_mass,self.sub_cofm,self.sub_gas_mass)=self.find_wanted_halos()
+            (self.ind,self.sub_mass,self.sub_cofm,self)=self.find_wanted_halos()
             self.nhalo=np.size(self.ind)
             #Simulation parameters
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.redshift=f["Header"].attrs["Redshift"]
             self.hubble=f["Header"].attrs["HubbleParam"]
             self.box=f["Header"].attrs["BoxSize"]
-            npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
+            self.npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
             self.omegam=f["Header"].attrs["Omega0"]
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
@@ -269,7 +271,7 @@ class HaloHI:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
             if ngrid == None:
-                self.ngrid=int(np.ceil(40*npart[1]**(1./3)/self.box*2*self.maxdist))
+                self.ngrid=int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*self.maxdist))
             else:
                 self.ngrid=int(ngrid)
             self.sub_nHI_grid=np.zeros((self.nhalo,self.ngrid,self.ngrid))
@@ -295,8 +297,9 @@ class HaloHI:
         grp.create_dataset('sub_gas_grid',data=self.sub_gas_grid)
         grp.create_dataset('sub_nHI_grid',data=self.sub_nHI_grid)
         grp.create_dataset('sub_mass',data=self.sub_mass)
-        grp.create_dataset('sub_gas_mass',data=self.sub_gas_mass)
+#         grp.create_dataset('sub_gas_mass',data=self.sub_gas_mass)
         grp.create_dataset('sub_cofm',data=self.sub_cofm)
+        grp.create_dataset('sub_radii',data=self.sub_radii)
         grp.create_dataset('halo_ind',data=self.ind)
         f.close()
 
@@ -311,8 +314,9 @@ class HaloHI:
         except AttributeError:
             pass
         del self.sub_mass
-        del self.sub_gas_mass
+#         del self.sub_gas_mass
         del self.sub_cofm
+        del self.sub_radii
         del self.ind
 
     def set_nHI_grid(self):
@@ -387,29 +391,37 @@ class HaloHI:
         return
 
     def find_wanted_halos(self):
-        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos"""
+        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos.
+        Select halos via their M_200 mass, defined in terms of the critical density."""
         #Array to note the halos we don't want
         #Get halo catalog
         subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        #Get list of halos resolved with > minpart particles
-        ind=np.where(subs.sub_len > self.minpart)
+        #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
+        rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
+        #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
+        target_mass = self.box**3 * rhom / self.npart[0]
+        #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+        ind=np.where(subs.group_m_crit200 > 400*target_mass)
         #Store the indices of the halos we are using
-        #Get particle center of mass
-        sub_cofm=np.array(subs.sub_pos[ind])
-        #halo masses in M_sun/h
-        sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        #Get particle center of mass, use group catalogue.
+        sub_cofm=np.array(subs.group_pos[ind])
+        #halo masses in M_sun/h: use M_200
+        sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        #r200 in kpc.
+        sub_radii = np.array(subs.group_r_crit200[ind])
         #Gas mass in M_sun/h
-        sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+#         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
         del subs
         #For each halo
         ind2=np.where([self.is_masked(ii,sub_mass,sub_cofm) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
-        sub_gas_mass=sub_gas_mass[ind2]
-        return (ind, sub_mass,sub_cofm,sub_gas_mass)
+        sub_radd=sub_radii[ind2]
+#         sub_gas_mass=sub_gas_mass[ind2]
+        return (ind, sub_mass,sub_cofm,sub_radii)
 
-    def is_masked(self,halo,sub_mass,sub_cofm):
+    def is_masked(self,halo,sub_mass,sub_cofm, sub_radii):
         """Find out whether a halo is a mere satellite and if so mask it"""
         near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < self.maxdist),axis=1))
         #If there is a larger halo nearby, mask this halo
@@ -429,11 +441,11 @@ class HaloHI:
         (self.alpha,self.beta,self.gamma,self.pow_break)=self.do_power_fit(self.sub_mass,DLA_cut)
         return self.eval_fit(M,self.alpha,self.beta,self.gamma,self.pow_break)
 
-    def sigma_DLA_fit_gas(self,M,DLA_cut=20.3):
-        """Returns sigma_DLA(M_g) for the linear regression fit"""
-        #Fit to the DLA abundance
-        (self.alpha_g,self.beta_g,self.gamma_g,self.pow_break_g)=self.do_power_fit(self.sub_gas_mass,DLA_cut)
-        return self.eval_fit(M,self.alpha_g,self.beta_g,self.gamma_g,self.pow_break_g)
+#     def sigma_DLA_fit_gas(self,M,DLA_cut=20.3):
+#         """Returns sigma_DLA(M_g) for the linear regression fit"""
+#         #Fit to the DLA abundance
+#         (self.alpha_g,self.beta_g,self.gamma_g,self.pow_break_g)=self.do_power_fit(self.sub_gas_mass,DLA_cut)
+#         return self.eval_fit(M,self.alpha_g,self.beta_g,self.gamma_g,self.pow_break_g)
 
     def eval_fit(self,M,alpha,beta,gamma,pow_break):
         """Evaluate the fit generated by do_power_fit, below"""
