@@ -96,26 +96,26 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
-    def plot_gas_vs_halo_mass(self,label="",color="black"):
-        """Plot Gas mass vs total halo mass"""
-        #Plot.
-        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color)
-        #Make a best-fit curve.
-        ind=np.where(self.sub_gas_mass > 0.)
-        logmass=np.log10(self.sub_mass[ind])-12
-        loggas=np.log10(self.sub_gas_mass[ind])
-        ind2=np.where(logmass > -2)
-        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
-        mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
-        gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
-        plt.loglog(mass_bins,gas_fit, color=color,label=label+r" $\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
-        #Axes
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel("Gas Mass ($M_\odot$/h)")
-        plt.xlim(1e9,5e12)
-        plt.tight_layout()
-        plt.show()
-        return
+#    def plot_gas_vs_halo_mass(self,label="",color="black"):
+#        """Plot Gas mass vs total halo mass"""
+#        #Plot.
+#        plt.loglog(self.sub_mass,self.sub_gas_mass,'o',color=color)
+#        #Make a best-fit curve.
+#        ind=np.where(self.sub_gas_mass > 0.)
+#        logmass=np.log10(self.sub_mass[ind])-12
+#        loggas=np.log10(self.sub_gas_mass[ind])
+#        ind2=np.where(logmass > -2)
+#        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
+#        mass_bins=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=100)
+#        gas_fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
+#        plt.loglog(mass_bins,gas_fit, color=color,label=label+r" $\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
+#        #Axes
+#        plt.xlabel(r"Mass ($M_\odot$/h)")
+#        plt.ylabel("Gas Mass ($M_\odot$/h)")
+#        plt.xlim(1e9,5e12)
+#        plt.tight_layout()
+#        plt.show()
+#        return
 
 
 class PrettyBox(halohi.BoxHI,PrettyHalo):
@@ -241,28 +241,28 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_sigma_DLA_gas(self, DLA_cut=20.3):
-        """Plot sigma_DLA against gas mass. """
-        gas_mass=np.logspace(np.log10(np.min(self.ahalo.sub_gas_mass)),np.log10(np.max(self.ahalo.sub_gas_mass)),num=100)
-        asfit=self.ahalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
-        gsfit=self.ghalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
-        alabel = r"A $\alpha=$"+self.pr_num(self.ahalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ahalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma_g)+" b ="+self.pr_num(self.ahalo.pow_break_g)
-        glabel = r"G $\alpha=$"+self.pr_num(self.ghalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ghalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma_g)+" b ="+self.pr_num(self.ghalo.pow_break_g)
-        plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        #Axes
-        plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
-        plt.legend(loc=0)
-        plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
-        plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
-        plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        plt.xlim(self.minplot/100.,self.maxplot/100.)
-        plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
-        #Fits
-        plt.tight_layout()
-        plt.show()
+#     def plot_sigma_DLA_gas(self, DLA_cut=20.3):
+#         """Plot sigma_DLA against gas mass. """
+#         gas_mass=np.logspace(np.log10(np.min(self.ahalo.sub_gas_mass)),np.log10(np.max(self.ahalo.sub_gas_mass)),num=100)
+#         asfit=self.ahalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
+#         gsfit=self.ghalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
+#         alabel = r"A $\alpha=$"+self.pr_num(self.ahalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ahalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma_g)+" b ="+self.pr_num(self.ahalo.pow_break_g)
+#         glabel = r"G $\alpha=$"+self.pr_num(self.ghalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ghalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma_g)+" b ="+self.pr_num(self.ghalo.pow_break_g)
+#         plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
+#         plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+#         #Axes
+#         plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
+#         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+#         plt.legend(loc=0)
+#         plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
+#         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+#         plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
+#         plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+#         plt.xlim(self.minplot/100.,self.maxplot/100.)
+#         plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
+#         #Fits
+#         plt.tight_layout()
+#         plt.show()
 
     def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
         """Plot sigma_DLA against HI mass."""
@@ -309,15 +309,15 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_gas_vs_halo_mass(self):
-        """Plot Gas mass vs total halo mass"""
-        #Plot.
-        self.ghalo.plot_gas_vs_halo_mass(label="Gadget",color=gcol)
-        self.ahalo.plot_gas_vs_halo_mass(label="Arepo",color=acol)
-        #Axes
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
+#     def plot_gas_vs_halo_mass(self):
+#         """Plot Gas mass vs total halo mass"""
+#         #Plot.
+#         self.ghalo.plot_gas_vs_halo_mass(label="Gadget",color=gcol)
+#         self.ahalo.plot_gas_vs_halo_mass(label="Arepo",color=acol)
+#         #Axes
+#         plt.legend()
+#         plt.tight_layout()
+#         plt.show()
 
     def get_rel_sigma_DLA(self,DLA_cut=20.3, min_sigma=15.):
         """
