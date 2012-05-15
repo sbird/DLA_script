@@ -476,7 +476,7 @@ class HaloHI:
     def find_breakpoint(self,logmass, logsigma):
         """Find a point to place the break in a broken power law, by guessing.
         Fitting fails."""
-        pow_break=np.median(logmass)
+        pow_break=np.max((np.median(logmass), 10))
         (alpha,beta,gamma)=self.broken_power_fit(pow_break,logmass,logsigma)
         return (alpha,beta,gamma,pow_break)
 
@@ -544,7 +544,7 @@ class HaloHI:
             miny=int(-np.sqrt(gmaxR**2-x**2)+cen)
             total+=np.sum(10**grid[x+cen,miny:maxy])
             total+=np.sum(10**grid[-x+cen,miny:maxy])
-        return total*(2.*self.maxdist)/self.ngrid/self.UnitLength_in_cm
+        return total*((2.*self.maxdist)/self.ngrid*self.UnitLength_in_cm)
 
 
 

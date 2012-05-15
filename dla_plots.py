@@ -11,6 +11,7 @@ import halohi
 import numpy as np
 import scipy
 import os.path as path
+import math
 import matplotlib.pyplot as plt
 
 acol="blue"
@@ -73,20 +74,20 @@ class PrettyHalo(halohi.HaloHI):
         plt.tight_layout()
         plt.show()
 
-    def plot_radial_profile(self,minM=2e11,maxM=1e12,minR=0,maxR=100.):
+    def plot_radial_profile(self,minM=3e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
         stacking several halo profiles together."""
         Rbins=np.linspace(minR,maxR,20)
         try:
             aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
+            plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
             #If we didn't load the HI grid this time
         except AttributeError:
             pass
         #Gas profiles
         try:
             agRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
+            plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
         except AttributeError:
             pass
         plt.xlabel(r"R (kpc/h)")
@@ -232,6 +233,8 @@ class HaloHIPlots:
         plt.legend(loc=0)
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
         plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
         #Fits
@@ -253,6 +256,8 @@ class HaloHIPlots:
         plt.legend(loc=0)
         plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         plt.xlim(self.minplot/100.,self.maxplot/100.)
         plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
         #Fits
@@ -389,15 +394,24 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_radial_profile(self,minM=2e11,maxM=1e12,minR=0,maxR=100.):
+    def plot_radial_profile(self,minM=4e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen for all halos stacked in the mass bin.
         """
-        Rbins=np.linspace(minR,maxR,20)
+        #Use sufficiently large bins
+        space=2.*self.ahalo.maxdist/self.ahalo.ngrid
+        if maxR/20. > space:
+            Rbins=np.linspace(minR,maxR,20)
+        else:
+            Rbins=np.concatenate((np.array([minR,]),np.linspace(minR+np.ceil(1.5*space),maxR+space,maxR/np.ceil(space))))
+        Rbinc = [(Rbins[i+1]+Rbins[i])/2 for i in xrange(0,np.size(Rbins)-1)]
+        Rbinc=[minR,]+Rbinc
         try:
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            plt.semilogy(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="Arepo HI")
-            plt.semilogy(Rbins[0:-1],gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+            plt.plot(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
+            plt.plot(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+            plt.plot(Rbins,2*math.pi*Rbins*self.ahalo.UnitLength_in_cm*10**20.3,color="black", ls="-.",label="DLA density")
+            maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
         except AttributeError:
             pass
@@ -405,8 +419,9 @@ class HaloHIPlots:
         try:
             agRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
             ggRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.semilogy(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Arepo Gas")
-            plt.semilogy(Rbins[0:-1],ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+            plt.plot(Rbinc,[agRprof[0],]+agRprof,color="brown", ls=astyle,label="Arepo Gas")
+            plt.plot(Rbinc,[ggRprof[0],]+ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+            maxx=np.max((agRprof[0],ggRprof[0]))
         except AttributeError:
             pass
         #Make the ticks be less-dense
@@ -414,7 +429,12 @@ class HaloHIPlots:
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"R (kpc/h)")
-        plt.ylabel(r"Density $N_HI$ (cm$^{-1}$)")
+        plt.ylabel(r"Density $N_{HI}$ (cm$^{-1}$)")
+        #Crop the frame so we see the DLA cross-over point
+        DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
+        if maxx > 8*DLAdens:
+            plt.ylim(0,8*DLAdens)
+        plt.xlim(minR,maxR)
         plt.legend(loc=1)
         plt.tight_layout()
         plt.show()
