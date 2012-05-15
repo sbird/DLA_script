@@ -29,7 +29,7 @@ def is_masked(halo,sub_mass,sub_cofm, sub_radii):
 class TotalHaloHI:
     """Find the average HI fraction in a halo
     This is like Figure 9 of Tescari & Viel"""
-    def __init__(self,snap_dir,snapnum,minpart=1000,hubble=0.7):
+    def __init__(self,snap_dir,snapnum,minpart=400,hubble=0.7):
         self.snap_dir=snap_dir
         self.snapnum=snapnum
         #proton mass in g
@@ -100,29 +100,36 @@ class TotalHaloHI:
         return
 
     def find_wanted_halos(self):
-        """When handed a halo catalogue, remove from it the halos that have larger halos within their virial radius"""
+        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos.
+        Select halos via their M_200 mass, defined in terms of the critical density."""
         #Array to note the halos we don't want
         #Get halo catalog
         subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        #Get list of halos resolved with > minpart particles
-        ind=np.where(subs.sub_len > self.minpart)
+        #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
+        rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
+        #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
+        target_mass = self.box**3 * rhom / self.npart[0]
+        #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+        ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
         #Store the indices of the halos we are using
-        #Get particle center of mass
-        sub_cofm=np.array(subs.sub_pos[ind])
-        #halo masses in M_sun/h
-        sub_mass=np.array(subs.sub_mass[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        #Gas mass in M_sun/h
-#         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+        #Get particle center of mass, use group catalogue.
+        sub_cofm=np.array(subs.group_pos[ind])
+        #halo masses in M_sun/h: use M_200
+        sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
         #r200 in kpc.
         sub_radii = np.array(subs.group_r_crit200[ind])
+        #Gas mass in M_sun/h
+#         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
         del subs
         #For each halo
         ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
         sub_mass=sub_mass[ind2]
         sub_cofm=sub_cofm[ind2]
+        sub_radii=sub_radii[ind2]
 #         sub_gas_mass=sub_gas_mass[ind2]
         return (ind, sub_mass,sub_cofm,sub_radii)
+
 
 #     def get_virial_radius(self,mass):
 #         """Get the virial radius from a virial mass"""
@@ -194,13 +201,13 @@ class HaloHI:
     Parameters:
         dir - Simulation directory
         snapnum - Number of simulation
-        minpart - Minimum size of halo to consider, in particles
+        minpart - Minimum size of halo to consider, in DM particle masses
         halo_list - If not None, only consider halos in the list
         reload_file - Ignore saved files if true
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=10**4,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,skip_grid=None,savefile=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -397,7 +404,7 @@ class HaloHI:
         #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
         target_mass = self.box**3 * rhom / self.npart[0]
         #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        ind=np.where(subs.group_m_crit200 > 400*target_mass)
+        ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
         #Store the indices of the halos we are using
         #Get particle center of mass, use group catalogue.
         sub_cofm=np.array(subs.group_pos[ind])
