@@ -14,7 +14,7 @@ bases=[
 # "/home/spb/data/ComparisonProject/256_20Mpc",
 "/home/spb/data/ComparisonProject/512_20Mpc",
 ]
-minpart=1000
+minpart=400
 snaps=[
 90,
 124,
@@ -38,7 +38,7 @@ snaps=[
 #
 #    tot.plot_gas()
 #    save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
-
+#    plt.clf()
 
 #Plots with the nearest 200kpc
 for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
@@ -139,14 +139,14 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"sigma_DLA_17_nHI"+str(snapnum)))
 
     #Same but against gas mass
-#     plt.clf()
-#     hplots.plot_sigma_DLA_gas()
-#     save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
+    plt.clf()
+    hplots.plot_sigma_DLA_gas()
+    save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
 
     #Same but against gas mass
-#     plt.clf()
-#     hplots.plot_sigma_DLA_gas(17)
-#     save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
+    plt.clf()
+    hplots.plot_sigma_DLA_gas(17)
+    save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
 
     #Fig 10
     plt.clf()
@@ -154,9 +154,9 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
 
     #Fig 11
-    plt.clf()
-    hplots.plot_dN_dla()
-    save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
+#     plt.clf()
+#     hplots.plot_dN_dla()
+#     save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
 
     #Fig 12
     plt.clf()
