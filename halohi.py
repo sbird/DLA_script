@@ -42,7 +42,6 @@ class TotalHaloHI:
         self.UnitLength_in_cm=3.085678e21
         self.hy_mass = 0.76 # Hydrogen massfrac
         self.minpart=minpart
-        self.hubble=hubble
         #Name of savefile
         self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"tot_hi_grid.npz")
         try:
@@ -56,6 +55,8 @@ class TotalHaloHI:
             self.MHI = grid_file["MHI"]
             self.mass = grid_file["mass"]
             self.hubble = grid_file["hubble"]
+            self.box = grid_file["box"]
+            self.npart=grid_file["npart"]
             self.omegam = grid_file["omegam"]
             self.Mgas = grid_file["Mgas"]
             self.sub_radii = grid_file["sub_radii"]
@@ -66,6 +67,8 @@ class TotalHaloHI:
         except (IOError,KeyError):
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.hubble=f["Header"].attrs["HubbleParam"]
+            self.box=f["Header"].attrs["BoxSize"]
+            self.npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
             self.omegam=f["Header"].attrs["Omega0"]
             f.close()
             #Get halo catalog
@@ -195,7 +198,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,sub_radii=self.sub_radii,ind=self.ind,cofm=self.cofm,hubble=self.hubble,omegam=self.omegam)
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,sub_radii=self.sub_radii,ind=self.ind,cofm=self.cofm,hubble=self.hubble,omegam=self.omegam,box=self.box,npart=self.npart)
 
 
 class HaloHI:
@@ -245,19 +248,21 @@ class HaloHI:
             self.hubble=grid_file.attrs["hubble"]
             self.box=grid_file.attrs["box"]
             self.npart=grid_file.attrs["npart"]
-            self.ngrid=grid_file.attrs["ngrid"]
+            self.ngrid = np.array(grid_file["ngrid"])
+            self.sub_mass = np.array(grid_file["sub_mass"])
+            self.sub_cofm=np.array(grid_file["sub_cofm"])
+            self.sub_radii=np.array(grid_file["sub_radii"])
+#             self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
+            self.ind=np.array(grid_file["halo_ind"])
+            self.nhalo=np.size(self.ind)
             if not skip_grid == 1:
-                self.sub_nHI_grid = np.array(grid_file["sub_nHI_grid"])
+                self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+                grp = f["GridHIData"]
+                [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
             if not skip_grid == 2:
-                self.sub_gas_grid = np.array(grid_file["sub_gas_grid"])
-            try:
-                self.sub_mass = np.array(grid_file["sub_mass"])
-                self.sub_cofm=np.array(grid_file["sub_cofm"])
-                self.sub_radii=np.array(grid_file["sub_radii"])
-#                 self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
-                self.ind=np.array(grid_file["halo_ind"])
-            except KeyError:
-                (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=self.find_wanted_halos()
+                self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+                grp = f["GridGasData"]
+                [ grp[str(i)].read_direct(self.sub_gas_grid[i]) for i in xrange(0,self.nhalo)]
             f.close()
             del grid_file
             del f
@@ -295,19 +300,23 @@ class HaloHI:
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
         grp.attrs["minpart"]=self.minpart
-        grp.attrs["ngrid"]=self.ngrid
         grp.attrs["redshift"]=self.redshift
         grp.attrs["hubble"]=self.hubble
         grp.attrs["box"]=self.box
+        grp.attrs["npart"]=self.npart
         grp.attrs["omegam"]=self.omegam
         grp.attrs["omegal"]=self.omegal
-        grp.create_dataset('sub_gas_grid',data=self.sub_gas_grid)
-        grp.create_dataset('sub_nHI_grid',data=self.sub_nHI_grid)
+        grp.create_dataset("ngrid",data=self.ngrid)
         grp.create_dataset('sub_mass',data=self.sub_mass)
 #         grp.create_dataset('sub_gas_mass',data=self.sub_gas_mass)
         grp.create_dataset('sub_cofm',data=self.sub_cofm)
         grp.create_dataset('sub_radii',data=self.sub_radii)
         grp.create_dataset('halo_ind',data=self.ind)
+        grp_grid = f.create_group("GridHIData")
+        grp_gas_grid = f.create_group("GridGasData")
+        for i in xrange(0,self.nhalo):
+            grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
+            grp_gas_grid.create_dataset(str(i),data=self.sub_gas_grid[i])
         f.close()
 
     def __del__(self):
