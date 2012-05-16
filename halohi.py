@@ -22,14 +22,14 @@ import scipy.weave
 
 def is_masked(halo,sub_mass,sub_cofm, sub_radii):
     """Find out whether a halo is a mere satellite and if so mask it"""
-    near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < sub_radii),axis=1))
+    near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < sub_radii[halo]),axis=1))
     #If there is a larger halo nearby, mask this halo
     return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
 
 class TotalHaloHI:
     """Find the average HI fraction in a halo
     This is like Figure 9 of Tescari & Viel"""
-    def __init__(self,snap_dir,snapnum,minpart=400,hubble=0.7):
+    def __init__(self,snap_dir,snapnum,minpart=400):
         self.snap_dir=snap_dir
         self.snapnum=snapnum
         #proton mass in g
@@ -55,7 +55,8 @@ class TotalHaloHI:
             self.nHI = grid_file["nHI"]
             self.MHI = grid_file["MHI"]
             self.mass = grid_file["mass"]
-            #These two should really be equal...
+            self.hubble = grid_file["hubble"]
+            self.omegam = grid_file["omegam"]
             self.Mgas = grid_file["Mgas"]
             self.sub_radii = grid_file["sub_radii"]
             self.tot_found=grid_file["tot_found"]
@@ -63,6 +64,10 @@ class TotalHaloHI:
             self.cofm=grid_file["cofm"]
             grid_file.close()
         except (IOError,KeyError):
+            f=hdfsim.get_file(snapnum,self.snap_dir,0)
+            self.hubble=f["Header"].attrs["HubbleParam"]
+            self.omegam=f["Header"].attrs["Omega0"]
+            f.close()
             #Get halo catalog
             (self.ind,self.mass,self.cofm,self.sub_radii)=self.find_wanted_halos()
             #Initialise arrays
@@ -190,7 +195,7 @@ class TotalHaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/tot_hi_grid.npz.
         """
-        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,sub_radii=self.sub_radii,ind=self.ind,cofm=self.cofm)
+        np.savez(self.savefile,minpart=self.minpart,mass=self.mass,nHI=self.nHI,tot_found=self.tot_found,MHI=self.MHI,Mgas=self.Mgas,sub_radii=self.sub_radii,ind=self.ind,cofm=self.cofm,hubble=self.hubble,omegam=self.omegam)
 
 
 class HaloHI:
@@ -258,8 +263,6 @@ class HaloHI:
             del f
         except (IOError,KeyError):
             #Otherwise regenerate from the raw data
-            (self.ind,self.sub_mass,self.sub_cofm,self)=self.find_wanted_halos()
-            self.nhalo=np.size(self.ind)
             #Simulation parameters
             f=hdfsim.get_file(snapnum,self.snap_dir,0)
             self.redshift=f["Header"].attrs["Redshift"]
@@ -269,6 +272,8 @@ class HaloHI:
             self.omegam=f["Header"].attrs["Omega0"]
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
+            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=self.find_wanted_halos()
+            self.nhalo=np.size(self.ind)
             if minpart == -1:
                 #global grid
                 self.nhalo = 1
@@ -276,9 +281,9 @@ class HaloHI:
             else:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
-            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr for rr in self.sub_radii))])
-            self.sub_nHI_grid=np.array([np.zeros(self.ngrid[i],self.ngrid[i]) for i in xrange(0,self.nhalo)])
-            self.sub_gas_grid=np.array([np.zeros(self.ngrid[i],self.ngrid[i]) for i in xrange(0,self.nhalo)])
+            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
+            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid()
         return
 
@@ -353,10 +358,12 @@ class HaloHI:
             del irhoH0
             del irho
             del smooth
-        np.log1p(self.sub_gas_grid,self.sub_gas_grid)
-        np.log1p(self.sub_nHI_grid,self.sub_nHI_grid)
-        self.sub_gas_grid/=np.log(10)
-        self.sub_nHI_grid/=np.log(10)
+        [np.log1p(grid,grid) for grid in self.sub_gas_grid]
+        [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
+        #No /= in list comprehensions...  :|
+        for i in xrange(0,self.nhalo):
+            self.sub_gas_grid[i]/=np.log(10)
+            self.sub_nHI_grid[i]/=np.log(10)
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
@@ -388,9 +395,9 @@ class HaloHI:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*(epsilon/(1+self.redshift)**2)
-        fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
+        fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
         rhoH0=(irhoH0[indx])[indz]*(epsilon/(1+self.redshift)**2)
-        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
+        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 
     def find_wanted_halos(self):
@@ -531,9 +538,9 @@ class HaloHI:
         """
         #This is an integral over an annulus in Cartesians
         if gas_grid:
-            grid=self.sub_gas_grid[halo,:,:]
+            grid=self.sub_gas_grid[halo]
         else:
-            grid=self.sub_nHI_grid[halo,:,:]
+            grid=self.sub_nHI_grid[halo]
 
         #Find r in grid units:
         total=0.
@@ -735,8 +742,8 @@ class BoxHI(HaloHI):
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=(irho)*(epsilon/(1+self.redshift)**2)
-        fieldize.cic_str(coords,rho,sub_gas_grid[ii,:,:],smooth)
+        fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
         rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
-        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii,:,:],smooth)
+        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 

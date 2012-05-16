@@ -31,9 +31,9 @@ class PrettyHalo(halohi.HaloHI):
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max(grid[num,:,:])
+        vmax=np.max(grid[num])
         maxdist = self.sub_radii[num]
-        plt.imshow(self.sub_nHI_grid[num,:,:],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label(bar_label)
         plt.xlabel("x (kpc/h)")
@@ -51,7 +51,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        cut_grid=np.array(self.sub_nHI_grid[num,:,:])
+        cut_grid=np.array(self.sub_nHI_grid[num])
         ind=np.where(cut_grid < cut)
         cut_grid[ind]=0
         self.plot_pretty_something(num,cut_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
@@ -195,15 +195,15 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=400,,minplot=1e9, maxplot=5e12,reload_file=False,skip_grid=None):
+    def __init__(self,base,snapnum,minpart=400,minplot=1e9, maxplot=5e12,reload_file=False,skip_grid=None):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
         self.ahalo=PrettyHalo(self.adir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
-#         self.ahalo.save_file()
+        self.ahalo.save_file()
         self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
-#         self.ghalo.save_file()
+        self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
         #Get the DLA redshift fit
