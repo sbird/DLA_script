@@ -414,6 +414,18 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    def plot_central_density(self):
+        """Plots the central HI densities for a list of halos"""
+        aN0=[self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)]
+        gN0=[self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)]
+        plt.semilogx(self.ghalo.sub_mass,gN0,'s',color=gcol, label="Gadget")
+        plt.semilogx(self.ahalo.sub_mass,aN0,'^',color=acol, label="Arepo")
+        plt.ylabel(r"$ \mathrm{log} N_{HI} (\mathrm{cm}^{-2})$")
+        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
+
     def plot_rel_column_density(self,minN=17,maxN=25.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)

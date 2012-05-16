@@ -550,6 +550,13 @@ class HaloHI:
             total+=np.sum(10**grid[-x+cen,miny:maxy])
         return total*((2.*self.sub_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
 
+    def get_halo_central_density(self,halo):
+        """Returns the HI column density at the center of the halo"""
+        grid = self.sub_nHI_grid[halo]
+        dims = np.shape(grid)
+        center=tuple(np.array(dims)/2)
+        #3x3 square at center of grid
+        return np.mean(grid[center[0]-1:center[0]+2,center[1]-1:center[1]+2])
 
     def absorption_distance(self):
         """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
