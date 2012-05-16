@@ -216,7 +216,7 @@ class HaloHIPlots:
         return str(np.round(num,2))
 
     def plot_sigma_DLA(self, DLA_cut=20.3):
-        """Plot sigma_DLA against mass. Figure 10."""
+        """Plot sigma_DLA against mass."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
         asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut)
         gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut)
@@ -238,29 +238,6 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-#     def plot_sigma_DLA_gas(self, DLA_cut=20.3):
-#         """Plot sigma_DLA against gas mass. """
-#         gas_mass=np.logspace(np.log10(np.min(self.ahalo.sub_gas_mass)),np.log10(np.max(self.ahalo.sub_gas_mass)),num=100)
-#         asfit=self.ahalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
-#         gsfit=self.ghalo.sigma_DLA_fit_gas(gas_mass,DLA_cut)
-#         alabel = r"A $\alpha=$"+self.pr_num(self.ahalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ahalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma_g)+" b ="+self.pr_num(self.ahalo.pow_break_g)
-#         glabel = r"G $\alpha=$"+self.pr_num(self.ghalo.alpha_g)+" $\\beta=$"+self.pr_num(self.ghalo.beta_g)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma_g)+" b ="+self.pr_num(self.ghalo.pow_break_g)
-#         plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
-#         plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-#         #Axes
-#         plt.xlabel(r"Mass Hydrogen ($M_\odot$/h)")
-#         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
-#         plt.legend(loc=0)
-#         plt.loglog(self.ghalo.sub_gas_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
-#         plt.loglog(self.ahalo.sub_gas_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
-#         plt.loglog(gas_mass,asfit,color=acol,label=alabel,ls=astyle)
-#         plt.loglog(gas_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-#         plt.xlim(self.minplot/100.,self.maxplot/100.)
-#         plt.ylim((2.*self.ahalo.maxdist/self.ahalo.ngrid)**2/10.,asfit[-1]*2)
-#         #Fits
-#         plt.tight_layout()
-#         plt.show()
-
     def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
         """Plot sigma_DLA against HI mass."""
         #Get MHI
@@ -268,40 +245,51 @@ class HaloHIPlots:
         gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
         anHI_mass = np.array([athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass])
         gnHI_mass = np.array([gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass])
-        #Filter nan
-        ind = np.where(anHI_mass > 0)
-        anHI_mass=anHI_mass[ind]
-        asigDLA=self.ahalo.get_sigma_DLA(DLA_cut)[ind]
-        ind = np.where(gnHI_mass > 0)
-        gnHI_mass=gnHI_mass[ind]
-        gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut)[ind]
-        #Plot
-        plt.loglog(gnHI_mass,gsigDLA,'s',color=gcol)
-        plt.loglog(anHI_mass,asigDLA,'^',color=acol)
-        hi_mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
-        #Get fit parameters
-        ind=np.where(np.logical_and(asigDLA > 0.,anHI_mass > 0.))
-        logmass=np.log10(anHI_mass[ind])-12
-        logsigma=np.log10(asigDLA[ind])
-        if np.size(logsigma) != 0:
-            (alpha_a,beta_a)=scipy.polyfit(logmass,logsigma,1)
-            alabel = r"Arepo: $\alpha=$"+str(np.round(alpha_a,2))+" $\\beta=$"+str(np.round(beta_a,2))
-            asfit=10**(alpha_a*(np.log10(hi_mass)-12)+beta_a)
-        ind=np.where(np.logical_and(gsigDLA > 0.,gnHI_mass > 0.))
-        logmass=np.log10(gnHI_mass[ind])-12
-        logsigma=np.log10(gsigDLA[ind])
-        if np.size(logsigma) != 0:
-            (alpha_g,beta_g)=scipy.polyfit(logmass,logsigma,1)
-            glabel = r"Gadget: $\alpha=$"+str(np.round(alpha_g,2))+" $\\beta=$"+str(np.round(beta_g,2))
-            gsfit=10**(alpha_g*(np.log10(hi_mass)-12)+beta_g)
-            #Plot
-        plt.loglog(hi_mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        plt.loglog(hi_mass,asfit,color=acol,label=alabel,ls=astyle)
+        mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
+        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut,anHI_mass)
+        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut,gnHI_mass)
+        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
+        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
         plt.xlabel(r"Mass HI ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
         plt.legend(loc=0)
-        plt.xlim(self.minplot/100.,self.maxplot/100.)
+        plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
+        plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
+        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
+        #Fits
+        plt.tight_layout()
+        plt.show()
+
+    def plot_sigma_DLA_gas(self, DLA_cut=20.3):
+        """Plot sigma_DLA against HI mass."""
+        #Get MHI
+        athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
+        gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
+        anHI_mass = np.array([athi.get_gas_mass(mass) for mass in self.ahalo.sub_mass])
+        gnHI_mass = np.array([gthi.get_gas_mass(mass) for mass in self.ghalo.sub_mass])
+        mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
+        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut,anHI_mass)
+        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut,gnHI_mass)
+        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
+        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        #Axes
+        plt.xlabel(r"Halo Gas Mass ($M_\odot$/h)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.legend(loc=0)
+        plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
+        plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
+        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
         plt.show()
