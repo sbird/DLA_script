@@ -31,9 +31,9 @@ class PrettyHalo(halohi.HaloHI):
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max(grid[num])
+        vmax=np.max(grid)
         maxdist = self.sub_radii[num]
-        plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label(bar_label)
         plt.xlabel("x (kpc/h)")
@@ -45,7 +45,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_nHI_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_cut_halo(self,num=0,cut=20.3):
         """
@@ -60,7 +60,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_gas_grid,"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_gas_grid[num],"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
 
     def plot_radial_profile(self,minM=3e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
@@ -201,9 +201,9 @@ class HaloHIPlots:
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
         self.ahalo=PrettyHalo(self.adir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
-        self.ahalo.save_file()
+#         self.ahalo.save_file()
         self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
-        self.ghalo.save_file()
+#         self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
         #Get the DLA redshift fit
