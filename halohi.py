@@ -469,7 +469,7 @@ class HaloHI:
         #Fit to the DLA abundance
         if halo_mass == None:
             halo_mass = self.sub_mass
-        (self.alpha,self.beta,self.gamma,self.pow_break)=self.do_power_fit(halo_mass,DLA_cut)
+        (self.pow_break,self.beta,self.gamma,self.alpha)=self.do_power_fit(halo_mass,DLA_cut)
         return self.eval_fit(M,self.alpha,self.beta,self.gamma,self.pow_break)
 
     def eval_fit(self,M,alpha,beta,gamma,pow_break):
@@ -480,6 +480,8 @@ class HaloHI:
         fit[ind]=10**(gamma*logmass+beta)
         return fit
 
+    import brokenpowerfit as br
+
     def do_power_fit(self,masses,DLA_cut=20.3):
         """Finds the parameters of a power law fit. Helper for sigma_DLA_fit"""
         #Fit to the DLA abundance
@@ -489,33 +491,7 @@ class HaloHI:
         logsigma=np.log10(s_DLA[ind])
         if np.size(logsigma) == 0:
             return (0,0,0)
-        return self.find_breakpoint(logmass,logsigma)
-
-    def broken_power_fit(self,pow_break,logmass_in,logsigma):
-        """Find a broken power law fit to some arrays"""
-        #First fit the high-mass halos
-        logmass=logmass_in-pow_break
-        ind2=np.where(logmass >= 0)
-        if np.size(ind2) > 0:
-            (alpha,beta)=scipy.polyfit(logmass[ind2],logsigma[ind2],1)
-            #Now fit the low-mass halos. Only a slope is allowed.
-            ind2=np.where(logmass < 0)
-            if np.size(ind2) > 0:
-                (gamma)=scipy.polyfit(logmass[ind2],(logsigma[ind2]-beta)/logmass[ind2],0)
-                return (alpha,beta,gamma[0])
-            else:
-                return(alpha,beta,0)
-        else:
-            ind2=np.where(logmass < 0)
-            (alpha,gamma)=scipy.polyfit(logmass[ind2],logsigma[ind2],1)
-            return (alpha, 0, gamma)
-
-    def find_breakpoint(self,logmass, logsigma):
-        """Find a point to place the break in a broken power law, by guessing.
-        Fitting fails."""
-        pow_break=np.max((np.median(logmass), np.min(logmass)*1.075))
-        (alpha,beta,gamma)=self.broken_power_fit(pow_break,logmass,logsigma)
-        return (alpha,beta,gamma,pow_break)
+        return self.br.brokenpowerfit(logmass, logsigma)
 
     def identify_eq_halo(self,mass,pos,maxmass=0.10,maxpos=20.):
         """Given a mass and position, identify the
