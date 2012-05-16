@@ -60,3 +60,51 @@ def mpfitfun(p,fjac=None,xax=None,data=None,err=None):
     and the weighted deviations between the model and the data"""
     return [0,np.ravel((broken_fit(p,xax)-data)/err)]
 
+
+def powerfit(xax, data, err=None, pinit=None,breakpoint=None, quiet=True):
+    """
+    Fits a power law (a line in log-space) to data as a function of x.
+    xax and data are assumed to be already in logspace.
+    Thin wrapper around mpfit
+
+    Parameters:
+        xax - x location of the data
+        data - data to fit to
+        err - errors of the data; weights the chi-square of the results.
+        breakpoint - Point where initial scale is specified.
+            If not given, the median of the data.
+        pinit - Initial scale and slope to guess.
+            If not specified, uses the measured scale at the breakpoint and then
+            calculates a simple slope
+        quiet - Will mpfit spit out extra information
+
+    returns: breakpoint, value_at_breakpoint,slope
+
+    """
+    if err is None:
+        err = np.ones(data.shape,dtype='float')
+    if breakpoint is None:
+        breakpoint = np.median(xax)
+    if pinit is None:
+        breakind=np.argmin(np.abs(breakpoint-xax))
+        tind=np.argmin(np.abs(1.1*breakpoint-xax))
+        uslope = (data[tind]-data[breakind])/(xax[tind]-xax[breakind])
+        pinit = [data[breakind],uslope]
+
+    #Non-changing parameters to mpfitfun
+    params={'xax':xax,'data':data,'err':err,'x0':breakpoint}
+
+    mp = mpfit.mpfit(mppowerfun,xall=pinit,functkw=params,quiet=quiet)
+
+    return [breakpoint,]+mp.params
+
+def mppowerfun(p,fjac=None,xax=None,data=None,err=None,x0=None):
+    """This function returns a status flag (0 for success)
+    and the weighted deviations between the model and the data
+        Parameters:
+        p[0] - scale
+        p[1] - slope"""
+    xdiff=xax-x0
+    fit=(p[1]*xdiff+p[0])
+    return [0,np.ravel((fit-data)/err)]
+
