@@ -579,8 +579,9 @@ class HaloHI:
         encountering a given halo.
 
         So we have f(N) = d n_DLA/ dN dX
-        and n_DLA(N) = number of absorbers in this column density bin.
-                     = fraction of total (grid? box?) area covered by this column density bin
+        and n_DLA(N) = number of absorbers per sightline in this column density bin.
+                     1 sightline is defined to be one grid cell.
+                     So this is (cells in this bins) / (no. of cells)
         ie, f(N) = n_DLA / ΔN / ΔX
         Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
 
@@ -595,18 +596,13 @@ class HaloHI:
         NHI_table = np.log10(np.logspace(minN, maxN,(maxN-minN)/dlogN,endpoint=True))
         #Grid size (in cm^2)
         dX=self.absorption_distance()
-        flat_grid=np.ravel(self.sub_nHI_grid[0])
-        (tot_f_N,NHI_table)=np.histogram(flat_grid,NHI_table)
-        tot_f_N *= 2.*self.sub_radii[0]/self.ngrid[0]
-        for ii in xrange(1,self.nhalo):
-            flat_grid=np.ravel(self.sub_nHI_grid[ii])
-            (f_N,NHI_table_in)=np.histogram(flat_grid,NHI_table)
-            f_N *= 2.*self.sub_radii[ii]/self.ngrid[ii]
-            tot_f_N+=f_N
-        NHI_table=(10.)**NHI_table
+        tot_cells = np.sum(self.ngrid**2)
+        array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in self.sub_nHI_grid])
+        tot_f_N = np.sum(array[:,0])
+        NHI_table = (10.)**array[0,1]
         #To compensate for any rounding
         dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
-        tot_f_N=(tot_f_N)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX)
+        tot_f_N=(tot_f_N)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX*tot_cells)
         return (NHI_table[0:-1]*(10.)**(dlogN_real/2.), tot_f_N)
 
     def omega_DLA(self, maxN):

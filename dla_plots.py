@@ -430,7 +430,7 @@ class HaloHIPlots:
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
-        plt.loglog(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
+        plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
         ax=plt.gca()
         ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
