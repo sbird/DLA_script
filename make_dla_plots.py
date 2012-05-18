@@ -190,3 +190,5 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         hplots.plot_halo_mass_func()
         save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
         plt.clf()
+
+    del hplots
