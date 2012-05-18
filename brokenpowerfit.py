@@ -88,7 +88,7 @@ def powerfit(xax, data, err=None, pinit=None,breakpoint=None, quiet=True):
     if pinit is None:
         breakind=np.argmin(np.abs(breakpoint-xax))
         tind=np.argmin(np.abs(1.1*breakpoint-xax))
-        uslope = (data[tind]-data[breakind])/(xax[tind]-xax[breakind])
+        uslope = (data[tind]-data[breakind])/(0.1*breakpoint)
         pinit = [data[breakind],uslope]
 
     #Non-changing parameters to mpfitfun
@@ -96,7 +96,7 @@ def powerfit(xax, data, err=None, pinit=None,breakpoint=None, quiet=True):
 
     mp = mpfit.mpfit(mppowerfun,xall=pinit,functkw=params,quiet=quiet)
 
-    return [breakpoint,]+mp.params
+    return np.concatenate([[breakpoint,],mp.params])
 
 def mppowerfun(p,fjac=None,xax=None,data=None,err=None,x0=None):
     """This function returns a status flag (0 for success)
