@@ -414,15 +414,29 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    import brokenpowerfit as br
+
     def plot_central_density(self):
         """Plots the central HI densities for a list of halos"""
-        aN0=[self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)]
-        gN0=[self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)]
-        plt.semilogx(self.ghalo.sub_mass,gN0,'s',color=gcol, label="Gadget")
-        plt.semilogx(self.ahalo.sub_mass,aN0,'^',color=acol, label="Arepo")
+        aN0=np.array([self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)])
+        gN0=np.array([self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)])
+        aM = self.ahalo.sub_mass
+        gM = self.ghalo.sub_mass
+        aind = np.where(aN0 > 20)
+        gind = np.where(gN0 > 20)
+        afit=self.br.powerfit(np.log10(aM[aind]),aN0[aind],breakpoint=11)
+        gfit=self.br.powerfit(np.log10(gM[gind]),gN0[gind],breakpoint=11)
+        alabel=r"$"+self.pr_num(afit[1])+"+(\mathrm{log M}-11)"+self.pr_num(afit[2])+"$"
+        glabel=r"$"+self.pr_num(gfit[1])+"+(\mathrm{log M}-11)"+self.pr_num(gfit[2])+"$"
+        plt.semilogx(gM,(np.log10(gM)-gfit[0])*gfit[2]+gfit[1],ls=gstyle,color=gcol,label=glabel)
+        plt.semilogx(aM,(np.log10(aM)-afit[0])*afit[2]+afit[1],ls=astyle,color=acol,label=alabel)
+        plt.legend(loc=0)
+        plt.semilogx(gM[gind],gN0[gind],'s',color=gcol)
+        plt.semilogx(aM[aind],aN0[aind],'^',color=acol)
+        plt.semilogx(gM,(np.log10(gM)-gfit[0])*gfit[2]+gfit[1],ls=gstyle,color=gcol,label=glabel)
+        plt.semilogx(aM,(np.log10(aM)-afit[0])*afit[2]+afit[1],ls=astyle,color=acol,label=alabel)
         plt.ylabel(r"$ \mathrm{log} N_{HI} (\mathrm{cm}^{-2})$")
         plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 
