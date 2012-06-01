@@ -47,7 +47,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
-    def plot_pretty_cut_halo(self,num=0,cut=20.3):
+    def plot_pretty_cut_halo(self,num=0,cut=17):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
@@ -241,10 +241,12 @@ class HaloHIPlots:
     def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
         """Plot sigma_DLA against HI mass."""
         #Get MHI
-        athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
-        gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
-        anHI_mass = np.array([athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass])
-        gnHI_mass = np.array([gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass])
+#         athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
+#         gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
+        anHI_mass=10.**np.array([self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)])
+        gnHI_mass=10.**np.array([self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)])
+#         anHI_mass = np.array([athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass])
+#         gnHI_mass = np.array([gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass])
         mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
         asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut,anHI_mass)
         gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut,gnHI_mass)
@@ -260,7 +262,7 @@ class HaloHIPlots:
         plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
+#         plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
         plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
@@ -390,15 +392,15 @@ class HaloHIPlots:
             #If we didn't load the HI grid this time
         except AttributeError:
             pass
-        #Gas profiles
-        try:
-            agRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            ggRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbinc,[agRprof[0],]+agRprof,color="brown", ls=astyle,label="Arepo Gas")
-            plt.plot(Rbinc,[ggRprof[0],]+ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
-            maxx=np.max((agRprof[0],ggRprof[0]))
-        except AttributeError:
-            pass
+#         #Gas profiles
+#         try:
+#             agRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+#             ggRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
+#             plt.plot(Rbinc,[agRprof[0],]+agRprof,color="brown", ls=astyle,label="Arepo Gas")
+#             plt.plot(Rbinc,[ggRprof[0],]+ggRprof,color="orange", ls=gstyle,label="Gadget Gas")
+#             maxx=np.max((agRprof[0],ggRprof[0]))
+#         except AttributeError:
+#             pass
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
@@ -415,6 +417,23 @@ class HaloHIPlots:
         plt.show()
 
     import brokenpowerfit as br
+
+    def plot_halo_fits(self):
+        """Plots the central HI densities for a list of halos"""
+        (aMbins, aM0, ar0)=self.ahalo.get_halo_fit_parameters()
+        (gMbins, gM0, gr0)=self.ghalo.get_halo_fit_parameters()
+        #Get a fit to the central density
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/1e44))
+        #No room for thieves, mercenaries, etc...
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/1e44))
+        alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
+        glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
+        plt.loglog(aMbins, aM0/1e44,ls=astyle,label=alabel)
+        plt.loglog(gMbins, gM0/1e44,ls=gstyle,label=glabel)
+        plt.loglog(aMbins, ar0,ls=astyle)
+        plt.loglog(gMbins, gr0, ls=gstyle)
+        plt.ylim(1e-5,100)
+        plt.legend(loc=0)
 
     def plot_central_density(self):
         """Plots the central HI densities for a list of halos"""

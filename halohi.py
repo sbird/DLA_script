@@ -550,6 +550,55 @@ class HaloHI:
             total+=np.sum(10**grid[-x+cen,miny:maxy])
         return total*((2.*self.sub_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
 
+    def get_halo_fit_parameters(self):
+        """Get an array of M_0 r_0 for a list of masses"""
+        minM = np.min(self.sub_mass)
+        maxM = np.max(self.sub_mass)
+        Mbins = np.logspace(np.log10(minM), np.log10(maxM),11)
+        Mbinc = [(Mbins[i+1]+Mbins[i])/2 for i in xrange(0,np.size(Mbins)-1)]
+        M0 = np.zeros(np.shape(Mbinc))
+        r0 = np.zeros(np.shape(Mbinc))
+        for i in xrange(0,np.size(Mbins)-1):
+            (r0[i], M0[i])=self.get_halo_scale_length(Mbins[i],Mbins[i+1])
+        return (Mbinc, M0, r0)
+
+    import mpfit
+    def get_halo_scale_length(self,minM,maxM):
+        """Get the fitted scale length of a stack of halos.
+        Fits a halo profile of M_0/(1+r/r_0)^2 to the central part with r_0 free."""
+        #Use sufficiently large bins
+        minR=0.
+        maxR=30.
+        space=2.*self.sub_radii[0]/self.ngrid[0]
+        if maxR/20. > space:
+            Rbins=np.linspace(minR,maxR,20)
+        else:
+            Rbins=np.concatenate((np.array([minR,]),np.linspace(minR+np.ceil(1.5*space),maxR+space,maxR/np.ceil(space))))
+        Rprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        Rbinc = [(Rbins[i+1]+Rbins[i])/2 for i in xrange(0,np.size(Rbins)-1)]
+        #Central density
+        M0 = Rprof[0]
+        if M0 < 1:
+            raise Exception
+        err = np.ones(np.shape(Rprof))
+        pinit = [10,M0]
+        #Non-changing parameters to mpfitfun
+        params={'xax':Rbinc,'data':Rprof,'err':err,}
+        #Do fit
+        mp = self.mpfit.mpfit(self.mpfitfun,xall=pinit,functkw=params,quiet=True)
+        #Return M0, R0
+        return mp.params
+
+    def mpfitfun(self,p,fjac=None,xax=None,data=None,err=None):
+        """This function returns a status flag (0 for success)
+        and the weighted deviations between the model and the data
+            Parameters:
+            p[0] - r0
+            p[1] - M0"""
+        fit=p[1]/(1+xax/p[0])**2
+        return [0,np.ravel((fit-data)/err)]
+
+
     def get_halo_central_density(self,halo):
         """Returns the HI column density at the center of the halo"""
         grid = self.sub_nHI_grid[halo]

@@ -23,6 +23,7 @@ minpart=400
 snaps=[
 90,
 124,
+141,
 191,
 ]
 
@@ -51,7 +52,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     outdir=path.join(base,"plots")
     print "Saving plots for snapshot ",snapnum," to ",outdir
 
-    plt.figure(1)
+    plt.figure()
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #Load only the gas grids
@@ -87,11 +88,11 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
         #Radial profiles
         plt.clf()
-        hplots.plot_radial_profile(maxR=15.)
+#         hplots.plot_radial_profile(maxR=15.)
 
-        plt.figure(2)
+#         plt.figure(2)
         #low-mass halo radial profile
-        hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=5.)
+#         hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=5.)
 
         del hplots
 
@@ -104,7 +105,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
         plt.clf()
 
-        plt.figure(1)
+#         plt.figure(1)
         hplots.plot_radial_profile(maxR=15.)
         save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
         #Fig 6
@@ -172,8 +173,8 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 #     hplots.plot_dN_dla()
 #     save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
 
-        hplots.plot_central_density()
-        save_figure(path.join(outdir,"central_den_"+str(snapnum)))
+        hplots.plot_halo_fits()
+        save_figure(path.join(outdir,"halo_fits_"+str(snapnum)))
 
         #Fig 12
         plt.clf()
