@@ -2,7 +2,7 @@
 
 #Generate a whole bunch of grids
 #
-@nums=(90,124,191);
+@nums=(90,124,141,191,314);
 @codes=('a','g');
 my $outname="omp_submit_script";
 foreach my $code (@codes){
