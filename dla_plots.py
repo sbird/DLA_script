@@ -355,10 +355,10 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=25.):
+    def plot_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
         plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
@@ -367,6 +367,7 @@ class HaloHIPlots:
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        plt.xlim(10**minN, 10**maxN)
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
@@ -423,16 +424,23 @@ class HaloHIPlots:
         (aMbins, aM0, ar0)=self.ahalo.get_halo_fit_parameters()
         (gMbins, gM0, gr0)=self.ghalo.get_halo_fit_parameters()
         #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/1e44))
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/1e40))
         #No room for thieves, mercenaries, etc...
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/1e44))
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/1e40))
         alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
         glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
-        plt.loglog(aMbins, aM0/1e44,ls=astyle,label=alabel)
-        plt.loglog(gMbins, gM0/1e44,ls=gstyle,label=glabel)
-        plt.loglog(aMbins, ar0,ls=astyle)
-        plt.loglog(gMbins, gr0, ls=gstyle)
-        plt.ylim(1e-5,100)
+        plt.loglog(aMbins, aM0/1e40,ls=astyle,label=alabel)
+        plt.loglog(gMbins, gM0/1e40,ls=gstyle,label=glabel)
+        plt.loglog(aMbins, 10**(ap[2]*(np.log10(aMbins)-ap[0])+ap[1]),ls=astyle)
+        plt.loglog(gMbins, 10**(gp[2]*(np.log10(gMbins)-gp[0])+gp[1]),ls=gstyle)
+        #Get a fit to the central density
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(ar0[:-1]))
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gr0[:-1]))
+        alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
+        glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
+        plt.loglog(aMbins, ar0,ls=astyle,label=alabel)
+        plt.loglog(gMbins, gr0, ls=gstyle,label=glabel)
+        plt.ylim(1,1e5)
         plt.legend(loc=0)
 
     def plot_central_density(self):
@@ -459,10 +467,10 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_rel_column_density(self,minN=17,maxN=25.):
+    def plot_rel_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN,maxN)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN,maxN)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
         ax=plt.gca()
@@ -470,6 +478,7 @@ class HaloHIPlots:
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$ \delta f(N) (\mathrm{cm}^2)$")
+        plt.xlim(minN, maxN)
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
