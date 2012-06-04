@@ -215,7 +215,7 @@ class HaloHIPlots:
         """Return a string rep of a number"""
         return str(np.round(num,2))
 
-    def plot_sigma_DLA(self, DLA_cut=20.3):
+    def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA against mass."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
         asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut)
@@ -226,10 +226,10 @@ class HaloHIPlots:
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
         plt.legend(loc=0)
-        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
-        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
+        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'s',color=gcol)
+        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'^',color=acol)
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
@@ -296,15 +296,15 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def get_rel_sigma_DLA(self,DLA_cut=20.3, min_sigma=15.):
+    def get_rel_sigma_DLA(self,DLA_cut=20.3, DLA_upper_cut=42.,min_sigma=15.):
         """
         Get the change in sigma_DLA for a particular halo.
         and the mass of each halo averaged across arepo and gadget.
         DLA_cut is the column density above which to consider a DLA
         min_sigma is the minimal sigma_DLA to look at (in grid cell units)
         """
-        aDLA=self.ahalo.get_sigma_DLA(DLA_cut)
-        gDLA=self.ghalo.get_sigma_DLA(DLA_cut)
+        aDLA=self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        gDLA=self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
         rDLA=np.empty(np.size(aDLA))
         rmass=np.empty(np.size(aDLA))
         cell_area=(2*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0])**2
@@ -474,11 +474,11 @@ class HaloHIPlots:
         plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
         ax=plt.gca()
-        ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
+#         ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$ \delta f(N) (\mathrm{cm}^2)$")
-        plt.xlim(minN, maxN)
+        plt.xlim(10**minN, 10**maxN)
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()

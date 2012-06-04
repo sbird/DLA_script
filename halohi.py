@@ -448,19 +448,19 @@ class HaloHI:
 #         sub_gas_mass=sub_gas_mass[ind2]
         return (ind, sub_mass,sub_cofm,sub_radii)
 
-    def get_sigma_DLA_halo(self,halo,DLA_cut):
+    def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
         """Get the DLA cross-section for a single halo.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
         Returns result in (kpc/h)^2."""
         cell_area=(2.*self.sub_radii[halo]/self.ngrid[halo])**2
-        sigma_DLA = np.shape(np.where(self.sub_nHI_grid[halo] > DLA_cut))[1]*cell_area
+        sigma_DLA = np.shape(np.where((self.sub_nHI_grid[halo] > DLA_cut)*(self.sub_nHI_grid[halo] < DLA_upper_cut)))[1]*cell_area
         return sigma_DLA
 
-    def get_sigma_DLA(self,DLA_cut=20.3):
+    def get_sigma_DLA(self,DLA_cut=20.3,DLA_upper_cut=42.):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
-        Returns result in (kpc/h)^2."""
-        sigma_DLA = np.array([ self.get_sigma_DLA_halo(halo,DLA_cut) for halo in xrange(0,np.size(self.ngrid))])
+        Returns result in (kpc/h)^2. Omits cells above DLA_upper_cut"""
+        sigma_DLA = np.array([ self.get_sigma_DLA_halo(halo,DLA_cut,DLA_upper_cut) for halo in xrange(0,np.size(self.ngrid))])
         return sigma_DLA
 
 
@@ -482,10 +482,10 @@ class HaloHI:
 
     import brokenpowerfit as br
 
-    def do_power_fit(self,masses,DLA_cut=20.3):
+    def do_power_fit(self,masses,DLA_cut=20.3,DLA_upper_cut=42.):
         """Finds the parameters of a power law fit. Helper for sigma_DLA_fit"""
         #Fit to the DLA abundance
-        s_DLA=self.get_sigma_DLA(DLA_cut)
+        s_DLA=self.get_sigma_DLA(DLA_cut,DLA_upper_cut)
         ind=np.where((s_DLA > 0.) * (masses > 0))
         logmass=np.log10(masses[ind])
         logsigma=np.log10(s_DLA[ind])
