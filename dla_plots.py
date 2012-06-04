@@ -47,13 +47,17 @@ class PrettyHalo(halohi.HaloHI):
         """
         self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
-    def plot_pretty_cut_halo(self,num=0,cut=17):
+    def plot_pretty_cut_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
         cut_grid=np.array(self.sub_nHI_grid[num])
-        ind=np.where(cut_grid < cut)
+        ind=np.where(cut_grid < cut_LLS)
         cut_grid[ind]=0
+        ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
+        cut_grid[ind2]=17.
+        ind3=np.where(cut_grid > cut_DLA)
+        cut_grid[ind3]=20.3
         self.plot_pretty_something(num,cut_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_gas_halo(self,num=0):
@@ -473,7 +477,7 @@ class HaloHIPlots:
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
-        ax=plt.gca()
+#         ax=plt.gca()
 #         ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
