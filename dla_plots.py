@@ -53,12 +53,17 @@ class PrettyHalo(halohi.HaloHI):
         """
         cut_grid=np.array(self.sub_nHI_grid[num])
         ind=np.where(cut_grid < cut_LLS)
-        cut_grid[ind]=0
+        cut_grid[ind]=10
         ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
         cut_grid[ind2]=17.
         ind3=np.where(cut_grid > cut_DLA)
         cut_grid[ind3]=20.3
-        self.plot_pretty_something(num,cut_grid,"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        maxdist = self.sub_radii[num]
+        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
+        plt.xlabel("x (kpc/h)")
+        plt.xlabel("y (kpc/h)")
+        plt.tight_layout()
+        plt.show()
 
     def plot_pretty_gas_halo(self,num=0):
         """
