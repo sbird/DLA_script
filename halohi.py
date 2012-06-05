@@ -540,14 +540,20 @@ class HaloHI:
         for x in xrange(-int(gminR),int(gminR)):
             miny=int(np.sqrt(gminR**2-x**2))
             maxy=int(np.sqrt(gmaxR**2-x**2))
-            total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen+miny):(cen+maxy)])
-            total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen-maxy):(cen-miny)])
+            try:
+                total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen+miny):(cen+maxy)])
+                total+=np.sum(10**grid[x+self.ngrid[halo]/2,(cen-maxy):(cen-miny)])
+            except IndexError:
+                pass
         #Complete part of annulus
         for x in xrange(int(gminR),int(gmaxR)):
             maxy=int(np.sqrt(gmaxR**2-x**2)+cen)
             miny=int(-np.sqrt(gmaxR**2-x**2)+cen)
-            total+=np.sum(10**grid[x+cen,miny:maxy])
-            total+=np.sum(10**grid[-x+cen,miny:maxy])
+            try:
+                total+=np.sum(10**grid[x+cen,miny:maxy])
+                total+=np.sum(10**grid[-x+cen,miny:maxy])
+            except IndexError:
+                pass
         return total*((2.*self.sub_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
 
     def get_halo_fit_parameters(self):
