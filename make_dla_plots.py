@@ -6,8 +6,9 @@ matplotlib.use('PDF')
 import matplotlib.pyplot as plt
 import os.path as path
 import dla_plots as dp
+import dla_data
 import numpy as np
-from save_figure import *
+from save_figure import save_figure
 import sys
 
 #Argument: 1 => totalHI plots
@@ -25,24 +26,25 @@ snaps=[
 # 124,
 141,
 191,
+# 314,
 ]
 
 #Plots with all the halo particles
-if len(sys.argv) < 2 or int(sys.argv[1]) == 1:
+if len(sys.argv) > 1 and int(sys.argv[1]) == 1:
     for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         outdir=path.join(base,"plots")
         print "Saving total plots for snapshot ",snapnum," to ",outdir
         #Fig 9
         tot=dp.TotalHIPlots(base,snapnum,minpart)
-        plt.figure()
-        tot.plot_totalHI()
-        save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
+#         plt.figure()
+#         tot.plot_totalHI()
+#         save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
 
-        plt.clf()
-        tot.plot_MHI()
-        save_figure(path.join(outdir,"MHI_vs_Mgas"+str(snapnum)))
-        plt.clf()
-
+#         plt.clf()
+#         tot.plot_MHI()
+#         save_figure(path.join(outdir,"MHI_vs_Mgas"+str(snapnum)))
+#         plt.clf()
+#
         tot.plot_gas()
         save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
         plt.clf()
@@ -73,7 +75,8 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
                     a_shalo=i
                     break
         #Get the right halo
-        g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:])[0]
+#     def identify_eq_halo(self,mass,pos,maxmass=0.10,maxpos=20.):
+        g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:],maxpos=50.)[0]
 
         hplots.ahalo.plot_pretty_gas_halo(0)
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_gas_halo"))
@@ -138,30 +141,31 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
         #Fig 10
         plt.clf()
-        hplots.plot_sigma_DLA(17)
+        hplots.plot_sigma_DLA(17,20.3)
+        plt.ylabel(r"$\sigma_{LLS}$ (kpc$^2$/h$^2$)")
         save_figure(path.join(outdir,"sigma_DLA_17_"+str(snapnum)))
 
         #Same but against nHI mass
-        plt.clf()
-        hplots.plot_sigma_DLA_nHI()
-        save_figure(path.join(outdir,"sigma_DLA_nHI"+str(snapnum)))
+#        plt.clf()
+#        hplots.plot_sigma_DLA_nHI()
+#        save_figure(path.join(outdir,"sigma_DLA_nHI"+str(snapnum)))
+#
+#        #Same but against nHI mass
+#        plt.clf()
+#        hplots.plot_sigma_DLA_nHI(17)
+#        save_figure(path.join(outdir,"sigma_DLA_17_nHI"+str(snapnum)))
+#
+#        #Same but against gas mass
+#        plt.clf()
+#        hplots.plot_sigma_DLA_gas()
+#        save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
+#
+#        #Same but against gas mass
+#        plt.clf()
+#        hplots.plot_sigma_DLA_gas(17)
+#        save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
 
-        #Same but against nHI mass
-        plt.clf()
-        hplots.plot_sigma_DLA_nHI(17)
-        save_figure(path.join(outdir,"sigma_DLA_17_nHI"+str(snapnum)))
-
-        #Same but against gas mass
-        plt.clf()
-        hplots.plot_sigma_DLA_gas()
-        save_figure(path.join(outdir,"sigma_DLA_gas"+str(snapnum)))
-
-        #Same but against gas mass
-        plt.clf()
-        hplots.plot_sigma_DLA_gas(17)
-        save_figure(path.join(outdir,"sigma_DLA_17_gas"+str(snapnum)))
-
-        #Fig 10
+        #Relative sigma_DLA
         plt.clf()
         hplots.plot_rel_sigma_DLA()
         save_figure(path.join(outdir,"rel_sigma_DLA_"+str(snapnum)))
@@ -179,11 +183,14 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         #Fig 12
         plt.clf()
         hplots.plot_column_density()
+        dla_data.column_density_data()
+        plt.ylim(1e-28,1e-18)
         save_figure(path.join(outdir,"columden_"+str(snapnum)))
 
         #Fig 12
         plt.clf()
         hplots.plot_rel_column_density()
+        plt.ylim(0.5,2.5)
         save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
         #Fig 5
