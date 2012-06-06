@@ -20,6 +20,38 @@ rcol="black"
 astyle="-"
 gstyle="--"
 
+#These are parameters for the analytic fits for the DLA abundances.
+#Format: a,b,ra,rb,break
+arepo_halo_p = { 90 : [2.29, 2.88, -0.15, 0.94,10.36],
+                124 : [2.1, 3.32, -0.2, 0.89, 10.47],
+                141 : [1.92, 3.42, -0.18, 0.89, 10.5],
+                191 : [1.51, 3.9, -0.1, 0.87, 10.69],
+                314 : [1.05, 5.45, 0.04, 0.82, 11.2]}
+
+gadget_halo_p = { 90 : [2.01,3.05,-0.28,0.93,10.36],
+                  124 : [1.62,3.28,-0.16,0.86,10.46],
+                  141 : [1.46,3.45,-0.13, 0.91, 10.5],
+                  191 : [1.18, 3.88, -0.11, 0.84, 10.68],
+                  314 : [0.93, 5.24, 0.03, 0.82, 11.16] }
+
+def sDLA_analytic(M,params, DLA_cut):
+    """An analytic fit to the DLA radius,
+    derived by hand from the cubic formula because
+    it's more reliable than mathematica, assuming R0 = 10 kpc"""
+    a = params[0]
+    b = params[1]
+    ra = params[2]
+    rb = params[3]
+    br = params[4]
+    r0 = 10**(ra*(np.log10(M)-br)+rb)
+    #Reduced for numerical reasons.
+    N0 = 10**(a*(np.log10(M)-br)+b)/(6*math.pi*10**(DLA_cut-19))
+    p = -2*r0/3
+    q = r0**2*(r0/27+ N0/2)
+    ss = r0**2*np.sqrt(N0*r0/3**3+ N0**2/4)
+    RDLA = p + (q+ss)**(1./3) + (q-ss)**(1./3)
+    return 2*math.pi*RDLA
+
 class PrettyHalo(halohi.HaloHI):
     """
     Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
@@ -227,20 +259,16 @@ class HaloHIPlots:
     def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA against mass."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
-        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut)
-        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut)
-        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
-        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        asfit=sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_cut)-sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
+        gsfit=sDLA_analytic(mass,gadget_halo_p[self.ghalo.snapnum],DLA_cut)-sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
         plt.legend(loc=0)
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'^',color=acol)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
+        plt.loglog(mass,asfit,color=acol,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
         plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
@@ -514,3 +542,4 @@ class HaloHIPlots:
         plt.xlim(self.minplot,self.maxplot)
         plt.tight_layout()
         plt.show()
+
