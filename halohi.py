@@ -267,10 +267,14 @@ class HaloHI:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridHIData"]
                 [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
+                for i in xrange(0,self.nhalo):
+                    self.sub_nHI_grid[i]+=4*np.log10(1+self.redshift)
             if not skip_grid == 2:
                 self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridGasData"]
                 [ grp[str(i)].read_direct(self.sub_gas_grid[i]) for i in xrange(0,self.nhalo)]
+                for i in xrange(0,self.nhalo):
+                    self.sub_gas_grid[i]+=4*np.log10(1+self.redshift)
             f.close()
             del grid_file
             del f
@@ -574,7 +578,7 @@ class HaloHI:
         Fits a halo profile of M_0/(1+r/r_0)^2 to the central part with r_0 free."""
         #Use sufficiently large bins
         minR=0.
-        maxR=30.
+        maxR=50.
         space=2.*self.sub_radii[0]/self.ngrid[0]
         if maxR/20. > space:
             Rbins=np.linspace(minR,maxR,20)
@@ -641,24 +645,23 @@ class HaloHI:
         Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
 
         Parameters:
-            dlogN - bin spacing to aim for (may not actually be reached)
+            dlogN - bin spacing
             minN - minimum log N
             maxN - maximum log N
 
         Returns:
             (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
         """
-        NHI_table = np.log10(np.logspace(minN, maxN,(maxN-minN)/dlogN,endpoint=True))
+        NHI_table = np.arange(minN, maxN, dlogN)
+        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
         tot_cells = np.sum(self.ngrid**2)
         array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in self.sub_nHI_grid])
         tot_f_N = np.sum(array[:,0])
-        NHI_table = (10.)**array[0,1]
-        #To compensate for any rounding
-        dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
-        tot_f_N=(tot_f_N)/((NHI_table[0:-1]*(10.)**dlogN_real-NHI_table[0:-1])*dX*tot_cells)
-        return (NHI_table[0:-1]*(10.)**(dlogN_real/2.), tot_f_N)
+        tot_f_N=(tot_f_N)/(deltaNHI*dX*tot_cells)
+        return (10**bin_center, tot_f_N)
 
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
@@ -688,6 +691,36 @@ class HaloHI:
         Nhalo/=(self.box*self.UnitLength_in_cm/Mpch_in_cm)**3
         #Convert to per unit mass
         return Nhalo/(maxM-minM)
+
+    def sDLA_analytic(self,M,params, DLA_cut):
+        """An analytic fit to the DLA radius,
+        derived by hand from the cubic formula because
+        it's more reliable than mathematica"""
+        a = params[0]
+        b = params[1]
+        ra = params[2]
+        rb = params[3]
+        br = params[4]
+        r0 = 10**(ra*(np.log10(M)-br)+rb)
+        #Calculate the column density corresponding to one grid
+        #cell with exactly the critical density
+        #we assume that below this density the HI fraction is 0
+        kpccm = 3.08568025e21
+        rho_thr = 6e-3 # in cm^-3
+        N_cut = np.log10(rho_thr * kpccm /(1+self.redshift)*(self.sub_radii[0]/self.ngrid[0]))
+        #Use this as the new cutoff
+        real_cut = np.max([DLA_cut, N_cut])
+        N0 = 10**(a*(np.log10(M)-br)+b)/(6*math.pi*10**(real_cut-21))
+        p = -2*r0/3
+        q = r0**2*(r0/27+ N0/2)
+        ss = r0**2*np.sqrt(N0*r0/3**3+ N0**2/4)
+        #This is necessary because of Man's inherent superiority
+        #over machine...
+        sgn = np.sign(q-ss)
+        qdif = sgn*(sgn*(q-ss))**(1./3)
+        # -1.03**(1/3) = nan for python
+        RDLA = p + (q+ss)**(1./3) + qdif
+        return 2*math.pi*RDLA
 
 
 

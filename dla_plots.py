@@ -22,35 +22,17 @@ gstyle="--"
 
 #These are parameters for the analytic fits for the DLA abundances.
 #Format: a,b,ra,rb,break
-arepo_halo_p = { 90 : [2.29, 2.88, -0.15, 0.94,10.36],
-                124 : [2.1, 3.32, -0.2, 0.89, 10.47],
-                141 : [1.92, 3.42, -0.18, 0.89, 10.5],
-                191 : [1.51, 3.9, -0.1, 0.87, 10.69],
-                314 : [1.05, 5.45, 0.04, 0.82, 11.2]}
+arepo_halo_p = { 90 : [2.24, 4.01, -0.12, 0.82,10.36],
+                124 : [2.03, 4.21, -0.14, 0.79, 10.47],
+                141 : [1.92, 3.81, -0.18, 0.89, 10.5],
+                191 : [1.48, 4.09, -0.07, 0.77, 10.69],
+                314 : [1.06, 3.74, 0.03, 0.72, 11.2]}
 
-gadget_halo_p = { 90 : [2.01,3.05,-0.28,0.93,10.36],
-                  124 : [1.62,3.28,-0.16,0.86,10.46],
-                  141 : [1.46,3.45,-0.13, 0.91, 10.5],
-                  191 : [1.18, 3.88, -0.11, 0.84, 10.68],
-                  314 : [0.93, 5.24, 0.03, 0.82, 11.16] }
-
-def sDLA_analytic(M,params, DLA_cut):
-    """An analytic fit to the DLA radius,
-    derived by hand from the cubic formula because
-    it's more reliable than mathematica, assuming R0 = 10 kpc"""
-    a = params[0]
-    b = params[1]
-    ra = params[2]
-    rb = params[3]
-    br = params[4]
-    r0 = 10**(ra*(np.log10(M)-br)+rb)
-    #Reduced for numerical reasons.
-    N0 = 10**(a*(np.log10(M)-br)+b)/(6*math.pi*10**(DLA_cut-19))
-    p = -2*r0/3
-    q = r0**2*(r0/27+ N0/2)
-    ss = r0**2*np.sqrt(N0*r0/3**3+ N0**2/4)
-    RDLA = p + (q+ss)**(1./3) + (q-ss)**(1./3)
-    return 2*math.pi*RDLA
+gadget_halo_p = { 90 : [1.92,4.01,-0.2,0.81,10.36],
+                  124 : [1.57,4.21,-0.13,0.8,10.46],
+                  141 : [1.46,3.84,-0.13, 0.91, 10.5],
+                  191 : [1.13, 4.05, -0.07, 0.75, 10.68],
+                  314 : [0.97, 3.55, 0.0, 0.71, 11.16] }
 
 class PrettyHalo(halohi.HaloHI):
     """
@@ -84,6 +66,24 @@ class PrettyHalo(halohi.HaloHI):
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
         cut_grid=np.array(self.sub_nHI_grid[num])
+        ind=np.where(cut_grid < cut_LLS)
+        cut_grid[ind]=10
+        ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
+        cut_grid[ind2]=17.
+        ind3=np.where(cut_grid > cut_DLA)
+        cut_grid[ind3]=20.3
+        maxdist = self.sub_radii[num]
+        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
+        plt.xlabel("x (kpc/h)")
+        plt.xlabel("y (kpc/h)")
+        plt.tight_layout()
+        plt.show()
+
+    def plot_pretty_cut_gas_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        """
+        cut_grid=np.array(self.sub_gas_grid[num])
         ind=np.where(cut_grid < cut_LLS)
         cut_grid[ind]=10
         ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
@@ -259,17 +259,18 @@ class HaloHIPlots:
     def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA against mass."""
         mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
-        asfit=sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_cut)-sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
-        gsfit=sDLA_analytic(mass,gadget_halo_p[self.ghalo.snapnum],DLA_cut)-sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
+        asfit=self.ahalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_cut)-self.ahalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
+        gsfit=self.ghalo.sDLA_analytic(mass,gadget_halo_p[self.ghalo.snapnum],DLA_cut)-self.ghalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
         #Axes
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
-        plt.legend(loc=0)
+#         plt.legend(loc=0)
         plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'s',color=gcol)
         plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'^',color=acol)
         plt.loglog(mass,asfit,color=acol,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
+#         plt.ylim(1,4*self.ghalo.sub_radii[0]**2)
         plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
@@ -409,15 +410,15 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    def plot_radial_profile(self,minM=4e11,maxM=1e12,minR=0,maxR=20.):
+    def plot_radial_profile(self,minM=4e11,maxM=1e12,minR=0,maxR=40.):
         """Plots the radial density of neutral hydrogen for all halos stacked in the mass bin.
         """
         #Use sufficiently large bins
         space=2.*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0]
-        if maxR/20. > space:
+        if maxR/30. > space:
             Rbins=np.linspace(minR,maxR,20)
         else:
-            Rbins=np.concatenate((np.array([minR,]),np.linspace(minR+np.ceil(1.5*space),maxR+space,maxR/np.ceil(space))))
+            Rbins=np.concatenate((np.array([minR,]),np.linspace(minR+np.ceil(2.5*space),maxR+space,maxR/np.ceil(space))))
         Rbinc = [(Rbins[i+1]+Rbins[i])/2 for i in xrange(0,np.size(Rbins)-1)]
         Rbinc=[minR,]+Rbinc
         try:
@@ -447,8 +448,8 @@ class HaloHIPlots:
         plt.ylabel(r"Density $N_{HI}$ (cm$^{-1}$)")
         #Crop the frame so we see the DLA cross-over point
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
-        if maxx > 8*DLAdens:
-            plt.ylim(0,8*DLAdens)
+        if maxx > 20*DLAdens:
+            plt.ylim(0,20*DLAdens)
         plt.xlim(minR,maxR)
         plt.legend(loc=1)
         plt.tight_layout()
@@ -460,14 +461,15 @@ class HaloHIPlots:
         """Plots the central HI densities for a list of halos"""
         (aMbins, aM0, ar0)=self.ahalo.get_halo_fit_parameters()
         (gMbins, gM0, gr0)=self.ghalo.get_halo_fit_parameters()
+        scale=1e42
         #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/1e40))
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/scale))
         #No room for thieves, mercenaries, etc...
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/1e40))
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/scale))
         alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
         glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
-        plt.loglog(aMbins, aM0/1e40,ls=astyle,label=alabel)
-        plt.loglog(gMbins, gM0/1e40,ls=gstyle,label=glabel)
+        plt.loglog(aMbins, aM0/scale,ls=astyle,label=alabel)
+        plt.loglog(gMbins, gM0/scale,ls=gstyle,label=glabel)
         plt.loglog(aMbins, 10**(ap[2]*(np.log10(aMbins)-ap[0])+ap[1]),ls=astyle)
         plt.loglog(gMbins, 10**(gp[2]*(np.log10(gMbins)-gp[0])+gp[1]),ls=gstyle)
         #Get a fit to the central density
@@ -477,7 +479,7 @@ class HaloHIPlots:
         glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
         plt.loglog(aMbins, ar0,ls=astyle,label=alabel)
         plt.loglog(gMbins, gr0, ls=gstyle,label=glabel)
-        plt.ylim(1,1e5)
+        plt.ylim(1e-6,1e9)
         plt.legend(loc=0)
 
     def plot_central_density(self):
