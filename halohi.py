@@ -700,14 +700,13 @@ class HaloHI:
         b = params[1]
         ra = params[2]
         rb = params[3]
-        br = params[4]
+        br = 10.5
         r0 = 10**(ra*(np.log10(M)-br)+rb)
         #Calculate the column density corresponding to one grid
         #cell with exactly the critical density
         #we assume that below this density the HI fraction is 0
-        kpccm = 3.08568025e21
         rho_thr = 6e-3 # in cm^-3
-        N_cut = np.log10(rho_thr * kpccm /(1+self.redshift)*(self.sub_radii[0]/self.ngrid[0]))
+        N_cut = np.log10(rho_thr * self.UnitLength_in_cm /(1+self.redshift)*(2*self.sub_radii[0]/self.ngrid[0])/self.hubble)
         #Use this as the new cutoff
         real_cut = np.max([DLA_cut, N_cut])
         N0 = 10**(a*(np.log10(M)-br)+b)/(6*math.pi*10**(real_cut-21))

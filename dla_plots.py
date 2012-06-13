@@ -21,18 +21,19 @@ astyle="-"
 gstyle="--"
 
 #These are parameters for the analytic fits for the DLA abundances.
-#Format: a,b,ra,rb,break
-arepo_halo_p = { 90 : [2.24, 4.01, -0.12, 0.82,10.36],
-                124 : [2.03, 4.21, -0.14, 0.79, 10.47],
-                141 : [1.92, 3.81, -0.18, 0.89, 10.5],
-                191 : [1.48, 4.09, -0.07, 0.77, 10.69],
-                314 : [1.06, 3.74, 0.03, 0.72, 11.2]}
+#Format: a,b,ra,rb
+#breakpoint is at 10^10.5
+arepo_halo_p = { 90 : [2.24, 4.32, -0.12, 0.8],
+                124 : [2.03, 4.22, -0.14, 0.78],
+                141 : [1.86, 4.11, -0.13, 0.78],
+                191 : [1.48, 3.80, -0.07, 0.78],
+                314 : [1.06, 3.0, 0.03, 0.71]}
 
-gadget_halo_p = { 90 : [1.92,4.01,-0.2,0.81,10.36],
-                  124 : [1.57,4.21,-0.13,0.8,10.46],
-                  141 : [1.46,3.84,-0.13, 0.91, 10.5],
-                  191 : [1.13, 4.05, -0.07, 0.75, 10.68],
-                  314 : [0.97, 3.55, 0.0, 0.71, 11.16] }
+gadget_halo_p = { 90 : [1.92,4.45,-0.2,0.78],
+                  124 : [1.57,4.28,-0.13,0.79],
+                  141 : [1.42,4.16,-0.11, 0.78],
+                  191 : [1.13, 3.85, -0.07, 0.76],
+                  314 : [0.97, 2.91, 0.0, 0.7] }
 
 class PrettyHalo(halohi.HaloHI):
     """
@@ -271,7 +272,7 @@ class HaloHIPlots:
         plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
 #         plt.ylim(1,4*self.ghalo.sub_radii[0]**2)
-        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
+        plt.ylim(1,(2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
         #Fits
         plt.tight_layout()
         plt.show()
@@ -463,9 +464,9 @@ class HaloHIPlots:
         (gMbins, gM0, gr0)=self.ghalo.get_halo_fit_parameters()
         scale=1e42
         #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/scale))
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/scale),breakpoint=10.5)
         #No room for thieves, mercenaries, etc...
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/scale))
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/scale),breakpoint=10.5)
         alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
         glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
         plt.loglog(aMbins, aM0/scale,ls=astyle,label=alabel)
@@ -473,8 +474,8 @@ class HaloHIPlots:
         plt.loglog(aMbins, 10**(ap[2]*(np.log10(aMbins)-ap[0])+ap[1]),ls=astyle)
         plt.loglog(gMbins, 10**(gp[2]*(np.log10(gMbins)-gp[0])+gp[1]),ls=gstyle)
         #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(ar0[:-1]))
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gr0[:-1]))
+        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(ar0[:-1]),breakpoint=10.5)
+        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gr0[:-1]),breakpoint=10.5)
         alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
         glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
         plt.loglog(aMbins, ar0,ls=astyle,label=alabel)
