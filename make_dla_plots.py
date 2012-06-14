@@ -29,6 +29,7 @@ snaps=[
 # 314,
 ]
 
+nosmall=0
 #Plots with all the halo particles
 if len(sys.argv) > 1 and int(sys.argv[1]) == 1:
     for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
@@ -56,39 +57,58 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     plt.figure()
 
-    if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
+    if  len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #Load only the gas grids
         hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
         #Find a smallish halo
-        a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 1e10))
-        #Get the right halo for a smaller halo
-        s_mass=hplots.ahalo.sub_mass[a_shalo]
-        s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
-        g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
-        #Make sure it has a gadget counterpart
-        if np.size(g_shalo) == 0:
-            for i in np.where(hplots.ahalo.sub_mass < 1e10)[0]:
-                s_mass=hplots.ahalo.sub_mass[i]
-                s_pos=hplots.ahalo.sub_cofm[i,:]
-                g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
-                if np.size(g_shalo) != 0 :
-                    a_shalo=i
-                    break
+        try:
+            a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 1e10))
+            #Get the right halo for a smaller halo
+            s_mass=hplots.ahalo.sub_mass[a_shalo]
+            s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
+            g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+            #Make sure it has a gadget counterpart
+            if np.size(g_shalo) == 0:
+                nosmall=1
+                for i in np.where(hplots.ahalo.sub_mass < 1e10)[0]:
+                    s_mass=hplots.ahalo.sub_mass[i]
+                    s_pos=hplots.ahalo.sub_cofm[i,:]
+                    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+                    if np.size(g_shalo) != 0 :
+                        a_shalo=i
+                        nosmall=0
+                        break
+        except ValueError:
+            nosmall=1
         #Get the right halo
-#     def identify_eq_halo(self,mass,pos,maxmass=0.10,maxpos=20.):
         g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:],maxpos=50.)[0]
 
+
         hplots.ahalo.plot_pretty_gas_halo(0)
-        save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_gas_halo"))
+        save_figure(path.join(outdir,"arepo_"+str(snapnum)+"pretty_gas_halo"))
         plt.clf()
         hplots.ghalo.plot_pretty_gas_halo(g_halo_0)
-        save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_gas_halo"))
+        save_figure(path.join(outdir,"gadget_"+str(snapnum)+"pretty_gas_halo"))
         plt.clf()
-        hplots.ahalo.plot_pretty_gas_halo(a_shalo)
-        save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_gas_halo"))
+        if not nosmall:
+            hplots.ahalo.plot_pretty_gas_halo(a_shalo)
+            save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_gas_halo"))
+            plt.clf()
+            hplots.ghalo.plot_pretty_gas_halo(g_shalo[0])
+            save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
+            plt.clf()
+            hplots.ahalo.plot_pretty_cut_gas_halo(a_shalo)
+            save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_cut_gas_halo"))
+            plt.clf()
+            hplots.ghalo.plot_pretty_cut_gas_halo(g_shalo[0])
+            save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_cut_gas_halo"))
+            plt.clf()
+        hplots.ahalo.plot_pretty_cut_gas_halo(0)
+        save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_pretty_cut_gas_halo"))
         plt.clf()
-        hplots.ghalo.plot_pretty_gas_halo(g_shalo[0])
-        save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
+        hplots.ghalo.plot_pretty_cut_gas_halo(g_halo_0)
+        save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_pretty_cut_gas_halo"))
+
         #Radial profiles
         plt.clf()
 #         hplots.plot_radial_profile(maxR=15.)
@@ -104,12 +124,12 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #low-mass halo radial profile
-        hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=5.)
+        hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=15.)
         save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
         plt.clf()
 
 #         plt.figure(1)
-        hplots.plot_radial_profile(maxR=15.)
+        hplots.plot_radial_profile(minM = 1e11,maxM=1.5e11,maxR=100.)
         save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
         #Fig 6
         plt.clf()
@@ -127,12 +147,21 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_cut_halo"))
 
         plt.clf()
-        hplots.ahalo.plot_pretty_halo(a_shalo)
-        save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_halo"))
-        plt.clf()
-        hplots.ghalo.plot_pretty_halo(g_shalo[0])
-        save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_halo"))
-        plt.clf()
+        if not nosmall:
+            hplots.ahalo.plot_pretty_halo(a_shalo)
+            save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_halo"))
+            plt.clf()
+            hplots.ghalo.plot_pretty_halo(g_shalo[0])
+            save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_halo"))
+
+            plt.clf()
+            hplots.ahalo.plot_pretty_cut_halo(a_shalo)
+            save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_cut_halo"))
+            plt.clf()
+            hplots.ghalo.plot_pretty_cut_halo(g_shalo[0])
+            save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_cut_halo"))
+
+            plt.clf()
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 3:
         #Fig 10
@@ -190,7 +219,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         #Fig 12
         plt.clf()
         hplots.plot_rel_column_density()
-        plt.ylim(0.5,2.5)
+        plt.ylim(0.5,1.5)
         save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
         #Fig 5

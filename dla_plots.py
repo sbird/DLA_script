@@ -24,12 +24,15 @@ gstyle="--"
 #Format: a,b,ra,rb
 #breakpoint is at 10^10.5
 arepo_halo_p = { 90 : [2.24, 4.32, -0.12, 0.8],
+                91 : [2.24, 4.32, -0.12, 0.8],
+
                 124 : [2.03, 4.22, -0.14, 0.78],
                 141 : [1.86, 4.11, -0.13, 0.78],
                 191 : [1.48, 3.80, -0.07, 0.78],
                 314 : [1.06, 3.0, 0.03, 0.71]}
 
 gadget_halo_p = { 90 : [1.92,4.45,-0.2,0.78],
+                    91 : [1.92,4.45,-0.2,0.78],
                   124 : [1.57,4.28,-0.13,0.79],
                   141 : [1.42,4.16,-0.11, 0.78],
                   191 : [1.13, 3.85, -0.07, 0.76],
@@ -266,13 +269,21 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$/h)")
         plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
 #         plt.legend(loc=0)
-        plt.loglog(self.ghalo.sub_mass,self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'s',color=gcol)
-        plt.loglog(self.ahalo.sub_mass,self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut),'^',color=acol)
+        gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        asigDLA=self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        g_mean_halo_mass = np.sum(self.ghalo.sub_mass*gsigDLA)/np.sum(gsigDLA)
+        a_mean_halo_mass = np.sum(self.ahalo.sub_mass*asigDLA)/np.sum(asigDLA)
+        print "Mean halo mass, Arepo: ",a_mean_halo_mass/1e10,"Gadget: ",g_mean_halo_mass/1e10,"Cut=",DLA_cut
+        plt.loglog(self.ghalo.sub_mass,gsigDLA,'s',color=gcol)
+        plt.loglog(self.ahalo.sub_mass,asigDLA,'^',color=acol)
         plt.loglog(mass,asfit,color=acol,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
         plt.xlim(self.minplot,self.maxplot)
 #         plt.ylim(1,4*self.ghalo.sub_radii[0]**2)
-        plt.ylim(1,(2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
+        if (DLA_cut < 19):
+            plt.ylim(10,np.max(np.concatenate([gsigDLA,asigDLA]))*4)
+        else:
+            plt.ylim(1,np.max(np.concatenate([gsigDLA,asigDLA]))*4)
         #Fits
         plt.tight_layout()
         plt.show()
