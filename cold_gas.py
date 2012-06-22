@@ -67,9 +67,9 @@ class StarFormation:
         Nagamine, Springel and Hernquist 2004 (astro-ph/0305409).
 
         Parameters:
-            rho - Density of hot gas (g/cm^3)
+            rho - Density of hot gas (hydrogen /cm^3)
             tcool - cooling time of the gas. Zero if gas is being heated (s)
-            rho_thresh - SFR threshold density in g/cm^3
+            rho_thresh - SFR threshold density in hydrogen /cm^3
         Returns:
             The fraction of gas in cold clouds. In practice this is often 1.
         """
@@ -147,7 +147,7 @@ class StarFormation:
         return LambdaFF
 
 
-    def get_reproc_rhoHI(self,bar,rho_phys_thresh=0.1289):
+    def get_reproc_rhoHI(self,bar,rho_phys_thresh=0.1):
         """Get a neutral hydrogen density in cm^-2
         applying the correction in eq. 1 of Tescari & Viel
         Parameters:
@@ -159,11 +159,10 @@ class StarFormation:
             nH0 - the density of neutral hydrogen in these particles in atoms/cm^3
         """
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
-        #Convert density to g/cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
         #Default density matches Tescari & Viel and Nagamine 2004
-        rho_thresh = self.get_rho_thresh(rho_phys_thresh)
-        dens_ind=np.where(irho > rho_thresh)
+        dens_ind=np.where(irho > rho_phys_thresh)
         #UnitCoolingRate_in_cgs=UnitMass_in_g*(UnitVelocity_in_cm_per_s**3/UnitLength_in_cm**4)
         #Note: CoolingRate is really internal energy / cooling time = u / t_cool
         # HOWEVER, a CoolingRate of zero is really t_cool = 0, which is Lambda < 0, ie, heating.
@@ -179,12 +178,12 @@ class StarFormation:
         tcool = ienergy[dens_ind]/cool
         #Convert from internal time units, normally 9.8x10^8 yr/h to s.
         tcool *= (self.UnitLength_in_cm/self.UnitVelocity_in_cm_per_s)/self.hubble # Now in s
-        fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_thresh)
+        fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_phys_thresh)
         #Adjust the neutral hydrogen fraction
         inH0[dens_ind]=fcold
 
         #Calculate rho_HI
-        nH0=irho*inH0*self.hy_mass/self.protonmass
+        nH0=irho*inH0
         #Now in atoms /cm^3
         return nH0
 
