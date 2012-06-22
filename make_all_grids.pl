@@ -2,7 +2,7 @@
 
 #Generate a whole bunch of grids
 #
-@nums=(90,124,141,191,314);
+@nums=(90,124,141,191);
 @codes=('a','g');
 my $outname="omp_submit_script";
 foreach my $code (@codes){
@@ -11,7 +11,7 @@ foreach my $num (@nums){
 print $out
 "#!/bin/bash 
 #\$ -N dla_$num-$code-512_grid
-#\$ -l \"h_rt=36:00:00,exclusive=true\"
+#\$ -l \"h_rt=16:00:00,exclusive=true\"
 #\$ -j y
 #\$ -cwd
 #\$ -pe orte 1
