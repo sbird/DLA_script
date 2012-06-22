@@ -15,6 +15,8 @@ import sys
 #          2 => pretty density plots
 #          3 => sigma_DLA plots
 #          4 => Column density plots
+#          5 => dNdz and halo function
+#          6 => Model fits
 bases=[
 # "/home/spb/data/ComparisonProject/128_20Mpc",
 # "/home/spb/data/ComparisonProject/256_20Mpc",
@@ -201,18 +203,11 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         plt.clf()
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 4:
-    #Fig 11
-#     plt.clf()
-#     hplots.plot_dN_dla()
-#     save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
-
-        hplots.plot_halo_fits()
-        save_figure(path.join(outdir,"halo_fits_"+str(snapnum)))
-
         #Fig 12
         plt.clf()
         hplots.plot_column_density()
-        dla_data.column_density_data()
+        if snapnum == 141:
+            dla_data.column_density_data()
         plt.ylim(1e-28,1e-18)
         save_figure(path.join(outdir,"columden_"+str(snapnum)))
 
@@ -222,10 +217,21 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         plt.ylim(0.5,1.5)
         save_figure(path.join(outdir,"columden_rel_"+str(snapnum)))
 
+    if len(sys.argv) < 2 or int(sys.argv[1]) == 5:
+        #Fig 11
+        plt.clf()
+        hplots.plot_dN_dla()
+        save_figure(path.join(outdir,"dNdz_"+str(snapnum)))
+
         #Fig 5
         plt.clf()
         hplots.plot_halo_mass_func()
         save_figure(path.join(outdir,"halo_func_"+str(snapnum)))
         plt.clf()
+
+    if len(sys.argv) < 2 or int(sys.argv[1]) == 6:
+        hplots.plot_halo_fits()
+        save_figure(path.join(outdir,"halo_fits_"+str(snapnum)))
+
 
     del hplots
