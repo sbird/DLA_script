@@ -415,9 +415,9 @@ class HaloHI:
         if self.once:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        rho=((irho[indx])[indz])*(epsilon/(1+self.redshift)**2)
+        rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
         fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
-        rhoH0=(irhoH0[indx])[indz]*(epsilon/(1+self.redshift)**2)
+        rhoH0=(irhoH0[indx])[indz]*epsilon*(1+self.redshift)**2
         fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 
@@ -706,7 +706,7 @@ class HaloHI:
         #cell with exactly the critical density
         #we assume that below this density the HI fraction is 0
         rho_thr = 6e-3 # in cm^-3
-        N_cut = np.log10(rho_thr * self.UnitLength_in_cm /(1+self.redshift)*(2*self.sub_radii[0]/self.ngrid[0])/self.hubble)
+        N_cut = np.log10(rho_thr * self.UnitLength_in_cm /8.*(2*self.sub_radii[0]/self.ngrid[0])/self.hubble*(4./(1+self.redshift))**5)
         #Use this as the new cutoff
         real_cut = np.max([DLA_cut, N_cut])
         N0 = 10**(a*(np.log10(M)-br)+b)/(6*math.pi*10**(real_cut-21))
@@ -721,45 +721,6 @@ class HaloHI:
         RDLA = p + (q+ss)**(1./3) + qdif
         return 2*math.pi*RDLA
 
-
-
-class DNdlaDz:
-    """Get the DLA number density as a function of redshift, defined as:
-    d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
-    where n_h is the Sheth-Torman mass function, and
-    sigma_DLA is a power-law fit to self.sigma_DLA.
-    Parameters:
-        sigma_DLA -  List of DLA cross-sections
-        masses - List of DLA masses
-        redshift
-        Omega_M
-        Omega_L"""
-    def __init__(self, sigma_DLA,halo_mass, redshift,Omega_M=0.27, Omega_L = 0.73, hubble=0.7):
-        self.redshift=redshift
-        self.Omega_M = Omega_M
-        self.Omega_L = Omega_L
-        self.hubble=hubble
-        #log of halo mass limits in M_sun
-        self.log_mass_lim=(7,15)
-        #Make it an array, not a list
-        s_DLA=np.array(sigma_DLA)
-        h_mass=np.array(halo_mass)
-        #Fit to the DLA abundance
-        ind=np.where((s_DLA > 0.))
-        logmass=np.log(h_mass[ind])-12
-        logsigma=np.log(s_DLA[ind])
-        if np.size(logsigma) == 0:
-            (self.alpha,self.beta)=(0,0)
-        else:
-            (self.alpha,self.beta)=scipy.polyfit(logmass,logsigma,1)
-        #Halo mass function object
-        self.halo_mass=halo_mass_function.HaloMassFunction(redshift,omega_m=Omega_M, omega_l=Omega_L, hubble=hubble,log_mass_lim=self.log_mass_lim)
-
-    def sigma_DLA_fit(self,M):
-        """Returns sigma_DLA(M) for the linear regression fit"""
-        return np.exp(self.alpha*(np.log(M)-12)+self.beta)
-
-
     def drdz(self,zz):
         """Calculates dr/dz in a flat cosmology in units of cm/h"""
         #Speed of light in cm/s
@@ -767,9 +728,9 @@ class DNdlaDz:
         #h * 100 km/s/Mpc in h/s
         h100=3.2407789e-18
         #       cm/s   s/h   =>
-        return light/h100*np.sqrt(self.Omega_M*(1+zz)**3+self.Omega_L)
+        return light/h100*np.sqrt(self.omegam*(1+zz)**3+self.omegal)
 
-    def get_N_DLA_dz(self, mass=1e9):
+    def get_N_DLA_dz(self,params, mass=1e9):
         """Get the DLA number density as a function of redshift, defined as:
         d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
         where n_h is the Sheth-Torman mass function, and
@@ -777,15 +738,20 @@ class DNdlaDz:
         Parameters:
             lower_mass in M_sun/h.
         """
-        result = integ.quad(self.NDLA_integrand,np.log10(mass),self.log_mass_lim[1], epsrel=1e-2)
+        try:
+            self.halo_mass.dndm(mass)
+        except AttributeError:
+            #Halo mass function object
+            self.halo_mass=halo_mass_function.HaloMassFunction(self.redshift,omega_m=self.omegam, omega_l=self.omegal, hubble=self.hubble,log_mass_lim=(7,15))
+        result = integ.quad(self.NDLA_integrand,np.log10(mass),14, epsrel=1e-2,args=(params,))
         #drdz is in cm/h, while the rest is in kpc/h, so convert.
-        return self.drdz(self.redshift)*result[0]/3.085678e21
+        return self.drdz(self.redshift)*result[0]/self.UnitLength_in_cm
 
-    def NDLA_integrand(self,log10M):
+    def NDLA_integrand(self,log10M,params):
         """Integrand for above"""
         M=10**log10M
         #sigma_DLA is in kpc/h^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), so convert.
-        return self.sigma_DLA_fit(M)*self.halo_mass.dndm(M)*M/(10**9)
+        return self.sDLA_analytic(M,params,20.3)*self.halo_mass.dndm(M)*M/(10**9)
 
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.
