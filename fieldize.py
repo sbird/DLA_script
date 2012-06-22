@@ -98,7 +98,7 @@ def ngp(pos,values,field):
     return field
 
 def cic(pos, value, field,totweight=None,periodic=False):
-    """Does nearest grid point for a 2D array.
+    """Does Cloud-in-Cell for a 2D array.
     Inputs:
         Values - list of field values to interpolate
         Points - coordinates of the field values
