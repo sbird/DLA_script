@@ -62,8 +62,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel("x (kpc/h)")
-        plt.ylabel("y (kpc/h)")
+        plt.xlabel("x (kpc h$^{-1})")
+        plt.ylabel("y (kpc h$^{-1})")
         plt.tight_layout()
         plt.show()
 
@@ -92,8 +92,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel("x (kpc/h)")
-        plt.ylabel("y (kpc/h)")
+        plt.xlabel("x (kpc h$^{-1})")
+        plt.ylabel("y (kpc h$^{-1})")
         plt.tight_layout()
         plt.show()
 
@@ -110,8 +110,8 @@ class PrettyHalo(halohi.HaloHI):
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]
         plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
-        plt.xlabel("x (kpc/h)")
-        plt.xlabel("y (kpc/h)")
+        plt.xlabel("x (kpc h$^{-1})")
+        plt.xlabel("y (kpc h$^{-1})")
         plt.tight_layout()
         plt.show()
 
@@ -137,7 +137,7 @@ class PrettyHalo(halohi.HaloHI):
             plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
         except AttributeError:
             pass
-        plt.xlabel(r"R (kpc/h)")
+        plt.xlabel(r"R (kpc h$^{-1})")
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         plt.legend(loc=1)
         plt.tight_layout()
@@ -161,7 +161,7 @@ class PrettyTotalHI(halohi.TotalHaloHI):
         #Plot.
         plt.loglog(self.mass,self.nHI,'o',color=color,label=label)
         #Axes
-        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.ylabel("HI frac")
         plt.xlim(1e9,5e12)
 
@@ -179,8 +179,8 @@ class PrettyTotalHI(halohi.TotalHaloHI):
         fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
         plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
         #Axes
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"Mass$_{HI}$ ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"Mass$_{HI}$ ($M_\odot$ h$^{-1}$)")
         plt.xlim(1e9,5e12)
 
     def plot_gas(self,color="black",label=""):
@@ -197,8 +197,8 @@ class PrettyTotalHI(halohi.TotalHaloHI):
         fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
         plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
         #Axes
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"Mass$_{gas}$ ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"Mass$_{gas}$ ($M_\odot$ h$^{-1}$)")
         plt.xlim(1e9,5e12)
 
 
@@ -300,8 +300,8 @@ class HaloHIPlots:
         plt.loglog(mass,asfit,color=acol,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
         #Plot Axes stuff
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$)")
         plt.xlim(self.minplot,self.maxplot)
 #         plt.ylim(1,4*self.ghalo.sub_radii[0]**2)
         if (DLA_cut < 19):
@@ -329,8 +329,8 @@ class HaloHIPlots:
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
-        plt.xlabel(r"Mass HI ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.xlabel(r"Mass HI ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$) DLA is N > "+str(DLA_cut))
         plt.legend(loc=0)
         plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
@@ -357,8 +357,8 @@ class HaloHIPlots:
         plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
         #Axes
-        plt.xlabel(r"Halo Gas Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$/h$^2$) DLA is N > "+str(DLA_cut))
+        plt.xlabel(r"Halo Gas Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$) DLA is N > "+str(DLA_cut))
         plt.legend(loc=0)
         plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
         plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
@@ -403,8 +403,8 @@ class HaloHIPlots:
         plt.semilogx(rmass[ind],rDLA[ind],'o',color="blue",label="N_HI> 20.3")
         #Axes
         plt.xlim(self.minplot,self.maxplot)
-        plt.xlabel(r"Mass ($M_\odot$/h)")
-        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Arepo) - $\sigma_\mathrm{DLA}$ (Gadget) (kpc$^2$/h$^2$)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Arepo) - $\sigma_\mathrm{DLA}$ (Gadget) (kpc$^2$ h$^{-2}$)")
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
@@ -421,7 +421,7 @@ class HaloHIPlots:
         plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
         ax=plt.gca()
         ax.fill_between(mass, 10**(-0.7), 10**(-0.5),color='yellow')
-        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.ylabel(r"$\mathrm{dN}_\mathrm{DLA} / \mathrm{dz} (> M_\mathrm{tot})$")
         plt.legend(loc=3)
         plt.xlim(Mmin,Mmax)
@@ -481,7 +481,7 @@ class HaloHIPlots:
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        plt.xlabel(r"R (kpc/h)")
+        plt.xlabel(r"R (kpc h$^{-1})")
         plt.ylabel(r"Density $N_{HI}$ (cm$^{-1}$)")
         #Crop the frame so we see the DLA cross-over point
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
@@ -539,7 +539,7 @@ class HaloHIPlots:
         plt.semilogx(gM,(np.log10(gM)-gfit[0])*gfit[2]+gfit[1],ls=gstyle,color=gcol,label=glabel)
         plt.semilogx(aM,(np.log10(aM)-afit[0])*afit[2]+afit[1],ls=astyle,color=acol,label=alabel)
         plt.ylabel(r"$ \mathrm{log} N_{HI} (\mathrm{cm}^{-2})$")
-        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -576,7 +576,7 @@ class HaloHIPlots:
         ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(shdndm[-1])),int(np.log10(shdndm[0])),2)))
 
         plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
-        plt.xlabel(r"Mass ($M_\odot$/h)")
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.legend(loc=0)
         plt.xlim(self.minplot,self.maxplot)
         plt.tight_layout()
