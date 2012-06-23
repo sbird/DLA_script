@@ -187,17 +187,15 @@ class StarFormation:
         #Now in atoms /cm^3
         return nH0
 
-    def get_reproc_rhoHI(self,bar,rho_phys_thresh=6e-3):
+    def get_reproc_rhoHI(self,bar,rho_phys_thresh=6.3e-3):
         """Get a neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
         This is just neutral over a certain density."""
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
-        #Convert density to g/cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
-        #g/cm^3
-        rho_thresh=rho_phys_thresh*self.protonmass
-        dens_ind=np.where(irho > rho_thresh)
+        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+        dens_ind=np.where(irho > rho_phys_thresh)
         inH0[dens_ind]=1.
         #Calculate rho_HI
-        nH0=irho*inH0*self.hy_mass/self.protonmass
+        nH0=irho*inH0
         #Now in atoms /cm^3
         return nH0
