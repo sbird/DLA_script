@@ -267,14 +267,10 @@ class HaloHI:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridHIData"]
                 [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
-                for i in xrange(0,self.nhalo):
-                    self.sub_nHI_grid[i]+=4*np.log10(1+self.redshift)
             if not skip_grid == 2:
                 self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridGasData"]
                 [ grp[str(i)].read_direct(self.sub_gas_grid[i]) for i in xrange(0,self.nhalo)]
-                for i in xrange(0,self.nhalo):
-                    self.sub_gas_grid[i]+=4*np.log10(1+self.redshift)
             f.close()
             del grid_file
             del f
