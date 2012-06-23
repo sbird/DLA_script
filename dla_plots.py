@@ -51,7 +51,7 @@ class PrettyHalo(halohi.HaloHI):
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max(grid)
+        vmax=np.max([np.max(grid),24])
         maxdist = self.sub_radii[num]
         plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
@@ -93,7 +93,7 @@ class PrettyHalo(halohi.HaloHI):
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
         plt.xlabel("x (kpc/h)")
-        plt.xlabel("y (kpc/h)")
+        plt.ylabel("y (kpc/h)")
         plt.tight_layout()
         plt.show()
 
@@ -442,6 +442,7 @@ class HaloHIPlots:
         plt.xlabel(r"$N_{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
         plt.xlim(10**minN, 10**maxN)
+        plt.ylim(ymin=1e-26)
         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
