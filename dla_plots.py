@@ -25,19 +25,19 @@ gstyle="--"
 #These are parameters for the analytic fits for the DLA abundances.
 #Format: a,b,ra,rb
 #breakpoint is at 10^10.5
-arepo_halo_p = { 90 : [2.24, 4.32, -0.12, 0.8],
-                91 : [2.24, 4.32, -0.12, 0.8],
+arepo_halo_p = { 90 : [2.4, 4.29, -0.17, 0.78],
+                91 : [2.24, 4.29, -0.17, 0.78],
 
                 124 : [2.03, 4.22, -0.14, 0.78],
-                141 : [1.86, 4.11, -0.13, 0.78],
-                191 : [1.48, 3.80, -0.07, 0.78],
+                141 : [1.88, 4.1, -0.1, 0.78],
+                191 : [1.49, 3.8, -0.06, 0.78],
                 314 : [1.06, 3.0, 0.03, 0.71]}
 
-gadget_halo_p = { 90 : [1.92,4.45,-0.2,0.78],
-                    91 : [1.92,4.45,-0.2,0.78],
+gadget_halo_p = { 90 : [1.96,4.44,-0.11,0.78],
+                    91 : [1.96,4.44,-0.11,0.78],
                   124 : [1.57,4.28,-0.13,0.79],
-                  141 : [1.42,4.16,-0.11, 0.78],
-                  191 : [1.13, 3.85, -0.07, 0.76],
+                  141 : [1.43,4.16,-0.1, 0.77],
+                  191 : [1.13, 3.84, -0.07, 0.76],
                   314 : [0.97, 2.91, 0.0, 0.7] }
 
 class PrettyHalo(halohi.HaloHI):
@@ -51,7 +51,7 @@ class PrettyHalo(halohi.HaloHI):
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max([np.max(grid),24])
+        vmax=np.max([np.max(grid),25.5])
         maxdist = self.sub_radii[num]
         plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
@@ -62,8 +62,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel("x (kpc h$^{-1})")
-        plt.ylabel("y (kpc h$^{-1})")
+        plt.xlabel(r"x (kpc h$^{-1}$)")
+        plt.ylabel(r"y (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -92,8 +92,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel("x (kpc h$^{-1})")
-        plt.ylabel("y (kpc h$^{-1})")
+        plt.xlabel(r"x (kpc h$^{-1}$)")
+        plt.ylabel(r"y (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -110,8 +110,8 @@ class PrettyHalo(halohi.HaloHI):
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]
         plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
-        plt.xlabel("x (kpc h$^{-1})")
-        plt.xlabel("y (kpc h$^{-1})")
+        plt.xlabel(r"x (kpc h$^{-1}$)")
+        plt.xlabel(r"y (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -137,7 +137,7 @@ class PrettyHalo(halohi.HaloHI):
             plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
         except AttributeError:
             pass
-        plt.xlabel(r"R (kpc h$^{-1})")
+        plt.xlabel(r"R (kpc h$^{-1}$)")
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         plt.legend(loc=1)
         plt.tight_layout()
@@ -481,7 +481,7 @@ class HaloHIPlots:
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        plt.xlabel(r"R (kpc h$^{-1})")
+        plt.xlabel(r"R (kpc h$^{-1}$)")
         plt.ylabel(r"Density $N_{HI}$ (cm$^{-1}$)")
         #Crop the frame so we see the DLA cross-over point
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
