@@ -46,7 +46,7 @@ def PlotDiff(bigx,bigy, smallx,smally):
     diff=smally[inds]/newstuff(smallx)
     return (smallx,diff)
 
-#Mean flux is from the Kim et al paper 0711.1862 
+#Mean flux is from the Kim et al paper 0711.1862
 # (0.0023±0.0007)(1+z)^(3.65±0.21)
 pfdir='/home/spb/scratch/ComparisonProject/'
 #if len(sys.argv) > 1:
@@ -57,13 +57,13 @@ pfdir='/home/spb/scratch/ComparisonProject/'
 tmp=numpy.loadtxt(pfdir+'redshifts.txt')
 zzz=tmp[:,1]
 
-def pfplots(num='100'):
+def pfplots(num='100',color=None):
     """Plot a bundle of flux power spectra from Arepo and Gadget"""
     tdir=pfdir+'Gadget/snap_'+str(num).rjust(3,'0')+'_flux_power.txt'
     fluxpower=glob.glob(tdir)
     if (len(fluxpower) == 0):
         print "No flux power spectra found in "+tdir
-    
+
     for pf in fluxpower:
         #Get header information
         z=zzz[int(num)]
@@ -90,13 +90,13 @@ def pfplots(num='100'):
         plt.loglog(arsimk,arsimPF,label='Arepo: z='+str(round(z,2)))
 #         plt.xlim(simk[0],0.03)
 
-def pdfplots(num='100'):
+def pdfplots(num='100',color="blue"):
     """Plot a bundle of flux PDF's from Arepo and Gadget"""
     tdir=pfdir+'Gadget/snap_'+str(num).rjust(3,'0')+'_flux_pdf.txt'
     fluxpower=glob.glob(tdir)
     if (len(fluxpower) == 0):
         print "No flux pdf found in "+tdir
-    z=str(round(zzz[int(num)],2)) 
+    z=str(round(zzz[int(num)],2))
     for pf in fluxpower:
         #Get header information
         #Plot the simulation output
@@ -105,6 +105,9 @@ def pdfplots(num='100'):
         arpf = re.sub("Gadget/","Arepo/",pf)
         pdf_ar=numpy.loadtxt(arpf)
         plt.ylabel(r"Flux PDF")
-        plt.plot(pdf[:,0], pdf[:,1],label='Gadget: z='+z,ls='--')
-        plt.plot(pdf_ar[:,0], pdf_ar[:,1],label='Arepo: z='+z)
-    plt.xlim(0.5,20.5)
+        plt.semilogy(pdf[:,0]/20., pdf[:,1],label='Gadget: z='+z,ls='--',color=color)
+        plt.semilogy(pdf_ar[:,0]/20., pdf_ar[:,1],label='Arepo: z='+z,color=color)
+    plt.xlim(0,1)
+    plt.xlabel("Flux")
+    plt.ylim(0.09,10)
+    plt.yticks((0.1,1,10),('0.1','1.0','10'))

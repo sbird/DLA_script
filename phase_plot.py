@@ -7,11 +7,11 @@ import numpy as np
 class MassMap:
     """Grid of mass at given density and temperature."""
     def __init__(self):
-        self.minT=3.2
-        self.maxT=6.0
-        self.minR=-1.5
-        self.maxR=1.0
-        self.map = np.zeros([300,300]) 
+        self.minT=3.4
+        self.maxT=5.0
+        self.minR=-1.2
+        self.maxR=0.0
+        self.map = np.zeros([300,300])
         self.r_size=np.shape(self.map)[0]
         self.t_size=np.shape(self.map)[1]
 
@@ -48,7 +48,7 @@ def get_temp_overden_mass(num,base,snap_file=0):
         (templog, rho/rho_c, mass)
     """
     f=hdfsim.get_file(num,base,snap_file)
-    
+
     head=f["Header"].attrs
     npart=head["NumPart_ThisFile"]
     redshift=head["Redshift"]
@@ -58,7 +58,7 @@ def get_temp_overden_mass(num,base,snap_file=0):
     if npart[0] == 0 :
         print "No gas particles!\n"
         return
-    
+
     # Baryon density parameter
     omegab0 = 0.0449
     # Scaling factors and constants
@@ -75,24 +75,24 @@ def get_temp_overden_mass(num,base,snap_file=0):
     rscale = (kpc * atime)/h100     # convert length to m
     #vscale = atime**0.5          # convert velocity to km s^-1
     mscale = (1e10 * Msun)/h100     # convert mass to kg
-    dscale = mscale / (rscale**3.0)  # convert density to kg m^-3 
+    dscale = mscale / (rscale**3.0)  # convert density to kg m^-3
     escale = 1e6            # convert energy/unit mass to J kg^-1
-    
+
     bar = f["PartType0"]
     u=escale*np.array(bar['InternalEnergy'],dtype=np.float64) # J kg^-1
     rho=dscale*np.array(bar['Density'],dtype=np.float64) # kg m^-3, ,physical
-    mass=np.array(bar['Masses'],dtype=np.float64)
+    mass=np.array(bar['Masses'],dtype=np.float64)  #1e10 Msun
     nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
     #nH0=np.array(bar['NeutralHydrogenAbundance'],dtype=np.float64)
     f.close()
-    # Convert to physical SI units. Only energy and density considered here.         
+    # Convert to physical SI units. Only energy and density considered here.
     ## Mean molecular weight
-    mu = 1.0 / ((Xh * (0.75 + nelec)) + 0.25)  
+    mu = 1.0 / ((Xh * (0.75 + nelec)) + 0.25)
     templog=np.log10(mu/kB * (gamma-1) * u * mH)
     ##### Critical matter/energy density at z=0.0
     rhoc = 3 * (H0*h100)**2 / (8. * math.pi * G) # kg m^-3
     ##### Mean hydrogen density of the Universe
-    nHc = rhoc  /mH * omegab0 *Xh * (1.+redshift)**3.0 
+    nHc = rhoc  /mH * omegab0 *Xh * (1.+redshift)**3.0
     ### Hydrogen density as a fraction of the mean hydrogen density
     overden = np.log10(rho*Xh/mH  / nHc)
 
@@ -105,7 +105,7 @@ def get_temp_overden_volume(num,base,snap_file=0):
         (radius, rho/rho_c, mass)
     """
     f=hdfsim.get_file(num,base,snap_file)
-    
+
     head=f["Header"].attrs
     npart=head["NumPart_ThisFile"]
     redshift=head["Redshift"]
@@ -115,7 +115,7 @@ def get_temp_overden_volume(num,base,snap_file=0):
     if npart[0] == 0 :
         print "No gas particles!\n"
         return
-    
+
     # Baryon density parameter
     omegab0 = 0.0449
     # Scaling factors and constants
@@ -129,19 +129,19 @@ def get_temp_overden_volume(num,base,snap_file=0):
 
     rscale = (kpc * atime)/h100     # convert length to m
     mscale = (1e10 * Msun)/h100     # convert mass to kg
-    dscale = mscale / (rscale**3.0)  # convert density to kg m^-3 
-    
+    dscale = mscale / (rscale**3.0)  # convert density to kg m^-3
+
     bar = f["PartType0"]
     rho=dscale*np.array(bar['Density'],dtype=np.float64) # kg m^-3, ,physical
     mass=np.array(bar['Masses'],dtype=np.float64)
     #nH0=np.array(bar['NeutralHydrogenAbundance'],dtype=np.float64)
-     
+
     f.close()
-    # Convert to physical SI units. Only energy and density considered here.         
+    # Convert to physical SI units. Only energy and density considered here.
     ##### Critical matter/energy density at z=0.0
     rhoc = 3 * (H0*h100)**2 / (8. * math.pi * G) # kg m^-3
     ##### Mean hydrogen density of the Universe
-    nHc = rhoc  /mH * omegab0 *Xh * (1.+redshift)**3.0 
+    nHc = rhoc  /mH * omegab0 *Xh * (1.+redshift)**3.0
     ### Hydrogen density as a fraction of the mean hydrogen density
     overden = np.log10(rho*Xh/mH  / nHc)
     volume=dscale*mass/rho
@@ -158,7 +158,7 @@ def get_mass_map(num,base):
         except IOError:
             break
         ind2 = np.where((overden > masses.minR) * (overden <  masses.maxR) * (templog < masses.maxT) * (templog > masses.minT))
-        masses.add_to_map(overden[ind2],templog[ind2],mass[ind2])
+        masses.add_to_map(overden[ind2],templog[ind2],mass[ind2]*1e4)
     return masses
 
 def get_volume_forest(num,base):
