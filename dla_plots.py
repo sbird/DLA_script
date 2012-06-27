@@ -443,7 +443,32 @@ class HaloHIPlots:
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(ymin=1e-26)
-        plt.legend(loc=0)
+#         plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_column_density_breakdown(self,minN=17,maxN=23.):
+        """Plots the column density distribution function, broken down into halos. """
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        plt.loglog(aNHI,af_N,color=acol, ls="-",label="Arepo")
+        plt.loglog(gNHI,gf_N,color=gcol, ls="-",label="Gadget")
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
+        plt.loglog(aNHI,af_N,color=acol, ls="--",label="Arepo")
+        plt.loglog(gNHI,gf_N,color=gcol, ls="--",label="Gadget")
+        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+        plt.loglog(aNHI,af_N,color=acol, ls=":",label="Arepo")
+        plt.loglog(gNHI,gf_N,color=gcol, ls=":",label="Gadget")
+        #Make the ticks be less-dense
+        #ax=plt.gca()
+        #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
+        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
+        plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
+        plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        plt.xlim(10**minN, 10**maxN)
+#         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 
@@ -451,6 +476,7 @@ class HaloHIPlots:
         """Plots the radial density of neutral hydrogen for all halos stacked in the mass bin.
         """
         #Use sufficiently large bins
+        scale = 10**43
         space=2.*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0]
         if maxR/30. > space:
             Rbins=np.linspace(minR,maxR,20)
@@ -459,11 +485,11 @@ class HaloHIPlots:
         Rbinc = [(Rbins[i+1]+Rbins[i])/2 for i in xrange(0,np.size(Rbins)-1)]
         Rbinc=[minR,]+Rbinc
         try:
-            aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+            aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
+            gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             plt.plot(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
             plt.plot(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
-            plt.plot(Rbins,2*math.pi*Rbins*self.ahalo.UnitLength_in_cm*10**20.3,color="black", ls="-.",label="DLA density")
+            plt.plot(Rbins,2*math.pi*Rbins*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
         except AttributeError:
@@ -482,7 +508,7 @@ class HaloHIPlots:
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"R (kpc h$^{-1}$)")
-        plt.ylabel(r"Density $N_{HI}$ (cm$^{-1}$)")
+        plt.ylabel(r"Radial Density ($10^{43}$ cm$^{-1}$)")
         #Crop the frame so we see the DLA cross-over point
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
@@ -553,9 +579,9 @@ class HaloHIPlots:
 #         ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),3)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        plt.ylabel(r"$ \delta f(N) (\mathrm{cm}^2)$")
+        plt.ylabel(r"$ \delta f(N)$")
         plt.xlim(10**minN, 10**maxN)
-        plt.legend(loc=0)
+#         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 

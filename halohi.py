@@ -623,7 +623,7 @@ class HaloHI:
         #Units: h/s   s/cm                        kpc/h      cm/kpc
         return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
-    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30.):
+    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval
@@ -644,6 +644,8 @@ class HaloHI:
             dlogN - bin spacing
             minN - minimum log N
             maxN - maximum log N
+            maxM - maximum log M halo mass to consider
+            minM - minimum log M halo mass to consider
 
         Returns:
             (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
@@ -653,8 +655,9 @@ class HaloHI:
         deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
+        ind = np.where((self.sub_mass < 10.**maxM)*(self.sub_mass > 10.**minM))
         tot_cells = np.sum(self.ngrid**2)
-        array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in self.sub_nHI_grid])
+        array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in self.sub_nHI_grid[ind]])
         tot_f_N = np.sum(array[:,0])
         tot_f_N=(tot_f_N)/(deltaNHI*dX*tot_cells)
         return (10**bin_center, tot_f_N)

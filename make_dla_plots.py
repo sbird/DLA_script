@@ -117,7 +117,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
 #         plt.figure(2)
         #low-mass halo radial profile
-#         hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=5.)
+#         hplots.plot_radial_profile(minM=5e9, maxM=5.5e9,maxR=15.)
 
         del hplots
 
@@ -126,7 +126,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #low-mass halo radial profile
-        hplots.plot_radial_profile(minM=7e9, maxM=7.5e9,maxR=15.)
+        hplots.plot_radial_profile(minM=2.5e9, maxM=3e9,maxR=10.)
         save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
         plt.clf()
 
@@ -208,8 +208,13 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         hplots.plot_column_density()
         if snapnum == 141:
             dla_data.column_density_data()
-        plt.ylim(1e-28,1e-18)
+        plt.ylim(1e-26,1e-18)
         save_figure(path.join(outdir,"columden_"+str(snapnum)))
+
+        plt.clf()
+        hplots.plot_column_density_breakdown()
+        plt.ylim(1e-26,1e-18)
+        save_figure(path.join(outdir,"columden_break_"+str(snapnum)))
 
         #Fig 12
         plt.clf()
