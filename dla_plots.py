@@ -9,7 +9,6 @@ Possible but not implemented:
 
 import halohi
 import numpy as np
-import scipy
 import os.path as path
 import math
 import matplotlib.pyplot as plt
@@ -25,20 +24,43 @@ gstyle="--"
 #These are parameters for the analytic fits for the DLA abundances.
 #Format: a,b,ra,rb
 #breakpoint is at 10^10.5
-arepo_halo_p = { 90 : [2.4, 4.29, -0.17, 0.78],
-                91 : [2.24, 4.29, -0.17, 0.78],
+#arepo_halo_p = {
+#                90 : [  2.51567291,  32.66547647,  67.72689814],
+#                91 : [  2.51567291,  32.66547647,  67.72689814],
+#                124 : [  2.60395335,  32.53670302,  55.67506455],
+#                141 :  [  2.82049202,  32.3547484,   38.4643012 ],
+#                191 : [  3.35225558,  31.33131514,  -3.12604689],
+#                314 :  [  2.94558432,  28.65151923,   5.38257005]
+#                }
+#
+#gadget_halo_p = {
+#                   90 :  [  2.5118343, 33.16836309,  50.20590397],
+#                   91 :  [  2.5118343, 33.16836309,  50.20590397],
+#                  124 :  [  3.14882076,  32.56825392,  -7.62043225],
+#                  141 :  [  3.53242792,  32.23375728, -25.709872  ],
+#                  191 : [  4.2523147,   30.89908674, -38.59637455],
+#                  314 : [  3.04860987,  28.39565676,   0.37187526]
+#                  }
+arepo_halo_p = {
+90  : [ 0.474492395744 , 32.3354193529 , 64.1103696034 , 1025.39160514 , 1.92971408154 , ],
+124  : [ 0.487794225616 , 32.4859370217 , 60.2350857347 , 4.20000415528 , 6.13774174794 , ],
+141  : [ 0.544063343988 , 32.3207571363 , 40.5794243679 , 4.475671217 , 4.72298619854 , ],
+191  : [ 0.527333697086 , 32.3853042367 , 32.6371468335 , -1014.98380623 , 0.798750441217 , ],
+314  : [ 0.439603148064 , 29.6906451591 , 17.6915078157 , -988.969576462 , 0.539761427411 , ],
+}
+gadget_halo_p = {
+90  : [ 0.402940063958 , 32.6466010088 , 48.0841552686 , 1025.30584919 , 3.33453531055 , ],
+124  : [ 0.494941169663 , 32.0953160165 , -3.49968288156 , 570.134065046 , 3.20262281821 , ],
+141  : [ 0.579598438527 , 31.8871826025 , -20.3179751964 , 310.979609542 , 3.00516724233 , ],
+191  : [ 0.789194644499 , 30.8217753689 , -36.2936679845 , 39.9854892473 , 2.61812985859 , ],
+314  : [ 0.601313193827 , 28.4976541793 , 0.929240785596 , -171.650139315 , 0.872400813277 , ],
+}
 
-                124 : [2.03, 4.22, -0.14, 0.78],
-                141 : [1.88, 4.1, -0.1, 0.78],
-                191 : [1.49, 3.8, -0.06, 0.78],
-                314 : [1.06, 3.0, 0.03, 0.71]}
 
-gadget_halo_p = { 90 : [1.96,4.44,-0.11,0.78],
-                    91 : [1.96,4.44,-0.11,0.78],
-                  124 : [1.57,4.28,-0.13,0.79],
-                  141 : [1.43,4.16,-0.1, 0.77],
-                  191 : [1.13, 3.84, -0.07, 0.76],
-                  314 : [0.97, 2.91, 0.0, 0.7] }
+def pr_num(num,rnd=2):
+    """Return a string rep of a number"""
+    return str(np.round(num,rnd))
+
 
 class PrettyHalo(halohi.HaloHI):
     """
@@ -254,7 +276,7 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=400,minplot=1e9, maxplot=5e12,reload_file=False,skip_grid=None):
+    def __init__(self,base,snapnum,minpart=400,minplot=1e9, maxplot=2e12,reload_file=False,skip_grid=None):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
@@ -266,23 +288,66 @@ class HaloHIPlots:
         self.minplot=minplot
         self.maxplot=maxplot
 
-    def pr_num(self,num):
-        """Return a string rep of a number"""
-        return str(np.round(num,2))
+    def plot_sigma_DLA_model(self,DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot my analytic model for the DLAs"""
+        mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
+        #Plot Analytic Fit
+#         ap=self.ahalo.get_sDLA_fit()
+#         gp=self.ghalo.get_sDLA_fit()
+        ap=arepo_halo_p[self.ahalo.snapnum]
+        gp=gadget_halo_p[self.ghalo.snapnum]
+        asfit=self.ahalo.sDLA_analytic(mass,ap,DLA_cut)-self.ahalo.sDLA_analytic(mass,ap,DLA_upper_cut)
+        gsfit=self.ghalo.sDLA_analytic(mass,gp,DLA_cut)-self.ghalo.sDLA_analytic(mass,gp,DLA_upper_cut)
+        print "Arepo: ",ap
+        print "Gadget: ",gp
+        plt.loglog(mass,asfit,color=acol,ls=astyle)
+        plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
+
+    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot the median and scatter of sigma_DLA against mass."""
+        mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=7)
+        abin_mass = np.empty(np.size(mass)-1)
+        gbin_mass = np.empty(np.size(mass)-1)
+        abin_mass = halohi.calc_binned_median(mass,self.ahalo.sub_mass, self.ahalo.sub_mass)
+        gbin_mass = halohi.calc_binned_median(mass,self.ghalo.sub_mass, self.ghalo.sub_mass)
+        (amed,aloq,aupq)=self.ahalo.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
+        (gmed,gloq,gupq)=self.ghalo.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
+        #To avoid zeros
+        aloq-=1e-2
+        gloq-=1e-2
+        #Plot median sigma DLA
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol)
+        plt.errorbar(gbin_mass*1.1, gmed,yerr=[gloq,gupq],fmt='s',color=gcol)
 
     def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot sigma_DLA vs mass"""
+        self.plot_sigma_DLA_contour(DLA_cut,DLA_upper_cut)
+        self.plot_sigma_DLA_median(DLA_cut,DLA_upper_cut)
+        self.plot_sigma_DLA_model(DLA_cut,DLA_upper_cut)
+        #Plot Axes stuff
+        ax=plt.gca()
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$)")
+        if DLA_cut == 20.3:
+            plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
+        if DLA_cut == 17.:
+            plt.title(r"LLS cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
+        plt.xlim(self.minplot,self.maxplot)
+        if DLA_cut < 19:
+            plt.ylim(ymin=10)
+        else:
+            plt.ylim(ymin=1)
+        #Fits
+        plt.tight_layout()
+        plt.show()
+
+    def plot_sigma_DLA_contour(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA against mass."""
-        mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=100)
         gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
         asigDLA=self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
-        #Generate mean halo mass
-        g_mean_halo_mass = np.sum(self.ghalo.sub_mass*gsigDLA)/np.sum(gsigDLA)
-        a_mean_halo_mass = np.sum(self.ahalo.sub_mass*asigDLA)/np.sum(asigDLA)
-        print "Mean halo mass, Arepo: ",a_mean_halo_mass/1e10,"Gadget: ",g_mean_halo_mass/1e10,"Cut=",DLA_cut
         #Plot sigma DLA
-        #as scatter
-#         plt.loglog(self.ghalo.sub_mass,gsigDLA,'s',color=gcol)
-#         plt.loglog(self.ahalo.sub_mass,asigDLA,'^',color=acol)
         #As contour
         ind = np.where(gsigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ghalo.sub_mass[ind]),np.log10(gsigDLA[ind]),bins=(30,30))
@@ -293,82 +358,7 @@ class HaloHIPlots:
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ahalo.sub_mass[ind]),np.log10(asigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(acol,acol2),alpha=0.7)
-        #Plot Analytic Fit
-        asfit=self.ahalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_cut)-self.ahalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
-        gsfit=self.ghalo.sDLA_analytic(mass,gadget_halo_p[self.ghalo.snapnum],DLA_cut)-self.ghalo.sDLA_analytic(mass,arepo_halo_p[self.ahalo.snapnum],DLA_upper_cut)
-        plt.loglog(mass,asfit,color=acol,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
-        #Plot Axes stuff
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$)")
-        plt.xlim(self.minplot,self.maxplot)
-#         plt.ylim(1,4*self.ghalo.sub_radii[0]**2)
-        if (DLA_cut < 19):
-            plt.ylim(10,np.max(np.concatenate([gsigDLA,asigDLA]))*4)
-        else:
-            plt.ylim(1,np.max(np.concatenate([gsigDLA,asigDLA]))*4)
-        #Fits
-        plt.tight_layout()
-        plt.show()
-
-    def plot_sigma_DLA_nHI(self, DLA_cut=20.3):
-        """Plot sigma_DLA against HI mass."""
-        #Get MHI
-#         athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
-#         gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
-        anHI_mass=10.**np.array([self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)])
-        gnHI_mass=10.**np.array([self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)])
-#         anHI_mass = np.array([athi.get_hi_mass(mass) for mass in self.ahalo.sub_mass])
-#         gnHI_mass = np.array([gthi.get_hi_mass(mass) for mass in self.ghalo.sub_mass])
-        mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
-        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut,anHI_mass)
-        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut,gnHI_mass)
-        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
-        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        #Axes
-        plt.xlabel(r"Mass HI ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$) DLA is N > "+str(DLA_cut))
-        plt.legend(loc=0)
-        plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
-        plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-#         plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
-        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
-        #Fits
-        plt.tight_layout()
-        plt.show()
-
-    def plot_sigma_DLA_gas(self, DLA_cut=20.3):
-        """Plot sigma_DLA against HI mass."""
-        #Get MHI
-        athi=PrettyTotalHI(self.adir,self.ahalo.snapnum,self.ahalo.minpart)
-        gthi=PrettyTotalHI(self.gdir,self.ahalo.snapnum,self.ahalo.minpart)
-        anHI_mass = np.array([athi.get_gas_mass(mass) for mass in self.ahalo.sub_mass])
-        gnHI_mass = np.array([gthi.get_gas_mass(mass) for mass in self.ghalo.sub_mass])
-        mass=np.logspace(np.log10(np.min(anHI_mass)),np.log10(np.max(anHI_mass)),num=100)
-        asfit=self.ahalo.sigma_DLA_fit(mass,DLA_cut,anHI_mass)
-        gsfit=self.ghalo.sigma_DLA_fit(mass,DLA_cut,gnHI_mass)
-        alabel = r"$\alpha=$"+self.pr_num(self.ahalo.alpha)+" $\\beta=$"+self.pr_num(self.ahalo.beta)+" $\\gamma=$"+self.pr_num(self.ahalo.gamma)+" b = "+self.pr_num(self.ahalo.pow_break)
-        glabel = r"$\alpha=$"+self.pr_num(self.ghalo.alpha)+" $\\beta=$"+self.pr_num(self.ghalo.beta)+" $\\gamma=$"+self.pr_num(self.ghalo.gamma)+" b = "+self.pr_num(self.ghalo.pow_break)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        #Axes
-        plt.xlabel(r"Halo Gas Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$) DLA is N > "+str(DLA_cut))
-        plt.legend(loc=0)
-        plt.loglog(gnHI_mass,self.ghalo.get_sigma_DLA(DLA_cut),'s',color=gcol)
-        plt.loglog(anHI_mass,self.ahalo.get_sigma_DLA(DLA_cut),'^',color=acol)
-        plt.loglog(mass,asfit,color=acol,label=alabel,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,label=glabel,ls=gstyle)
-        plt.xlim(np.min(gnHI_mass)/2.,self.maxplot/100)
-        plt.ylim((2.*np.max(self.ahalo.sub_radii/self.ahalo.ngrid))**2/10.,asfit[-1]*2)
-        #Fits
-        plt.tight_layout()
-        plt.show()
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(acol,acol2),alpha=0.4)
 
     def get_rel_sigma_DLA(self,DLA_cut=20.3, DLA_upper_cut=42.,min_sigma=15.):
         """
@@ -423,7 +413,7 @@ class HaloHIPlots:
         ax.fill_between(mass, 10**(-0.7), 10**(-0.5),color='yellow')
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.ylabel(r"$\mathrm{dN}_\mathrm{DLA} / \mathrm{dz} (> M_\mathrm{tot})$")
-        plt.legend(loc=3)
+#         plt.legend(loc=3)
         plt.xlim(Mmin,Mmax)
         plt.ylim(10**(-5),1)
         plt.tight_layout()
@@ -435,39 +425,48 @@ class HaloHIPlots:
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
         plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget")
+#         (aNH2,af_NH2)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
+#         (gNH2,gf_NH2)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
+#         plt.loglog(aNH2,af_NH2,color=acol2, ls=astyle,label="Arepo")
+#         plt.loglog(gNH2,gf_NH2,color=gcol2, ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
         plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        plt.title(r"Column density function at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(ymin=1e-26)
+        plt.ylim(1e-26,1e-18)
 #         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
 
     def plot_column_density_breakdown(self,minN=17,maxN=23.):
         """Plots the column density distribution function, broken down into halos. """
+#         (aNHI,tot_af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
+        (gNHI,tot_gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
-        plt.loglog(aNHI,af_N,color=acol, ls="-",label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol, ls="-",label="Gadget")
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo")
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget")
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
-        plt.loglog(aNHI,af_N,color=acol, ls="--",label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol, ls="--",label="Gadget")
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo")
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget")
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-        plt.loglog(aNHI,af_N,color=acol, ls=":",label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol, ls=":",label="Gadget")
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo")
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget")
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        plt.ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $")
+#         plt.title(r"Halo contribution to $f(N)$ at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
+        plt.ylim(1e-2,2)
 #         plt.legend(loc=0)
         plt.tight_layout()
         plt.show()
@@ -518,57 +517,6 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
-    import brokenpowerfit as br
-
-    def plot_halo_fits(self):
-        """Plots the central HI densities for a list of halos"""
-        (aMbins, aM0, ar0)=self.ahalo.get_halo_fit_parameters()
-        (gMbins, gM0, gr0)=self.ghalo.get_halo_fit_parameters()
-        scale=1e42
-        #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(aM0[:-1]/scale),breakpoint=10.5)
-        #No room for thieves, mercenaries, etc...
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gM0[:-1]/scale),breakpoint=10.5)
-        alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
-        glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
-        plt.loglog(aMbins, aM0/scale,ls=astyle,label=alabel)
-        plt.loglog(gMbins, gM0/scale,ls=gstyle,label=glabel)
-        plt.loglog(aMbins, 10**(ap[2]*(np.log10(aMbins)-ap[0])+ap[1]),ls=astyle)
-        plt.loglog(gMbins, 10**(gp[2]*(np.log10(gMbins)-gp[0])+gp[1]),ls=gstyle)
-        #Get a fit to the central density
-        ap=self.br.powerfit(np.log10(aMbins[:-1]),np.log10(ar0[:-1]),breakpoint=10.5)
-        gp=self.br.powerfit(np.log10(gMbins[:-1]),np.log10(gr0[:-1]),breakpoint=10.5)
-        alabel=r"$"+self.pr_num(ap[1])+"+(\mathrm{log M}-"+self.pr_num(ap[0])+")"+self.pr_num(ap[2])+"$"
-        glabel=r"$"+self.pr_num(gp[1])+"+(\mathrm{log M}-"+self.pr_num(gp[0])+")"+self.pr_num(gp[2])+"$"
-        plt.loglog(aMbins, ar0,ls=astyle,label=alabel)
-        plt.loglog(gMbins, gr0, ls=gstyle,label=glabel)
-        plt.ylim(1e-6,1e9)
-        plt.legend(loc=0)
-
-    def plot_central_density(self):
-        """Plots the central HI densities for a list of halos"""
-        aN0=np.array([self.ahalo.get_halo_central_density(h) for h in xrange(0,self.ahalo.nhalo)])
-        gN0=np.array([self.ghalo.get_halo_central_density(h) for h in xrange(0,self.ghalo.nhalo)])
-        aM = self.ahalo.sub_mass
-        gM = self.ghalo.sub_mass
-        aind = np.where(aN0 > 20)
-        gind = np.where(gN0 > 20)
-        afit=self.br.powerfit(np.log10(aM[aind]),aN0[aind],breakpoint=11)
-        gfit=self.br.powerfit(np.log10(gM[gind]),gN0[gind],breakpoint=11)
-        alabel=r"$"+self.pr_num(afit[1])+"+(\mathrm{log M}-11)"+self.pr_num(afit[2])+"$"
-        glabel=r"$"+self.pr_num(gfit[1])+"+(\mathrm{log M}-11)"+self.pr_num(gfit[2])+"$"
-        plt.semilogx(gM,(np.log10(gM)-gfit[0])*gfit[2]+gfit[1],ls=gstyle,color=gcol,label=glabel)
-        plt.semilogx(aM,(np.log10(aM)-afit[0])*afit[2]+afit[1],ls=astyle,color=acol,label=alabel)
-        plt.legend(loc=0)
-        plt.semilogx(gM[gind],gN0[gind],'s',color=gcol)
-        plt.semilogx(aM[aind],aN0[aind],'^',color=acol)
-        plt.semilogx(gM,(np.log10(gM)-gfit[0])*gfit[2]+gfit[1],ls=gstyle,color=gcol,label=glabel)
-        plt.semilogx(aM,(np.log10(aM)-afit[0])*afit[2]+afit[1],ls=astyle,color=acol,label=alabel)
-        plt.ylabel(r"$ \mathrm{log} N_{HI} (\mathrm{cm}^{-2})$")
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.tight_layout()
-        plt.show()
-
     def plot_rel_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
@@ -608,3 +556,11 @@ class HaloHIPlots:
         plt.tight_layout()
         plt.show()
 
+    def print_halo_fits(self):
+        """Prints the fitted parameters for the sDLA model"""
+        ap=self.ahalo.get_sDLA_fit()
+        gp=self.ghalo.get_sDLA_fit()
+        print "Arepo: "
+        print self.ahalo.snapnum," : ",ap,","
+        print "Gadget: "
+        print self.ghalo.snapnum," : ",gp,","
