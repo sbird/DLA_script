@@ -389,6 +389,8 @@ class HaloHI:
             smooth = hsml.get_smooth_length(bar)
             # gas density in g/cm^3
             irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            #Re-use sub_gas_grid to be metallicity
+#             irho=np.array(bar["Metallicity"],dtype=np.float64)
             protonmass=1.66053886e-24
             hy_mass = 0.76 # Hydrogen massfrac
             # gas density in hydrogen atoms/cm^3
@@ -403,8 +405,7 @@ class HaloHI:
             #Explicitly delete some things.
             del ipos
             del irhoH0
-            del irhoH2
-#             del irho
+            del irho
             del smooth
         [np.log1p(grid,grid) for grid in self.sub_gas_grid]
         [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
