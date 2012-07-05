@@ -2,7 +2,7 @@
 
 #Generate a whole bunch of grids
 #
-@nums=(90,124,141,191);
+@nums=(90,141,191,314);
 @codes=('a','g');
 my $outname="omp_submit_script";
 foreach my $code (@codes){
@@ -14,7 +14,7 @@ print $out
 #\$ -l \"h_rt=16:00:00,exclusive=true\"
 #\$ -j y
 #\$ -cwd
-#\$ -pe orte 1
+#\$ -pe orte 4
 #\$ -m bae
 #\$ -V
 export OMP_NUM_THREADS=1
