@@ -414,10 +414,12 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.ylabel(r"$\mathrm{dN}_\mathrm{DLA} / \mathrm{dz} (> M_\mathrm{tot})$")
 #         plt.legend(loc=3)
-        plt.xlim(Mmin,Mmax)
-        plt.ylim(10**(-5),1)
+        plt.xlim(Mmin,1e12)
+        plt.ylim(10**(-2),1)
         plt.tight_layout()
         plt.show()
+#         print "Arepo mean halo mass: ",self.ahalo.get_mean_halo_mass(arepo_halo_p[self.ahalo.snapnum])/1e10
+#         print "Gadget mean halo mass: ",self.ghalo.get_mean_halo_mass(gadget_halo_p[self.ghalo.snapnum])/1e10
 
     def plot_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""

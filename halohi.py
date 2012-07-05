@@ -729,7 +729,22 @@ class HaloHI:
         #       cm/s   s/h   =>
         return light/h100*np.sqrt(self.omegam*(1+zz)**3+self.omegal)
 
-    def get_N_DLA_dz(self,params, mass=1e9):
+    def get_mean_halo_mass(self,params,mass=5e8):
+        """Get the mean halo mass for DLAs"""
+#         gsigDLA=self.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        #Generate mean halo mass
+#         g_mean_halo_mass = np.sum(self.sub_mass*gsigDLA)/np.sum(gsigDLA)
+        maxmass=np.log10(np.max(self.sub_mass))
+        abund=self.get_N_DLA_dz(params,mass,maxmass)/(self.drdz(self.redshift)/self.UnitLength_in_cm)
+        abund_mass = integ.quad(self.mass_integrand,np.log10(mass),maxmass, epsrel=1e-2,args=(params,))
+        return abund_mass[0]/abund
+
+    def mass_integrand(self,log10M,params):
+        """Integrand for above"""
+        M=10**log10M
+        return M*self.NDLA_integrand(log10M,params)
+
+    def get_N_DLA_dz(self,params, mass=1e9,maxmass=12.5):
         """Get the DLA number density as a function of redshift, defined as:
         d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
         where n_h is the Sheth-Torman mass function, and
@@ -742,7 +757,7 @@ class HaloHI:
         except AttributeError:
             #Halo mass function object
             self.halo_mass=halo_mass_function.HaloMassFunction(self.redshift,omega_m=self.omegam, omega_l=self.omegal, hubble=self.hubble,log_mass_lim=(7,15))
-        result = integ.quad(self.NDLA_integrand,np.log10(mass),14, epsrel=1e-2,args=(params,))
+        result = integ.quad(self.NDLA_integrand,np.log10(mass),maxmass, epsrel=1e-2,args=(params,))
         #drdz is in cm/h, while the rest is in kpc/h, so convert.
         return self.drdz(self.redshift)*result[0]/self.UnitLength_in_cm
 
