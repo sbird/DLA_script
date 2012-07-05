@@ -57,7 +57,7 @@ pfdir='/home/spb/scratch/ComparisonProject/'
 tmp=numpy.loadtxt(pfdir+'redshifts.txt')
 zzz=tmp[:,1]
 
-def pfplots(num='100',color=None):
+def pfplots(num='100',color="blue"):
     """Plot a bundle of flux power spectra from Arepo and Gadget"""
     tdir=pfdir+'Gadget/snap_'+str(num).rjust(3,'0')+'_flux_power.txt'
     fluxpower=glob.glob(tdir)
@@ -76,6 +76,12 @@ def pfplots(num='100',color=None):
         arpf = re.sub("Gadget/","Arepo/",pf)
         flux_power=numpy.loadtxt(arpf)
         (arsimk, arsimPF)=plot_flux_power(flux_power,box,z,om,H0)
+#         arpf256 = re.sub("Gadget/","Arepo_256/",pf)
+#         flux_power=numpy.loadtxt(arpf256)
+#         (ak256, aPF256)=plot_flux_power(flux_power,box,z,om,H0)
+#         gadf256 = re.sub("Gadget/","Gadget_256/",pf)
+#         flux_power=numpy.loadtxt(gadf256)
+#         (gk256, gPF256)=plot_flux_power(flux_power,box,z,om,H0)
         #Plot the observational determination from MacDonald.
          #   fbar=math.exp(-0.0023*(1+zz)**3.65)
          #   (macdk, macdpf)=MacDonaldPF(sdss,fbar,zz)
@@ -85,9 +91,10 @@ def pfplots(num='100',color=None):
         plt.ylabel(r"$P_F(k) $")
         plt.xlabel(r"$k (s/km)$")
         #Obs. limit is 0.02 at present
-           # plt.semilogx(simk[ind],simPF[ind]/arsimPF[ind],label='z='+str(round(z,2)))
-        plt.loglog(simk,simPF,ls='--',label='Gadget: z='+str(round(z,2)))
-        plt.loglog(arsimk,arsimPF,label='Arepo: z='+str(round(z,2)))
+#         plt.semilogx(simk,gPF256/aPF256,label='z='+str(round(z,2)),ls=":")
+        plt.semilogx(simk,arsimPF/simPF,label='z='+str(round(z,2)),color=color)
+#         plt.loglog(simk,simPF,ls='--',label='Gadget: z='+str(round(z,2)))
+#         plt.loglog(arsimk,arsimPF,label='Arepo: z='+str(round(z,2)))
 #         plt.xlim(simk[0],0.03)
 
 def pdfplots(num='100',color="blue"):
@@ -105,9 +112,37 @@ def pdfplots(num='100',color="blue"):
         arpf = re.sub("Gadget/","Arepo/",pf)
         pdf_ar=numpy.loadtxt(arpf)
         plt.ylabel(r"Flux PDF")
+        ar256 = re.sub("Arepo/","Arepo_256/",pf)
+        pdf_ar256=numpy.loadtxt(ar256)
         plt.semilogy(pdf[:,0]/20., pdf[:,1],label='Gadget: z='+z,ls='--',color=color)
         plt.semilogy(pdf_ar[:,0]/20., pdf_ar[:,1],label='Arepo: z='+z,color=color)
+        plt.semilogy(pdf_ar256[:,0]/20., pdf_ar256[:,1],label='Arepo 256: z='+z,ls='..',color=color)
     plt.xlim(0,1)
     plt.xlabel("Flux")
     plt.ylim(0.09,10)
     plt.yticks((0.1,1,10),('0.1','1.0','10'))
+
+def pdfrelplots(num='100',color="blue"):
+    """Plot a bundle of flux PDF's from Arepo and Gadget"""
+    tdir=pfdir+'Gadget/snap_'+str(num).rjust(3,'0')+'_flux_pdf.txt'
+    fluxpower=glob.glob(tdir)
+    if (len(fluxpower) == 0):
+        print "No flux pdf found in "+tdir
+    z=str(round(zzz[int(num)],2))
+    for pf in fluxpower:
+        #Get header information
+        #Plot the simulation output
+        pdf=numpy.loadtxt(pf)
+
+        arpf = re.sub("Gadget/","Arepo/",pf)
+        pdf_ar=numpy.loadtxt(arpf)
+#         ar256 = re.sub("Gadget/","Arepo_256/",pf)
+#         pdf_ar256=numpy.loadtxt(ar256)
+#         gad256 = re.sub("Gadget/","Gadget_256/",pf)
+#         pdf_gad256=numpy.loadtxt(gad256)
+        plt.ylabel(r"Rel Flux PDF")
+#         plt.plot(pdf_ar256[:,0]/20., pdf_ar256[:,1]/pdf_gad256[:,1],label='Ratio: z='+z,ls=':',color=color)
+        plt.plot(pdf_ar[:,0]/20., pdf_ar[:,1]/pdf[:,1],label='Ratio: z='+z,ls="--",color=color)
+    plt.xlim(0,1)
+    plt.xlabel("Flux")
+    plt.ylim(0.95,1.05)
