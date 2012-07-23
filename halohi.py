@@ -466,7 +466,7 @@ class HaloHI:
         sub_cofm=np.array(subs.group_pos[ind])
         #halo masses in M_sun/h: use M_200
         sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        #r200 in kpc.
+        #r200 in comoving kpc/h.
         sub_radii = np.array(subs.group_r_crit200[ind])
         #Gas mass in M_sun/h
 #         sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
@@ -483,15 +483,17 @@ class HaloHI:
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
         """Get the DLA cross-section for a single halo.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
-        Returns result in (kpc/h)^2."""
-        cell_area=(2.*self.sub_radii[halo]/self.ngrid[halo])**2
+        Returns result in (kpc)^2."""
+        #Linear dimension of cell in kpc.
+        epsilon=2.*self.sub_radii[halo]/(self.ngrid[halo])/self.hubble
+        cell_area=epsilon**2 #(2.*self.sub_radii[halo]/self.ngrid[halo])**2
         sigma_DLA = np.shape(np.where((self.sub_nHI_grid[halo] > DLA_cut)*(self.sub_nHI_grid[halo] < DLA_upper_cut)))[1]*cell_area
         return sigma_DLA
 
     def get_sigma_DLA(self,DLA_cut=20.3,DLA_upper_cut=42.):
         """Get the DLA cross-section from the neutral hydrogen column densities found in this class.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
-        Returns result in (kpc/h)^2. Omits cells above DLA_upper_cut"""
+        Returns result in (kpc)^2. Omits cells above DLA_upper_cut"""
         sigma_DLA = np.array([ self.get_sigma_DLA_halo(halo,DLA_cut,DLA_upper_cut) for halo in xrange(0,np.size(self.ngrid))])
         return sigma_DLA
 
@@ -610,8 +612,6 @@ class HaloHI:
             p[2] - r0 a
             p[3] - r0 b
         """
-#         fit=np.log10(self.sDLA_analytic(xax,p))
-#         return [0,np.ravel((fit-data)/err)]
         fit=np.log10(self.sDLA_analytic(xax,p))
         fit2=np.log10(self.sDLA_analytic(xaxLL,p,DLA_cut=17.))
         return [0,np.concatenate([np.ravel((fit-data)/err),np.ravel((fit2-dataLL)/errLL)])]
@@ -674,15 +674,16 @@ class HaloHI:
             Ω_DLA = m_p H_0/(c f_HI rho_c) \int_10^20.3^Nmax  f(N,X) N dN
         """
         (NHI_table, f_N) = self.column_density_function(minN=20.3,maxN=maxN)
-        dlogN_real = (np.log10(NHI_table[-1])-np.log10(NHI_table[0]))/(np.size(NHI_table)-1)
-        omega_DLA=np.sum(NHI_table*f_N*10**dlogN_real)
+        dNHI_table = np.arange(20.3, maxN, 0.2)
+        deltaNHI =  np.array([10**dNHI_table[i+1]-10**dNHI_table[i] for i in range(0,np.size(dNHI_table)-1)])
+        omega_DLA=np.sum(NHI_table*f_N*deltaNHI)
         h100=3.2407789e-18*self.hubble
         light=2.9979e10
         rho_crit=3*h100**2/(8*math.pi*6.672e-8)
         protonmass=1.66053886e-24
         hy_mass = 0.76 # Hydrogen massfrac
         omega_DLA*=(h100/light)*(protonmass/hy_mass)/rho_crit
-        return omega_DLA
+        return 1000*omega_DLA
 
     def get_dndm(self,minM,maxM):
         """Get the halo mass function from the simulations,
@@ -700,8 +701,7 @@ class HaloHI:
 
     def sDLA_analytic(self,M,params, DLA_cut=20.3):
         """An analytic fit to the DLA radius,
-        derived by hand from the cubic formula because
-        it's more reliable than mathematica"""
+        based on a power law."""
         a = params[0]
         b = params[1]
         ra = params[2]
@@ -764,8 +764,9 @@ class HaloHI:
     def NDLA_integrand(self,log10M,params):
         """Integrand for above"""
         M=10**log10M
-        #sigma_DLA is in kpc/h^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), so convert.
-        return self.sDLA_analytic(M,params,20.3)*M/(10**9)*self.halo_mass.dndm(M)
+        #sigma_DLA_analytic is in kpc^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), and M is in M_sun/h.
+        #Output therefore in kpc/h
+        return self.sDLA_analytic(M,params,20.3)/self.hubble**2*M/(10**9)*self.halo_mass.dndm(M)
 
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.

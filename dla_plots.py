@@ -329,10 +329,12 @@ class HaloHIPlots:
         ax.set_yscale('log')
         ax.set_xscale('log')
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\sigma_{DLA}$ (kpc$^2$ h$^{-2}$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
         if DLA_cut == 20.3:
+            plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
             plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         if DLA_cut == 17.:
+            plt.ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
             plt.title(r"LLS cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
