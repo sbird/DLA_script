@@ -41,21 +41,45 @@ gstyle="--"
 #                  191 : [  4.2523147,   30.89908674, -38.59637455],
 #                  314 : [  3.04860987,  28.39565676,   0.37187526]
 #                  }
-arepo_halo_p = {
-90  : [ 0.474492395744 , 32.3354193529 , 64.1103696034 , 1025.39160514 , 1.92971408154 , ],
-124  : [ 0.487794225616 , 32.4859370217 , 60.2350857347 , 4.20000415528 , 6.13774174794 , ],
-141  : [ 0.544063343988 , 32.3207571363 , 40.5794243679 , 4.475671217 , 4.72298619854 , ],
-191  : [ 0.527333697086 , 32.3853042367 , 32.6371468335 , -1014.98380623 , 0.798750441217 , ],
-314  : [ 0.439603148064 , 29.6906451591 , 17.6915078157 , -988.969576462 , 0.539761427411 , ],
-}
-gadget_halo_p = {
-90  : [ 0.402940063958 , 32.6466010088 , 48.0841552686 , 1025.30584919 , 3.33453531055 , ],
-124  : [ 0.494941169663 , 32.0953160165 , -3.49968288156 , 570.134065046 , 3.20262281821 , ],
-141  : [ 0.579598438527 , 31.8871826025 , -20.3179751964 , 310.979609542 , 3.00516724233 , ],
-191  : [ 0.789194644499 , 30.8217753689 , -36.2936679845 , 39.9854892473 , 2.61812985859 , ],
-314  : [ 0.601313193827 , 28.4976541793 , 0.929240785596 , -171.650139315 , 0.872400813277 , ],
-}
 
+arepo_halo_p = {
+         90  : [ 0.44788372118 , 33.9815447137 , 147.019872918 , 782.356835854 , 2.43699726448 , ],
+         91  : [ 0.44788372118 , 33.9815447137 , 147.019872918 , 782.356835854 , 2.43699726448 , ],
+         124  : [ 0.545131805553 , 33.8286589585 , 79.2409360956 , 7.3077275913 , 4.44331594943 , ],
+         141  : [ 0.545131805553 , 33.8286589585 , 79.2409360956 , 7.3077275913 , 4.44331594943 , ],
+         191  : [ 0.536604868665 , 33.880052174 , 60.3190730406 , -987.746517091 , 0.801277260999 , ],
+         }
+gadget_halo_p = {
+          90  : [ 0.400712532199 , 34.1198998574 , 90.8083441527 , 1172.67416847 , 3.28402808298 , ],
+          91  : [ 0.400712532199 , 34.1198998574 , 90.8083441527 , 1172.67416847 , 3.28402808298 , ],
+          124  : [ 0.584178906377 , 33.4164257889 , -43.6910928625 , 328.651366054 , 2.94190923713 , ],
+          141  : [ 0.584178906377 , 33.4164257889 , -43.6910928625 , 328.651366054 , 2.94190923713 , ],
+          191  : [ 0.799269775395 , 32.3381518149 , -76.8165819708 , 42.1669345832 , 2.55134740883 , ],
+          }
+
+def tab_to_latex():
+    i = 4
+    for snap in (90, 141, 191):
+        print str(i),"  & Arepo ",
+        for jj in arepo_halo_p[snap]:
+            print " & ",sig_fig(jj,2),
+        print "\\\\ "
+        print str(i),"  & Gadget ",
+        for jj in gadget_halo_p[snap]:
+            print " & ",sig_fig(jj,2),
+        print "\\\\ "
+        i-=1
+
+
+def sig_fig(num,figs=3):
+    """Round a number to figs significant figures"""
+    #How many digits does number have?
+    norm=np.floor(np.log10(np.abs(num)))
+    rnded=np.round(num,int(figs-norm))
+    if norm >= figs:
+        return str(int(rnded))
+    else:
+        return str(rnded)
 
 def pr_num(num,rnd=2):
     """Return a string rep of a number"""
@@ -298,8 +322,8 @@ class HaloHIPlots:
         gp=gadget_halo_p[self.ghalo.snapnum]
         asfit=self.ahalo.sDLA_analytic(mass,ap,DLA_cut)-self.ahalo.sDLA_analytic(mass,ap,DLA_upper_cut)
         gsfit=self.ghalo.sDLA_analytic(mass,gp,DLA_cut)-self.ghalo.sDLA_analytic(mass,gp,DLA_upper_cut)
-        print "Arepo: ",ap
-        print "Gadget: ",gp
+#         print "Arepo: ",ap
+#         print "Gadget: ",gp
         plt.loglog(mass,asfit,color=acol,ls=astyle)
         plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
 
@@ -340,7 +364,7 @@ class HaloHIPlots:
         if DLA_cut < 19:
             plt.ylim(ymin=10)
         else:
-            plt.ylim(ymin=1)
+            plt.ylim(ymin=1,ymax=10**4)
         #Fits
         plt.tight_layout()
         plt.show()
@@ -458,10 +482,13 @@ class HaloHIPlots:
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo")
         plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget")
-        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo")
-        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget")
+        try:
+            (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+            (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+            plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo")
+            plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget")
+        except IndexError:
+            pass
         #Make the ticks be less-dense
         #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
