@@ -424,6 +424,70 @@ def cic_str(pos,value,field,in_radii,periodic=False):
                     field[gx,gy]+=weight[p]
     return field
 
+def sph_str(pos,value,field,radii,periodic=False):
+    """Interpolate a particle onto the grid using an SPH kernel.
+       This is similar to the cic_str() routine, but spherical.
+
+       Field must be 2d
+       Extra arguments:
+            radii - Array of particle radii in grid units.
+    """
+    # Some error handling.
+    if not check_input(pos,field):
+        return field
+
+    nval=np.size(value)
+    dim=np.shape(field)
+    nx = dim[0]
+    dim=np.size(dim)
+    if dim != 2:
+        raise ValueError("Non 2D grid not supported!")
+    #Upper and lower bounds
+    upg = np.array(np.floor(pos[:,0:dim]+np.repeat(np.transpose([radii,]),dim,axis=1)),dtype=int)
+    lowg = np.array(np.floor(pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)),dtype=int)
+    #Deal with the edges
+    if periodic:
+        raise ValueError("Periodic grid not supported")
+    else:
+        ind=np.where(upg > nx)
+        upg[ind]=nx
+        ind=np.where(lowg < 0)
+        lowg[ind]=0
+
+#     try:
+#         scipy.weave.inline(expr,['nval','upg','lowg','field','up','low','weight'],type_converters=scipy.weave.converters.blitz)
+#     except Exception:
+    for p in xrange(0,nval):
+        #Corner values no longer need special attention because the sph kernel is just zero there
+        for gy in xrange(lowg[p,1],upg[p,1]):
+            for gx in xrange(lowg[p,0],upg[p,0]):
+                field[gx,gy]+=integrate_sph_kernel(radii[p],gx-pos[p,0],gy-pos[p,1])
+    return field
+
+import scipy.integrate as integ
+
+def integrate_sph_kernel(h,gx,gy):
+    """Compute the integrated sph kernel for a particle with
+       smoothing length h, at position pos, for a grid-cell at gg"""
+    #z limits are -h - > h, for simplicity.
+    #x and y limits are
+    integ.tplquad(sph_cart_wrap,-h,h,lambda x: gx,lambda x: gx+1,lambda x: gy,lambda x:gy+1,args=(h,))
+
+def sph_cart_wrap(z,y,x,h):
+    """Cartesian wrapper around sph_kernel"""
+    r = np.sqrt(x**2+y**2+z**2)
+    return sph_kernel(r,h)
+
+def sph_kernel(r,h):
+    """Evaluates the sph kernel used in gadget."""
+    if r > h:
+        return 0
+    elif r > h/2:
+        return 2*(1-r/h)**3*8/math.pi/h**3
+    else:
+        return 8/math.pi/h**3*(1-6*(r/h)**2+6*(r/h)**3)
+
+
 def tscedge(kk,ww,ngrid,periodic):
     """This function takes care of the points at the grid boundaries,
        either by wrapping them around the grid (the Julie Andrews sense)
