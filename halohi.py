@@ -766,7 +766,7 @@ class HaloHI:
         M=10**log10M
         #sigma_DLA_analytic is in kpc^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), and M is in M_sun/h.
         #Output therefore in kpc/h
-        return self.sDLA_analytic(M,params,20.3)/self.hubble**2*M/(10**9)*self.halo_mass.dndm(M)
+        return self.sDLA_analytic(M,params,20.3)*self.hubble**2*M/(10**9)*self.halo_mass.dndm(M)
 
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.
