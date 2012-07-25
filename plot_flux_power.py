@@ -13,14 +13,14 @@ import glob
 import matplotlib.pyplot as plt
 
 def plot_flux_power(flux_power,box,zz,om,H0):
-    """Plot the flux power spectrum in velocity units"""
+    """Plot the flux power spectrum in h/Mpc units"""
     #Units:
     #We need to divide by the box to get it into 1/Mpc units
     #and then multiply by the hubble parameter to be in 1/(km/s)
     scale=(1.0+zz)/(Hubble(zz,om,H0)*box/(H0/100.0))
     #Adjust Fourier convention.
-    k=flux_power[1:,0]*scale*2.0*math.pi
-    PF=flux_power[1:,1]/scale  #*((1+zz)/3.2)**3
+    k=flux_power[1:,0]/box*2.0*math.pi
+    PF=flux_power[1:,1]*box  #*((1+zz)/3.2)**3
     #plt.loglog(k, PF, linestyle="-")
 #     xlim(k[0],k[-1])
     return (k,PF)
@@ -76,25 +76,34 @@ def pfplots(num='100',color="blue"):
         arpf = re.sub("Gadget/","Arepo/",pf)
         flux_power=numpy.loadtxt(arpf)
         (arsimk, arsimPF)=plot_flux_power(flux_power,box,z,om,H0)
-#         arpf256 = re.sub("Gadget/","Arepo_256/",pf)
-#         flux_power=numpy.loadtxt(arpf256)
-#         (ak256, aPF256)=plot_flux_power(flux_power,box,z,om,H0)
-#         gadf256 = re.sub("Gadget/","Gadget_256/",pf)
-#         flux_power=numpy.loadtxt(gadf256)
-#         (gk256, gPF256)=plot_flux_power(flux_power,box,z,om,H0)
-        #Plot the observational determination from MacDonald.
-         #   fbar=math.exp(-0.0023*(1+zz)**3.65)
-         #   (macdk, macdpf)=MacDonaldPF(sdss,fbar,zz)
-         #   plt.plot(macdk, macdpf, color="red")
-         #   savefig(base+".pdf")
-         #   clf()
-        plt.ylabel(r"$P_F(k) $")
-        plt.xlabel(r"$k (s/km)$")
+        plt.ylabel(r"$P_F(k) $ (Mpc/h)")
         #Obs. limit is 0.02 at present
-#         plt.semilogx(simk,gPF256/aPF256,label='z='+str(round(z,2)),ls=":")
-        plt.semilogx(simk,arsimPF/simPF,label='z='+str(round(z,2)),color=color)
-#         plt.loglog(simk,simPF,ls='--',label='Gadget: z='+str(round(z,2)))
-#         plt.loglog(arsimk,arsimPF,label='Arepo: z='+str(round(z,2)))
+        plt.loglog(simk,simPF,ls='--',label='Gadget: z='+str(round(z,2)),color=color)
+        plt.loglog(arsimk,arsimPF,label='Arepo: z='+str(round(z,2)),color=color)
+
+def pfrelplots(num='100',color="blue"):
+    """Plot a bundle of flux power spectra from Arepo and Gadget"""
+    tdir=pfdir+'Gadget/snap_'+str(num).rjust(3,'0')+'_flux_power.txt'
+    fluxpower=glob.glob(tdir)
+    if (len(fluxpower) == 0):
+        print "No flux power spectra found in "+tdir
+
+    for pf in fluxpower:
+        #Get header information
+        z=zzz[int(num)]
+        om=0.27
+        box=20.
+        H0=70
+        #Plot the simulation output
+        flux_power=numpy.loadtxt(pf)
+        (simk, simPF)=plot_flux_power(flux_power,box,z,om,H0)
+        arpf = re.sub("Gadget/","Arepo/",pf)
+        flux_power=numpy.loadtxt(arpf)
+        (arsimk, arsimPF)=plot_flux_power(flux_power,box,z,om,H0)
+#         plt.ylabel(r"$\delta P_F$ (%)")
+        plt.xlabel(r"k (h/Mpc)")
+        #Obs. limit is 0.02 at present
+        plt.semilogx(simk,100*(simPF/arsimPF-1),label='z='+str(round(z,2)),color=color)
 #         plt.xlim(simk[0],0.03)
 
 def pdfplots(num='100',color="blue"):
@@ -111,16 +120,16 @@ def pdfplots(num='100',color="blue"):
 
         arpf = re.sub("Gadget/","Arepo/",pf)
         pdf_ar=numpy.loadtxt(arpf)
-        plt.ylabel(r"Flux PDF")
-        ar256 = re.sub("Arepo/","Arepo_256/",pf)
-        pdf_ar256=numpy.loadtxt(ar256)
-        plt.semilogy(pdf[:,0]/20., pdf[:,1],label='Gadget: z='+z,ls='--',color=color)
+#         ar256 = re.sub("Arepo/","Arepo_256/",pf)
+#         pdf_ar256=numpy.loadtxt(ar256)
         plt.semilogy(pdf_ar[:,0]/20., pdf_ar[:,1],label='Arepo: z='+z,color=color)
-        plt.semilogy(pdf_ar256[:,0]/20., pdf_ar256[:,1],label='Arepo 256: z='+z,ls='..',color=color)
-    plt.xlim(0,1)
-    plt.xlabel("Flux")
-    plt.ylim(0.09,10)
-    plt.yticks((0.1,1,10),('0.1','1.0','10'))
+        plt.semilogy(pdf[:,0]/20., pdf[:,1],label='Gadget: z='+z,ls='--',color=color)
+#         plt.semilogy(pdf_ar256[:,0]/20., pdf_ar256[:,1],label='Arepo 256: z='+z,ls='..',color=color)
+#       plt.ylabel(r"Flux PDF")
+#     plt.xlim(0,1)
+#     plt.xlabel("Flux")
+#     plt.ylim(0.09,10)
+#     plt.yticks((0.1,1,10),('0.1','1.0','10'))
 
 def pdfrelplots(num='100',color="blue"):
     """Plot a bundle of flux PDF's from Arepo and Gadget"""
@@ -140,9 +149,9 @@ def pdfrelplots(num='100',color="blue"):
 #         pdf_ar256=numpy.loadtxt(ar256)
 #         gad256 = re.sub("Gadget/","Gadget_256/",pf)
 #         pdf_gad256=numpy.loadtxt(gad256)
-        plt.ylabel(r"Rel Flux PDF")
 #         plt.plot(pdf_ar256[:,0]/20., pdf_ar256[:,1]/pdf_gad256[:,1],label='Ratio: z='+z,ls=':',color=color)
-        plt.plot(pdf_ar[:,0]/20., pdf_ar[:,1]/pdf[:,1],label='Ratio: z='+z,ls="--",color=color)
-    plt.xlim(0,1)
-    plt.xlabel("Flux")
-    plt.ylim(0.95,1.05)
+        plt.plot(pdf_ar[:,0]/20., 100*(pdf[:,1]/pdf_ar[:,1]-1),label='Ratio: z='+z,ls="-",color=color)
+#     plt.ylabel(r"Rel Flux PDF")
+#     plt.xlim(0,1)
+#     plt.xlabel("Flux")
+#     plt.ylim(0.95,1.05)

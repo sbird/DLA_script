@@ -10,7 +10,7 @@ class MassMap:
         self.minT=3.4
         self.maxT=5.0
         self.minR=-1.2
-        self.maxR=0.0
+        self.maxR=0.2
         self.map = np.zeros([300,300])
         self.r_size=np.shape(self.map)[0]
         self.t_size=np.shape(self.map)[1]
