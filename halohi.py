@@ -444,9 +444,9 @@ class HaloHI:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
-        fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
+        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth)
         rhoH0=(irhoH0[indx])[indz]*epsilon*(1+self.redshift)**2
-        fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 
     def find_wanted_halos(self):
