@@ -442,26 +442,32 @@ def sph_str(pos,value,field,radii,periodic=False):
     dim=np.size(dim)
     if dim != 2:
         raise ValueError("Non 2D grid not supported!")
-    #Upper and lower bounds
-    upg = np.array(np.floor(pos[:,0:dim]+np.repeat(np.transpose([radii,]),dim,axis=1)),dtype=int)
-    lowg = np.array(np.floor(pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)),dtype=int)
-    #Deal with the edges
     if periodic:
         raise ValueError("Periodic grid not supported")
-    else:
-        ind=np.where(upg > nx)
-        upg[ind]=nx
+    print nval
+    for p in xrange(0,nval):
+        #Upper and lower bounds
+        pp = pos[p,1:dim+1]
+        rr=radii[p]
+        val= value[p]
+        upg = np.array(np.floor(pp+rr),dtype=int)
+        lowg = np.array(np.floor(pp-rr),dtype=int)
+        #Deal with the edges
+        ind=np.where(upg > nx-1)
+        upg[ind]=nx-1
         ind=np.where(lowg < 0)
         lowg[ind]=0
-
-#     try:
-#         scipy.weave.inline(expr,['nval','upg','lowg','field','up','low','weight'],type_converters=scipy.weave.converters.blitz)
-#     except Exception:
-    for p in xrange(0,nval):
-        #Corner values no longer need special attention because the sph kernel is just zero there
-        for gy in xrange(lowg[p,1],upg[p,1]):
-            for gx in xrange(lowg[p,0],upg[p,0]):
-                field[gx,gy]+=integrate_sph_kernel(radii[p],gx-pos[p,0],gy-pos[p,1])
+        print "Particle ",p
+        #Try to save some integrations if this particle is totally in this cell
+        if (np.all(lowg == upg)):
+                field[lowg[1],lowg[0]]+=value[p]
+        else:
+            #Corner values no longer need special attention because the sph kernel is just zero there
+            for gy in xrange(lowg[1],upg[1]+1):
+                print "gy=",gy
+                for gx in xrange(lowg[0],upg[0]+1):
+                    field[gx,gy]+=val*integrate_sph_kernel(rr,gx-pp[0],gy-pp[1])
+#                     raise Exception
     return field
 
 import scipy.integrate as integ
@@ -471,7 +477,8 @@ def integrate_sph_kernel(h,gx,gy):
        smoothing length h, at position pos, for a grid-cell at gg"""
     #z limits are -h - > h, for simplicity.
     #x and y limits are
-    integ.tplquad(sph_cart_wrap,-h,h,lambda x: gx,lambda x: gx+1,lambda x: gy,lambda x:gy+1,args=(h,))
+    (weight,err)=integ.tplquad(sph_cart_wrap,-h,h,lambda x: gx,lambda x: gx+1,lambda x,y: gy,lambda x,y:gy+1,args=(h,),epsabs=5e-3)
+    return weight
 
 def sph_cart_wrap(z,y,x,h):
     """Cartesian wrapper around sph_kernel"""
