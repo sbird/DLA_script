@@ -352,8 +352,8 @@ def cic_str(pos,value,field,in_radii,periodic=False):
     #Weight of each cell
     weight = value/(2*radii)**dim
     #Upper and lower bounds
-    up = pos[:,0:dim]+np.repeat(np.transpose([radii,]),dim,axis=1)
-    low = pos[:,0:dim]-np.repeat(np.transpose([radii,]),dim,axis=1)
+    up = pos[:,1:dim+1]+np.repeat(np.transpose([radii,]),dim,axis=1)
+    low = pos[:,1:dim+1]-np.repeat(np.transpose([radii,]),dim,axis=1)
     #Upper and lower grid cells to add to
     upg = np.array(np.floor(up),dtype=int)
     lowg = np.array(np.floor(low),dtype=int)
@@ -444,30 +444,99 @@ def sph_str(pos,value,field,radii,periodic=False):
         raise ValueError("Non 2D grid not supported!")
     if periodic:
         raise ValueError("Periodic grid not supported")
-    print nval
-    for p in xrange(0,nval):
-        #Upper and lower bounds
-        pp = pos[p,1:dim+1]
-        rr=radii[p]
-        val= value[p]
-        upg = np.array(np.floor(pp+rr),dtype=int)
-        lowg = np.array(np.floor(pp-rr),dtype=int)
-        #Deal with the edges
-        ind=np.where(upg > nx-1)
-        upg[ind]=nx-1
-        ind=np.where(lowg < 0)
-        lowg[ind]=0
-        print "Particle ",p
-        #Try to save some integrations if this particle is totally in this cell
-        if (np.all(lowg == upg)):
-                field[lowg[1],lowg[0]]+=value[p]
-        else:
-            #Corner values no longer need special attention because the sph kernel is just zero there
-            for gy in xrange(lowg[1],upg[1]+1):
-                print "gy=",gy
-                for gx in xrange(lowg[0],upg[0]+1):
-                    field[gx,gy]+=val*integrate_sph_kernel(rr,gx-pp[0],gy-pp[1])
-#                     raise Exception
+    expr="""for(int p=0;p<nval;p++){
+        //Temp variables
+        double pp[2];
+        pp[0]= pos(p,1);
+        pp[1]=pos(p,2);
+        double rr=radii(p);
+        double val= value(p);
+        //99% of the kernel is inside 0.85 of the smoothing length.
+        //Neglect the rest.
+        int upgx = floor(pp[0]+0.85*rr);
+        int upgy = floor(pp[1]+0.85*rr);
+        int lowgx = floor(pp[0]-0.85*rr);
+        int lowgy = floor(pp[1]-0.85*rr);
+        //Try to save some integrations if this particle is totally in this cell
+        if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0)
+                field(lowgx,lowgy)+=val;
+        else{
+            //Deal with the edges
+            if(upgx > nx-1)
+                upgx=nx-1;
+            if(upgy > nx-1)
+                upgy=nx-1;
+            if(lowgx < 0)
+                lowgx=0;
+            if(lowgy < 0)
+                lowgy=0;
+            for(int gy=lowgy;gy<=upgy;gy++)
+                for(int gx=lowgx;gx<=upgx;gx++){
+                    double total=0;
+                    double xx = gx-pp[0]+0.5;
+                    double yy = gy-pp[1]+0.5;
+                    double r0 = sqrt(xx*xx+yy*yy);
+                    if(r0 > rr)
+                        continue;
+                    double h2 = rr*rr;
+                    //Do the z integration with the trapezium rule.
+                    //Evaluate this at some fixed (well-chosen) abcissae
+                    double zc=0;
+                    if(rr/2 > r0)
+                        zc=sqrt(h2/4-r0*r0);
+                    double zm = sqrt(h2-r0*r0);
+                    double zz[5]={zc,(3*zc+zm)/4.,(zc+zm)/2.,(zc+3*zm)/2,zm};
+                    double kern[5];
+                    double kfac= 8/M_PI/pow(rr,3);
+                    for(int i=0; i< 5;i++){
+                        kern[i] = 2*pow(1-sqrt(zz[i]*zz[i]+r0*r0)/rr,3)*kfac;
+                    }
+                    for(int i=0; i< 4;i++){
+                        //Trapezium rule. Factor of 1/2 goes away because we double the integral
+                        total +=(zz[i+1]-zz[i])*(kern[i+1]+kern[i]);
+                    }
+                    if(rr/2 > r0){
+                        double zz2[9]={0,zc/16.,zc/8.,zc/4.,3*zc/8,zc/2.,5/8.*zc,3*zc/4.,zc};
+                        double kern2[9];
+                        for(int i=0; i< 9;i++){
+                            double R = sqrt(zz2[i]*zz2[i]+r0*r0);
+                            kern2[i] = kfac*(1-6*(R/rr)*R/rr+6*pow(R/rr,3));
+                        }
+                        for(int i=0; i< 8;i++){
+                            //Trapezium rule. Factor of 1/2 goes away because we double the integral
+                            total +=(zz2[i+1]-zz2[i])*(kern2[i+1]+kern2[i]);
+                        }
+                    }
+                    field(gx,gy)+=val*total;
+                }
+        }
+        }
+    """
+    try:
+        scipy.weave.inline(expr,['nval','pos','radii','value','field','nx'],type_converters=scipy.weave.converters.blitz)
+    except Exception:
+        for p in xrange(0,nval):
+            #Upper and lower bounds
+            pp = pos[p,1:dim+1]
+            rr=radii[p]
+            val= value[p]
+            #99% of the kernel is inside 0.85 of the smoothing length.
+            #Neglect the rest.
+            upg = np.array(np.floor(pp+0.85*rr),dtype=int)
+            lowg = np.array(np.floor(pp-0.85*rr),dtype=int)
+            #Try to save some integrations if this particle is totally in this cell
+            if (np.all(lowg == upg)):
+                    field[lowg[0],lowg[1]]+=val
+            else:
+                #Deal with the edges
+                ind=np.where(upg > nx-1)
+                upg[ind]=nx-1
+                ind=np.where(lowg < 0)
+                lowg[ind]=0
+                #Corner values no longer need special attention because the sph kernel is just zero there
+                for gy in xrange(lowg[1],upg[1]+1):
+                    for gx in xrange(lowg[0],upg[0]+1):
+                        field[gx,gy]+=val*integrate_sph_kernel(rr,gx-pp[0],gy-pp[1])
     return field
 
 import scipy.integrate as integ
@@ -475,8 +544,31 @@ import scipy.integrate as integ
 def integrate_sph_kernel(h,gx,gy):
     """Compute the integrated sph kernel for a particle with
        smoothing length h, at position pos, for a grid-cell at gg"""
+    #Fast method; use the value at the grid cell.
+    #Bad if h < grid cell radius
+    r0 = np.sqrt((gx+0.5)**2+(gy+0.5)**2)
+    if r0 > h:
+        return 0
+    h2 = h*h
+    #Do the z integration with the trapezium rule.
+    #Evaluate this at some fixed (well-chosen) abcissae
+    zc=0
+    if h/2 > r0:
+        zc=np.sqrt(h2/4-r0**2)
+    zm = np.sqrt(h2-r0**2)
+    zz=np.array([zc,(3*zc+zm)/4.,(zc+zm)/2.,(zc+3*zm)/2,zm])
+    kern = sph_kern2(np.sqrt(zz**2+r0**2),h)
+    total= 2*integ.simps(kern,zz)
+    if h/2 > r0:
+        zz=np.array([0,zc/8.,zc/4.,3*zc/8,zc/2.,5/8.*zc,3*zc/4.,zc])
+        kern = sph_kern1(np.sqrt(zz**2+r0**2),h)
+        total+= 2*integ.simps(kern,zz)
+    return total
+
+def do_slow_sph_integral(h,gx,gy):
+    """Evaluate the very slow triple integral to find kernel contribution. Only do it when we must."""
     #z limits are -h - > h, for simplicity.
-    #x and y limits are
+    #x and y limits are grid cells
     (weight,err)=integ.tplquad(sph_cart_wrap,-h,h,lambda x: gx,lambda x: gx+1,lambda x,y: gy,lambda x,y:gy+1,args=(h,),epsabs=5e-3)
     return weight
 
@@ -484,6 +576,14 @@ def sph_cart_wrap(z,y,x,h):
     """Cartesian wrapper around sph_kernel"""
     r = np.sqrt(x**2+y**2+z**2)
     return sph_kernel(r,h)
+
+def sph_kern1(r,h):
+    """SPH kernel for 0 < r < h/2"""
+    return 8/math.pi/h**3*(1-6*(r/h)**2+6*(r/h)**3)
+
+def sph_kern2(r,h):
+    """SPH kernel for h/2 < r < h"""
+    return 2*(1-r/h)**3*8/math.pi/h**3
 
 def sph_kernel(r,h):
     """Evaluates the sph kernel used in gadget."""
@@ -493,7 +593,6 @@ def sph_kernel(r,h):
         return 2*(1-r/h)**3*8/math.pi/h**3
     else:
         return 8/math.pi/h**3*(1-6*(r/h)**2+6*(r/h)**3)
-
 
 def tscedge(kk,ww,ngrid,periodic):
     """This function takes care of the points at the grid boundaries,
