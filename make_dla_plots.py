@@ -146,6 +146,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #low-mass halo radial profile
         hplots.plot_radial_profile(minM=2.5e9, maxM=3e9,maxR=10.)
+        plt.ylim(ymax = 27)
         save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
         plt.clf()
 
