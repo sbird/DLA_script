@@ -193,8 +193,15 @@ class StarFormation:
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
         #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
         irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
-        dens_ind=np.where(irho > rho_phys_thresh)
+        #Slightly less sharp cutoff
+        r1 = rho_phys_thresh*1.5
+        r2 = rho_phys_thresh/1.5
+
+        dens_ind=np.where(irho > r1)
         inH0[dens_ind]=1.
+        ind2 = np.where((irho < r1)*(irho > r2))
+        #Interpolate between r1 and r2
+        inH0[ind2] = (inH0[ind2]*(irho[ind2]-r1)+irho[ind2]-r2)/(r1-r2)
         #Calculate rho_HI
         nH0=irho*inH0
         #Now in atoms /cm^3
