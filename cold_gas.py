@@ -201,7 +201,7 @@ class StarFormation:
         inH0[dens_ind]=1.
         ind2 = np.where((irho < r1)*(irho > r2))
         #Interpolate between r1 and r2
-        inH0[ind2] = (inH0[ind2]*(irho[ind2]-r1)+irho[ind2]-r2)/(r1-r2)
+        inH0[ind2] = (inH0[ind2]*(r1-irho[ind2])+irho[ind2]-r2)/(r1-r2)
         #Calculate rho_HI
         nH0=irho*inH0
         #Now in atoms /cm^3
