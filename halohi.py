@@ -415,7 +415,7 @@ class HaloHI:
             self.sub_nHI_grid[i]/=np.log(10)
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
+    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid,weights=None):
         """Helper function for sub_gas_grid and sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -444,9 +444,9 @@ class HaloHI:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth)
+        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
         rhoH0=(irhoH0[indx])[indz]*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
 
     def find_wanted_halos(self):
@@ -809,5 +809,56 @@ class BoxHI(HaloHI):
         fieldize.cic_str(coords,rho,sub_gas_grid[ii],smooth)
         rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
         fieldize.cic_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
+        return
+
+class VelocityHI(HaloHI):
+    """Class for computing velocity diagrams"""
+    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
+        if savefile==None:
+            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"velocity_grid.hdf5")
+        else:
+            savefile_s = savefile
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        return
+
+    def set_velocity_grid(self):
+        """Set up the grid around each halo where the velocity HI is calculated.
+        """
+        star=cold_gas.StarFormation(hubble=self.hubble)
+        self.once=True
+        #Now grid the HI for each halo
+        for fnum in xrange(0,500):
+            try:
+                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
+            except IOError:
+                break
+            print "Starting file ",fnum
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"],dtype=np.float64)
+            smooth = hsml.get_smooth_length(bar)
+            # Velocity in cm/s
+            vel = np.array(bar["Velocities"],dtype=np.float64)*self.UnitVelocity_in_cm_per_s
+            #We will weight by neutral mass per cell
+            irhoH0 = star.get_reproc_rhoHI(bar)
+            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            #HI * Cell Mass, internal units
+            mass = np.array(bar["Masses"],dtype=np.float64)*irhoH0/irho
+            f.close()
+            #Perform the grid interpolation
+            #sub_gas_grid is x velocity
+            #sub_nHI_grid is y velocity
+            [self.sub_gridize_single_file(ii,ipos,smooth,vel[:,1]*mass,self.sub_gas_grid,vel[:,2]*mass,self.sub_nHI_grid,mass) for ii in xrange(0,self.nhalo)]
+            #Explicitly delete some things.
+            del ipos
+            del irhoH0
+            del irho
+            del smooth
+            del mass
+            del vel
+        #No /= in list comprehensions...  :|
+        #Average over z
+        for i in xrange(0,self.nhalo):
+            self.sub_gas_grid[i]/=self.sub_radii[i]
+            self.sub_nHI_grid[i]/=self.sub_radii[i]
         return
 
