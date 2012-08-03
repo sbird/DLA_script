@@ -424,13 +424,14 @@ def cic_str(pos,value,field,in_radii,periodic=False):
                     field[gx,gy]+=weight[p]
     return field
 
-def sph_str(pos,value,field,radii,periodic=False):
+def sph_str(pos,value,field,radii,weights=None,periodic=False):
     """Interpolate a particle onto the grid using an SPH kernel.
        This is similar to the cic_str() routine, but spherical.
 
        Field must be 2d
        Extra arguments:
             radii - Array of particle radii in grid units.
+            weights - Weights to divide each contribution by.
     """
     # Some error handling.
     if not check_input(pos,field):
@@ -444,6 +445,8 @@ def sph_str(pos,value,field,radii,periodic=False):
         raise ValueError("Non 2D grid not supported!")
     if periodic:
         raise ValueError("Periodic grid not supported")
+    if weights == None:
+        weights = np.array([0])
     expr="""for(int p=0;p<nval;p++){
         //Temp variables
         double pp[2];
@@ -451,6 +454,9 @@ def sph_str(pos,value,field,radii,periodic=False):
         pp[1]=pos(p,2);
         double rr=radii(p);
         double val= value(p);
+        double weight = 1;
+        if (weights(0) !=0)
+            weight=weights(p);
         //99% of the kernel is inside 0.85 of the smoothing length.
         //Neglect the rest.
         int upgx = floor(pp[0]+0.85*rr);
@@ -459,7 +465,7 @@ def sph_str(pos,value,field,radii,periodic=False):
         int lowgy = floor(pp[1]-0.85*rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0)
-                field(lowgx,lowgy)+=val;
+                field(lowgx,lowgy)+=val/weight;
         else{
             //Deal with the edges
             if(upgx > nx-1)
@@ -507,26 +513,30 @@ def sph_str(pos,value,field,radii,periodic=False):
                             total +=(zz2[i+1]-zz2[i])*(kern2[i+1]+kern2[i]);
                         }
                     }
-                    field(gx,gy)+=val*total;
+                    field(gx,gy)+=val*total/weight;
                 }
         }
         }
     """
     try:
-        scipy.weave.inline(expr,['nval','pos','radii','value','field','nx'],type_converters=scipy.weave.converters.blitz)
+        scipy.weave.inline(expr,['nval','pos','radii','value','field','nx','weights'],type_converters=scipy.weave.converters.blitz)
     except Exception:
         for p in xrange(0,nval):
             #Upper and lower bounds
             pp = pos[p,1:dim+1]
             rr=radii[p]
             val= value[p]
+            if weights[0] != 0:
+                weight = weights[p]
+            else:
+                weight = 1
             #99% of the kernel is inside 0.85 of the smoothing length.
             #Neglect the rest.
             upg = np.array(np.floor(pp+0.85*rr),dtype=int)
             lowg = np.array(np.floor(pp-0.85*rr),dtype=int)
             #Try to save some integrations if this particle is totally in this cell
             if (np.all(lowg == upg)):
-                    field[lowg[0],lowg[1]]+=val
+                    field[lowg[0],lowg[1]]+=val/weight
             else:
                 #Deal with the edges
                 ind=np.where(upg > nx-1)
@@ -536,7 +546,7 @@ def sph_str(pos,value,field,radii,periodic=False):
                 #Corner values no longer need special attention because the sph kernel is just zero there
                 for gy in xrange(lowg[1],upg[1]+1):
                     for gx in xrange(lowg[0],upg[0]+1):
-                        field[gx,gy]+=val*integrate_sph_kernel(rr,gx-pp[0],gy-pp[1])
+                        field[gx,gy]+=val*integrate_sph_kernel(rr,gx-pp[0],gy-pp[1])/weight
     return field
 
 import scipy.integrate as integ
