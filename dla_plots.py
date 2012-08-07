@@ -535,10 +535,7 @@ class HaloHIPlots:
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
             plt.ylim(0,20*DLAdens)
-        else:
-            (ymin,ymax)=plt.ylim()
-            plt.ylim(0,5*np.floor(ymax/5)+5)
-        plt.xlim(minR/(1+ared),maxR/(1+ared))
+        plt.xlim(minR,maxR)
         plt.tight_layout()
         plt.show()
 
