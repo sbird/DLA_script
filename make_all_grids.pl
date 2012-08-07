@@ -2,7 +2,12 @@
 
 #Generate a whole bunch of grids
 #
-@nums=(90,141,191,314);
+if($ARGV[0] eq 512){
+    @nums=(90,141,191,314);
+}
+else{
+    @nums=(91,124,191);
+}
 @codes=('a','g');
 my $outname="omp_submit_script";
 foreach my $code (@codes){
@@ -27,7 +32,7 @@ export LIBRARY_PATH=\${MPI}/lib:\${LIBRARY_PATH}:\$FFTW/lib:/usr/lib64
 export PATH=\${MPI}/bin:\$PATH:\$LOCAL/misc/bin
 
 cd \$HOME/codes/ComparisonProject/
-python make_a_grid.py $code $num
+python make_a_grid.py $code $num $ARGV[0] 
 
 ";
 close($out);
