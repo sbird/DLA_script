@@ -41,15 +41,11 @@ gstyle="--"
 #For the SPH kernel
 arepo_halo_p = {
          90  : [ 0.593228633746 , 33.1299984533 , 74.0493146085 , 1497.00861204 , 1.068627058 , ],
-         91  : [ 0.593228633746 , 33.1299984533 , 74.0493146085 , 1497.00861204 , 1.068627058 , ],
-         124  : [ 0.495570003992 , 33.8061311491 , 101.01513697 , -474.362361738 , 0.528843128887 , ],
          141  : [ 0.495570003992 , 33.8061311491 , 101.01513697 , -474.362361738 , 0.528843128887 , ],
          191  : [ 0.518273575979 , 33.6289279888 , 66.7295698539 , -1124.56210394 , 0.786777504418 , ],
          }
 gadget_halo_p = {
           90  : [ 0.429181628186 , 33.4591228946 , 79.8087750645 , 1073.24697702 , 2.97141901891 , ],
-          91  : [ 0.429181628186 , 33.4591228946 , 79.8087750645 , 1073.24697702 , 2.97141901891 , ],
-          124  : [ 0.6252104913 , 32.6599023717 , -27.2718078548 , 315.755545603 , 2.73050761493 , ],
           141  : [ 0.6252104913 , 32.6599023717 , -27.2718078548 , 315.755545603 , 2.73050761493 , ],
           191  : [ 0.84906246444 , 31.4994150987 , -49.9975217441 , 20.1374668372 , 2.50768504269 , ],
           }
@@ -95,8 +91,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         #Plot a figure
         vmax=np.max([np.max(grid),25.5])
-        #Convert axis to physical coords
-        maxdist = self.sub_radii[num]/(1+self.redshift)
+        maxdist = self.sub_radii[num]
         plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label(bar_label)
@@ -128,7 +123,7 @@ class PrettyHalo(halohi.HaloHI):
         cut_grid[ind2]=17.
         ind3=np.where(cut_grid > cut_DLA)
         cut_grid[ind3]=20.3
-        maxdist = self.sub_radii[num]/(1+self.redshift)
+        maxdist = self.sub_radii[num]
         plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
         if (maxdist > 150) * (maxdist < 200):
             plt.xticks((-150,-75,0,75,150))
@@ -171,15 +166,14 @@ class PrettyHalo(halohi.HaloHI):
         Rbins=np.linspace(minR,maxR,20)
         try:
             aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            #Convert Rbins to physical
-            plt.plot(Rbins[0:-1]/(1+self.redshift),aRprof,color=acol, ls=astyle,label="HI")
+            plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
             #If we didn't load the HI grid this time
         except AttributeError:
             pass
         #Gas profiles
         try:
             agRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbins[0:-1]/(1+self.redshift),agRprof,color="brown", ls=astyle,label="Gas")
+            plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
         except AttributeError:
             pass
         plt.xlabel(r"R (kpc h$^{-1}$)")
@@ -506,8 +500,6 @@ class HaloHIPlots:
         #Use sufficiently large bins
         scale = 10**43
         space=2.*self.ahalo.sub_radii[0]/self.ahalo.ngrid[0]
-        ared=self.ahalo.redshift
-        gred=self.ghalo.redshift
         if maxR/30. > space:
             Rbins=np.linspace(minR,maxR,20)
         else:
@@ -517,10 +509,9 @@ class HaloHIPlots:
         try:
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
-            #Convert to physical
-            plt.plot(Rbinc/(1+ared),[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
-            plt.plot(Rbinc/(1+gred),[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
-            plt.plot(Rbins/(1+gred),2*math.pi*Rbins/(1+gred)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
+            plt.plot(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
+            plt.plot(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+            plt.plot(Rbins,2*math.pi*Rbins*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
         except AttributeError:
