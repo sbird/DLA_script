@@ -2,6 +2,9 @@
 
 #Generate a whole bunch of grids
 #
+if($ARGV[0] eq ''){
+    die "You must specify a simulation";
+}
 if($ARGV[0] eq 512){
     @nums=(90,141,191,314);
 }
