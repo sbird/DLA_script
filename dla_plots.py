@@ -586,3 +586,28 @@ class HaloHIPlots:
         print self.ahalo.snapnum," : ",ap,","
         print "Gadget: "
         print self.ghalo.snapnum," : ",gp,","
+
+
+class PrettyVelocity(halohi.VelocityHI):
+    """
+    Make a velocity plot
+    """
+    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
+        halohi.VelocityHI.__init__(self,snap_dir,snapnum,minpart,reload_file=reload_file,skip_grid=None,savefile=savefile)
+
+    def radial_log(self,x,y,cut=1e25):
+        """If we have x and y st. x+iy = r e^iθ, find x' and y' s.t. x'+iy' = log(r) e^iθ"""
+        r = np.sqrt(x**2+y**2)
+        ind = np.where(r > cut)
+        sc=np.ones(np.shape(r))
+        sc[ind] = cut/r[ind]
+        return (x*sc, y*sc)
+
+    def plot_velocity_map(self,num=0,scale=1e32,cut=1e25):
+        """Plot the velocity map around a halo"""
+        (x,y) = self.radial_log(self.sub_nHI_grid[num],self.sub_gas_grid[num],cut=cut)
+        r = np.sqrt(x**2+y**2)
+        plt.quiver(x,y,r,scale=scale,scale_units='xy',)
+
+
+
