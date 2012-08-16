@@ -371,12 +371,12 @@ class HaloHIPlots:
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ghalo.sub_mass[ind]),np.log10(gsigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(gcol,gcol2),alpha=0.7)
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(gcol,gcol2),alpha=0.5)
         ind = np.where(asigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ahalo.sub_mass[ind]),np.log10(asigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(acol,acol2),alpha=0.4)
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(acol,acol2),alpha=0.5)
 
     def get_rel_sigma_DLA(self,DLA_cut=20.3, DLA_upper_cut=42.,min_sigma=15.):
         """
@@ -505,13 +505,17 @@ class HaloHIPlots:
         else:
             Rbins=np.concatenate((np.array([minR,]),np.linspace(minR+np.ceil(2.5*space),maxR+space,maxR/np.ceil(space))))
         Rbinc = [(Rbins[i+1]+Rbins[i])/2 for i in xrange(0,np.size(Rbins)-1)]
-        Rbinc=[minR,]+Rbinc
+        Rbinc=np.array([minR,]+Rbinc)
         try:
+            ind = np.where(np.logical_and(self.ahalo.sub_mass > minM, self.ahalo.sub_mass < maxM))
+            gind = np.where(np.logical_and(self.ghalo.sub_mass > minM, self.ghalo.sub_mass < maxM))
+	    print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
-            plt.plot(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
-            plt.plot(Rbins,2*math.pi*Rbins/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
+            plt.semilogy(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
+            plt.semilogy(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+	    RR = np.linspace(minR,maxR,100)
+            plt.semilogy(RR,1e-5+2*math.pi*RR/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
         except AttributeError:
@@ -534,9 +538,9 @@ class HaloHIPlots:
         #Crop the frame so we see the DLA cross-over point
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
-            plt.ylim(0,20*DLAdens)
+            plt.ylim(1e-2,20*DLAdens)
 	else:
-	    plt.ylim(0,5*np.floor(gRprof[0]/5)+5)
+	    plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
         plt.xlim(minR,maxR)
         plt.tight_layout()
         plt.show()
