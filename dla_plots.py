@@ -13,8 +13,8 @@ import os.path as path
 import math
 import matplotlib.pyplot as plt
 
-acol="blue"
-gcol="red"
+gcol="blue"
+acol="red"
 acol2="cyan"
 gcol2="magenta"
 rcol="black"
@@ -101,8 +101,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel(r"x (kpc h$^{-1}$)")
-        plt.ylabel(r"y (kpc h$^{-1}$)")
+        plt.xlabel(r"y (kpc h$^{-1}$)")
+        plt.ylabel(r"z (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -131,8 +131,8 @@ class PrettyHalo(halohi.HaloHI):
         if maxdist > 300:
             plt.xticks((-300,-150,0,150,300))
             plt.yticks((-300,-150,0,150,300))
-        plt.xlabel(r"x (kpc h$^{-1}$)")
-        plt.ylabel(r"y (kpc h$^{-1}$)")
+        plt.xlabel(r"y (kpc h$^{-1}$)")
+        plt.ylabel(r"z (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -149,8 +149,8 @@ class PrettyHalo(halohi.HaloHI):
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]
         plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
-        plt.xlabel(r"x (kpc h$^{-1}$)")
         plt.xlabel(r"y (kpc h$^{-1}$)")
+        plt.xlabel(r"z (kpc h$^{-1}$)")
         plt.tight_layout()
         plt.show()
 
@@ -535,6 +535,8 @@ class HaloHIPlots:
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
             plt.ylim(0,20*DLAdens)
+	else:
+	    plt.ylim(0,5*np.floor(gRprof[0]/5)+5)
         plt.xlim(minR,maxR)
         plt.tight_layout()
         plt.show()
