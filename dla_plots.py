@@ -316,8 +316,8 @@ class HaloHIPlots:
         gsfit=self.ghalo.sDLA_analytic(mass,gp,DLA_cut)-self.ghalo.sDLA_analytic(mass,gp,DLA_upper_cut)
 #         print "Arepo: ",ap
 #         print "Gadget: ",gp
-        plt.loglog(mass,asfit,color=acol,ls=astyle)
-        plt.loglog(mass,gsfit,color=gcol,ls=gstyle)
+        plt.loglog(mass,gsfit,color=gcol,ls=gstyle,lw=3)
+        plt.loglog(mass,asfit,color=acol,ls=astyle,lw=3)
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot the median and scatter of sigma_DLA against mass."""
@@ -332,25 +332,25 @@ class HaloHIPlots:
         aloq-=1e-2
         gloq-=1e-2
         #Plot median sigma DLA
-        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol)
-        plt.errorbar(gbin_mass*1.1, gmed,yerr=[gloq,gupq],fmt='s',color=gcol)
+        plt.errorbar(gbin_mass*1.1, gmed,yerr=[gloq,gupq],fmt='s',color=gcol,ms=10,elinewidth=4)
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
 
     def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA vs mass"""
         self.plot_sigma_DLA_contour(DLA_cut,DLA_upper_cut)
-        self.plot_sigma_DLA_median(DLA_cut,DLA_upper_cut)
         self.plot_sigma_DLA_model(DLA_cut,DLA_upper_cut)
+        self.plot_sigma_DLA_median(DLA_cut,DLA_upper_cut)
         #Plot Axes stuff
         ax=plt.gca()
         ax.set_yscale('log')
         ax.set_xscale('log')
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
+# 	ax.tick_params(labelsize=30)
+        ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)",size=25)
+        ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)",size=25)
         if DLA_cut == 20.3:
-            plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
             plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         if DLA_cut == 17.:
-            plt.ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
+       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)",size=25)
             plt.title(r"LLS cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
@@ -371,12 +371,12 @@ class HaloHIPlots:
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ghalo.sub_mass[ind]),np.log10(gsigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(gcol,gcol2),alpha=0.5)
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#87cefa",gcol2),alpha=0.6)
         ind = np.where(asigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.ahalo.sub_mass[ind]),np.log10(asigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(acol,acol2),alpha=0.5)
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
 
     def get_rel_sigma_DLA(self,DLA_cut=20.3, DLA_upper_cut=42.,min_sigma=15.):
         """
@@ -425,12 +425,12 @@ class HaloHIPlots:
         for (i,m) in enumerate(mass):
             aDLA_dz_tab[i] = self.ahalo.get_N_DLA_dz(arepo_halo_p[self.ahalo.snapnum],m)
             gDLA_dz_tab[i] = self.ghalo.get_N_DLA_dz(gadget_halo_p[self.ghalo.snapnum],m)
-        plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle)
-        plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle)
+        plt.loglog(mass,aDLA_dz_tab,color=acol,label="Arepo",ls=astyle,lw=4)
+        plt.loglog(mass,gDLA_dz_tab,color=gcol,label="Gadget",ls=gstyle,lw=4)
         ax=plt.gca()
         ax.fill_between(mass, 10**(-0.7), 10**(-0.5),color='yellow')
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"$\mathrm{dN}_\mathrm{DLA} / \mathrm{dz} (> M_\mathrm{tot})$")
+        ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)",size=25)
+        ax.set_ylabel(r"$\mathrm{dN}_\mathrm{DLA} / \mathrm{dz} (> M_\mathrm{tot})$",size=25)
 #         plt.legend(loc=3)
         plt.xlim(Mmin,1e12)
         plt.ylim(10**(-2),1)
@@ -443,18 +443,18 @@ class HaloHIPlots:
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
-        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo")
-        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget")
+        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=4)
+        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget",lw=4)
 #         (aNH2,af_NH2)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
 #         (gNH2,gf_NH2)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
 #         plt.loglog(aNH2,af_NH2,color=acol2, ls=astyle,label="Arepo")
 #         plt.loglog(gNH2,gf_NH2,color=gcol2, ls=gstyle,label="Gadget")
         #Make the ticks be less-dense
-        #ax=plt.gca()
+        ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        plt.ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
+        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$",size=25)
         plt.title(r"Column density function at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-26,1e-18)
@@ -468,25 +468,25 @@ class HaloHIPlots:
         (gNHI,tot_gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
-        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo")
-        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget")
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo",lw=4)
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget",lw=4)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
-        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo")
-        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget")
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo",lw=4)
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget",lw=4)
         try:
             (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
             (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-            plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo")
-            plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget")
+            plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo",lw=4)
+            plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget",lw=4)
         except IndexError:
             pass
         #Make the ticks be less-dense
-        #ax=plt.gca()
+        ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        plt.ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $")
+        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
+        ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $",size=25)
 #         plt.title(r"Halo contribution to $f(N)$ at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-2,2)
@@ -512,10 +512,10 @@ class HaloHIPlots:
 	    print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
-            plt.semilogy(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI")
-            plt.semilogy(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI")
+            plt.semilogy(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI",lw=4)
+            plt.semilogy(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI",lw=4)
 	    RR = np.linspace(minR,maxR,100)
-            plt.semilogy(RR,1e-5+2*math.pi*RR/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density")
+            plt.semilogy(RR,1e-5+2*math.pi*RR/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density",lw=4)
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
         except AttributeError:

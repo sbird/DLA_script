@@ -46,7 +46,7 @@ def omeara_data(datadir="data"):
     """Plot the O'Meara 07 data on the column density function (LLS). Mean redshift is 3.1"""
     omera=np.loadtxt(path.join(datadir,"summary.dat"))
     omera=format_error_bars(omera)
-    plt.errorbar(omera[:,0],omera[:,1],xerr=[omera[:,2],omera[:,3]], yerr=[omera[:,4],omera[:,5]], fmt='s',color='black')
+    plt.errorbar(omera[:,0],omera[:,1],xerr=[omera[:,2],omera[:,3]], yerr=[omera[:,4],omera[:,5]], fmt='s',color='black',ms=8)
 
 def noterdaeme_data(datadir="data"):
     """Plot the Noterdaeme 09 data on the column density function at z=2-3
@@ -57,7 +57,7 @@ def noterdaeme_data(datadir="data"):
     lxer=-10**(-data[:,2]+data[:,0])+10**data[:,0]
     uyer=10**(data[:,3]+data[:,1])-10**data[:,1]
     lyer=-10**(-data[:,3]+data[:,1])+10**data[:,1]
-    plt.errorbar(10**data[:,0],10**data[:,1],xerr=[lxer,uxer],yerr=[lyer,uyer], fmt='^',color='green')
+    plt.errorbar(10**data[:,0],10**data[:,1],xerr=[lxer,uxer],yerr=[lyer,uyer], fmt='^',color='green',ms=10)
 
 def prochaska_data(datadir="data"):
     """Plot the Prochaska and Wolfe 10 data on the column density function.
