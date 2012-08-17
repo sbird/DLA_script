@@ -2,6 +2,7 @@
 
 import matplotlib
 matplotlib.use('PDF')
+from mpl_toolkits.axes_grid1 import AxesGrid
 
 import phase_plot
 import matplotlib.pyplot as plt
@@ -9,68 +10,79 @@ import numpy as np
 outdir="/home/spb/scratch/ComparisonProject/"
 bar_label="Mass ($10^{6} M_\odot$ h$^{-1}$)"
 ### 256**3 particles
-gad=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/256_20Mpc/Gadget")
-ar=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/256_20Mpc/Arepo_ENERGY")
+#gad=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/256_20Mpc/Gadget")
+#ar=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/256_20Mpc/Arepo_ENERGY")
 
 #Make some plots
-plt.imshow(gad.map,origin='lower',extent=gad.get_lims(),aspect='auto',vmin=0,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
-plt.savefig(outdir+"phase_gad_256.pdf")
-plt.figure()
-plt.imshow(ar.map,origin='lower',extent=ar.get_lims(),aspect='auto',vmin=0,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
-plt.savefig(outdir+"phase_ar_256.pdf")
-plt.figure()
-plt.imshow(gad.map-ar.map,origin='lower',extent=gad.get_lims(),aspect='auto',vmin=-30,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
-plt.savefig(outdir+"phase_gad_ar_256.pdf")
-plt.figure()
-
+#plt.imshow(gad.map,origin='lower',extent=gad.get_lims(),aspect='auto',vmin=0,vmax=30)
+#bar=plt.colorbar(use_gridspec=True)
+#bar.set_label(bar_label)
+#plt.xticks((3.5,4.0,4.5,5.0))
+#plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
+#plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
+#plt.tight_layout()
+#plt.savefig(outdir+"phase_gad_256.pdf")
+#plt.figure()
+#plt.imshow(ar.map,origin='lower',extent=ar.get_lims(),aspect='auto',vmin=0,vmax=30)
+#bar=plt.colorbar(use_gridspec=True)
+#bar.set_label(bar_label)
+#plt.xticks((3.5,4.0,4.5,5.0))
+#plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
+#plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
+#plt.tight_layout()
+#plt.savefig(outdir+"phase_ar_256.pdf")
+#plt.figure()
+#plt.imshow(gad.map-ar.map,origin='lower',extent=gad.get_lims(),aspect='auto',vmin=-30,vmax=30)
+#bar=plt.colorbar(use_gridspec=True)
+#bar.set_label(bar_label)
+#plt.xticks((3.5,4.0,4.5,5.0))
+#plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
+#plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
+#plt.tight_layout()
+#plt.savefig(outdir+"phase_gad_ar_256.pdf")
 ### 512**3 particles
 ar_512=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/512_20Mpc/Arepo_ENERGY")
 gad_512=phase_plot.get_mass_map(124,"/home/spb/data/ComparisonProject/512_20Mpc/Gadget")
 
-plt.imshow(gad_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=0,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
-plt.savefig(outdir+"phase_gad_512.pdf")
-plt.figure()
-plt.imshow(ar_512.map,origin='lower',extent=ar_512.get_lims(),aspect='auto',vmin=0,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
+fig=plt.figure()
+
+grid = AxesGrid(fig, 111, # similar to subplot(132)
+                    nrows_ncols = (1, 2),
+                    axes_pad = 0.2,
+                    share_all=True,
+                    label_mode = "L",
+                    cbar_location = "right",
+                    cbar_mode="single",
+                    )
+
+im=grid[0].imshow(gad_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=0,vmax=30)
+grid[1].imshow(ar_512.map,origin='lower',extent=ar_512.get_lims(),aspect='auto',vmin=0,vmax=30)
+# grid[1].set_xlabel(r"$\log_{10}\, T \,(10^4 K)$",size=25)
+# grid[1].set_ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$",size=25)
+grid[0].tick_params(labelsize=13)
+grid[1].tick_params(labelsize=13)
+bar=grid.cbar_axes[0].colorbar(im)
+grid.cbar_axes[0].tick_params(labelsize=13)
+bar.set_label_text(bar_label,size=15)
+grid.axes_llc.set_xticks((3.5,4.0,4.5,5.0))
+grid[0].set_xlabel(r"$\log_{10}\, T \,(10^4 K)$",size=15)
+grid[1].set_xlabel(r"$\log_{10}\, T \,(10^4 K)$",size=15)
+grid[0].set_ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$",size=15)
+grid[0].set_title(r"GADGET",size=18)
+grid[1].set_title(r"AREPO",size=18)
+# plt.tight_layout()
 plt.savefig(outdir+"phase_ar_512.pdf")
-plt.figure()
-plt.imshow(gad_512.map-ar_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=-30,vmax=30)
-bar=plt.colorbar(use_gridspec=True)
-bar.set_label(bar_label)
-plt.xticks((3.5,4.0,4.5,5.0))
-plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
-plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
-plt.tight_layout()
-plt.savefig(outdir+"phase_gad_ar_512.pdf")
+
+
+#plt.figure()
+#plt.imshow(gad_512.map-ar_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=-30,vmax=30)
+#bar=plt.colorbar(use_gridspec=True)
+#bar.set_label(bar_label)
+#plt.xticks((3.5,4.0,4.5,5.0))
+#plt.xlabel(r"$\log_{10}\, T \,(10^4 K)$")
+#plt.ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$")
+#plt.tight_layout()
+#plt.savefig(outdir+"phase_gad_ar_512.pdf")
 
 #arepo="/home/spb/data/ComparisonProject/256_20Mpc/Arepo_ENERGY"
 #gadget="/home/spb/data/ComparisonProject/256_20Mpc/Gadget"
