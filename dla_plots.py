@@ -443,8 +443,8 @@ class HaloHIPlots:
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
-        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=4)
-        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget",lw=4)
+        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
+        plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget",lw=6)
 #         (aNH2,af_NH2)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
 #         (gNH2,gf_NH2)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
 #         plt.loglog(aNH2,af_NH2,color=acol2, ls=astyle,label="Arepo")
@@ -464,10 +464,11 @@ class HaloHIPlots:
 
     def plot_column_density_breakdown(self,minN=17,maxN=23.):
         """Plots the column density distribution function, broken down into halos. """
-#         (aNHI,tot_af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,tot_af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
         (gNHI,tot_gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        plt.loglog(aNHI,tot_af_N/tot_gf_N,color="black", ls="-",label="Arepo",lw=4)
         plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo",lw=4)
         plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget",lw=4)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)

@@ -73,7 +73,7 @@ def pfplots(num='100',color="blue"):
         #Plot the simulation output
         flux_power=numpy.loadtxt(pf)
         (simk, simPF)=plot_flux_power(flux_power,box,z,om,H0)
-        arpf = re.sub("Gadget/","Arepo/",pf)
+        arpf = re.sub("Gadget/","Arepo_no_rescale/",pf)
         flux_power=numpy.loadtxt(arpf)
         (arsimk, arsimPF)=plot_flux_power(flux_power,box,z,om,H0)
         plt.ylabel(r"$\mathrm{P}_\mathrm{F}(k) $ (Mpc/h)",size=22)
@@ -97,7 +97,7 @@ def pfrelplots(num='100',color="blue"):
         #Plot the simulation output
         flux_power=numpy.loadtxt(pf)
         (simk, simPF)=plot_flux_power(flux_power,box,z,om,H0)
-        arpf = re.sub("Gadget/","Arepo/",pf)
+        arpf = re.sub("Gadget/","Arepo_no_rescale/",pf)
         flux_power=numpy.loadtxt(arpf)
         (arsimk, arsimPF)=plot_flux_power(flux_power,box,z,om,H0)
 #         plt.ylabel(r"$\delta P_F$ (%)")

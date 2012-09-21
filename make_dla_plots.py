@@ -82,9 +82,9 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     outdir=path.join(base,"plots")
     print "Saving plots for snapshot ",snapnum," to ",outdir
 
-    plt.figure()
+    plt.figure(1)
 
-    if  len(sys.argv) < 2 or int(sys.argv[1]) == 2:
+    if  False and len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #Load only the gas grids
         hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
         #Find a smallish halo
@@ -150,22 +150,25 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         save_figure(path.join(outdir,"radial_profile_halo_low_"+str(snapnum)))
         plt.clf()
 
-#         plt.figure(1)
-#         hplots.plot_radial_profile(minM = 1e11,maxM=1.5e11,maxR=100.)
-#         save_figure(path.join(outdir,"radial_profile_halo_0_"+str(snapnum)))
-        #Fig 6
-        plt.clf()
         hplots.ahalo.plot_pretty_halo(0)
+	plt.title(r"Arepo, $z="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.tight_layout()
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_halo"))
         plt.clf()
         hplots.ghalo.plot_pretty_halo(g_halo_0)
+	plt.title(r"Gadget, $z="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.tight_layout()
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
 
         plt.clf()
         hplots.ahalo.plot_pretty_cut_halo(0)
+	plt.title(r"Arepo, $z="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.tight_layout()
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_cut_halo"))
         plt.clf()
         hplots.ghalo.plot_pretty_cut_halo(g_halo_0)
+	plt.title(r"Gadget, $z="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.tight_layout()
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_cut_halo"))
 
         plt.clf()
@@ -186,6 +189,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
             plt.clf()
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 3:
+	plt.clf()
         hplots.plot_sigma_DLA()
         save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
