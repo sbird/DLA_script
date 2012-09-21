@@ -1,0 +1,22 @@
+This is a collection of python scripts for analyzing DLAs, 
+as used to generate the plots in 1209.2118.
+Depends on numpy, scipy, matplotlib and h5py.
+
+Particle data (not included) is assumed to be HDF5 snapshot outputs of Gadget or Arepo.
+SPH interpolation can be accelerated using scipy.weave, as the pure python version is unreasonably slow.
+
+halohi.py contains functions for calculating various useful properties of DLAs.
+
+dla_plots.py contains plotting functions
+
+make_dla_plots.py contains a script for making the particular plots in the paper. 
+
+cold_gas.py has the implementation of the self-shielding correction.
+
+Because making the plots is significantly faster than doing the SPH interpolation, 
+and will normally be done significantly more often, there is a facility for saving 
+the computed column density grids to an hdf5 file and loading them again. 
+make_a_grid.py performs the interpolation, and make_all_grids.pl submits jobs 
+to do this to the IAS cluster.
+
+There are also a few files to do Lyman-alpha forest analyses. 
