@@ -470,16 +470,16 @@ class HaloHIPlots:
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         plt.loglog(aNHI,tot_af_N/tot_gf_N,color="black", ls="-",label="Arepo",lw=4)
         plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo",lw=4)
-        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget",lw=4)
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget",lw=7)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo",lw=4)
-        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget",lw=4)
+        plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget",lw=7)
         try:
             (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
             (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
             plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo",lw=4)
-            plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget",lw=4)
+            plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget",lw=7)
         except IndexError:
             pass
         #Make the ticks be less-dense
