@@ -12,6 +12,7 @@ import numpy as np
 import os.path as path
 import math
 import matplotlib.pyplot as plt
+import matplotlib.colors
 
 gcol="blue"
 acol="red"
@@ -20,6 +21,15 @@ gcol2="magenta"
 rcol="black"
 astyle="-"
 gstyle="--"
+
+#Modified jet that works better in B&W
+jet2 =   {'red':   ((0., 1, 1),(0.2, 0, 0), (0.5, 1, 1), (0.75,1, 1),
+                   (1, 0.5, 0.5)),
+        'green': ((0., 1, 1),  (0.2,1, 1), (0.5,1, 1),
+                  (0.75,0,0), (1, 0, 0)),
+        'blue':  ((0., 1, 1), (0.2, 1, 1), (0.5,0, 0),
+                  (1, 0, 0))}
+spb_jet2 = matplotlib.colors.LinearSegmentedColormap('spb_jet2',jet2,256)
 
 #These are parameters for the analytic fits for the DLA abundances.
 #breakpoint is at 10^10.5
@@ -92,7 +102,7 @@ class PrettyHalo(halohi.HaloHI):
         #Plot a figure
         vmax=np.max([np.max(grid),25.5])
         maxdist = self.sub_radii[num]
-        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=0,vmax=vmax)
+        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=vmax,cmap=spb_jet2)
         bar=plt.colorbar(use_gridspec=True)
         bar.set_label(bar_label)
         if (maxdist > 150) * (maxdist < 200):
@@ -110,7 +120,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_{HI}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_cut_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
         """
@@ -120,11 +130,11 @@ class PrettyHalo(halohi.HaloHI):
         ind=np.where(cut_grid < cut_LLS)
         cut_grid[ind]=10
         ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
-        cut_grid[ind2]=17.
+        cut_grid[ind2]=16.
         ind3=np.where(cut_grid > cut_DLA)
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]
-        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
+        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3, cmap=spb_jet2)
         if (maxdist > 150) * (maxdist < 200):
             plt.xticks((-150,-75,0,75,150))
             plt.yticks((-150,-75,0,75,150))
@@ -148,7 +158,7 @@ class PrettyHalo(halohi.HaloHI):
         ind3=np.where(cut_grid > cut_DLA)
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]
-        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3)
+        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3, cmap=spb_jet2)
         plt.xlabel(r"y (kpc h$^{-1}$)")
         plt.xlabel(r"z (kpc h$^{-1}$)")
         plt.tight_layout()
@@ -469,17 +479,17 @@ class HaloHIPlots:
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=11)
         plt.loglog(aNHI,tot_af_N/tot_gf_N,color="black", ls="-",label="Arepo",lw=4)
-        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo",lw=4)
         plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="-",label="Gadget",lw=7)
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="-",label="Arepo",lw=4)
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
-        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo",lw=4)
         plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls="--",label="Gadget",lw=7)
+        plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls="--",label="Arepo",lw=4)
         try:
             (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
             (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-            plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo",lw=4)
             plt.loglog(gNHI,gf_N/tot_gf_N,color=gcol, ls=":",label="Gadget",lw=7)
+            plt.loglog(aNHI,af_N/tot_gf_N,color=acol, ls=":",label="Arepo",lw=4)
         except IndexError:
             pass
         #Make the ticks be less-dense

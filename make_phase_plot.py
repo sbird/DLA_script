@@ -55,8 +55,8 @@ grid = AxesGrid(fig, 111, # similar to subplot(132)
                     cbar_mode="single",
                     )
 
-im=grid[0].imshow(gad_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=0,vmax=30)
-grid[1].imshow(ar_512.map,origin='lower',extent=ar_512.get_lims(),aspect='auto',vmin=0,vmax=30)
+im=grid[0].imshow(gad_512.map,origin='lower',extent=gad_512.get_lims(),aspect='auto',vmin=0,vmax=30, cmap="gist_heat")
+grid[1].imshow(ar_512.map,origin='lower',extent=ar_512.get_lims(),aspect='auto',vmin=0,vmax=30,cmap="gist_heat")
 # grid[1].set_xlabel(r"$\log_{10}\, T \,(10^4 K)$",size=25)
 # grid[1].set_ylabel(r"$\log_{10} \left(\rho /\rho_\mathrm{c}\right)$",size=25)
 grid[0].tick_params(labelsize=13)
