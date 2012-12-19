@@ -14,8 +14,12 @@ def get_smooth_length(bar):
     Returns:
         Array of smoothing lengths in code units.
     """
-    #Are we arepo? If we are we should have this array.
-    if np.any(np.array(bar.keys()) == 'Number of faces of cell'):
+    #Are we arepo? If we are a modern version we should have this array.
+    if np.any(np.array(bar.keys()) == 'Volume'):
+        volume=np.array(bar["Volume"],dtype=np.float64)
+        radius = (3*volume/4/math.pi)**(0.33333333)
+        hsml=1.5*radius
+    elif np.any(np.array(bar.keys()) == 'Number of faces of cell'):
         rho=np.array(bar["Density"],dtype=np.float64)
         mass=np.array(bar["Masses"],dtype=np.float64)
         volume = mass/rho
