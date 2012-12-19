@@ -103,7 +103,7 @@ class PrettyHalo(halohi.HaloHI):
         vmax=np.max([np.max(grid),25.5])
         maxdist = self.sub_radii[num]
         plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=vmax,cmap=spb_jet2)
-        bar=plt.colorbar(use_gridspec=True)
+        bar=plt.colorbar()#use_gridspec=True)
         bar.set_label(bar_label)
         if (maxdist > 150) * (maxdist < 200):
             plt.xticks((-150,-75,0,75,150))
@@ -190,6 +190,44 @@ class PrettyHalo(halohi.HaloHI):
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         plt.tight_layout()
         plt.show()
+
+    def plot_column_density(self,minN=17,maxN=23.):
+        """Plots the column density distribution function. """
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
+        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
+        #Make the ticks be less-dense
+        ax=plt.gca()
+        #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
+        #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
+        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
+        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$",size=25)
+        plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
+        plt.xlim(10**minN, 10**maxN)
+        plt.ylim(1e-26,1e-18)
+#         plt.legend(loc=0)
+        plt.tight_layout()
+        plt.show()
+
+    def plot_column_density_breakdown(self,minN=17,maxN=23.):
+        """Plots the column density distribution function, broken down into halos. """
+        (aNHI,tot_af_N)=self.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls="-",label="Big",lw=4)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
+        plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls="--",label="Middle",lw=4)
+        try:
+            (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+            plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls=":",label="Small",lw=4)
+        except IndexError:
+            pass
+        ax=plt.gca()
+        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
+        ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $",size=25)
+        plt.xlim(10**minN, 10**maxN)
+        plt.ylim(1e-2,2)
+        plt.tight_layout()
+        plt.show()
+
 
 
 class PrettyBox(halohi.BoxHI,PrettyHalo):
