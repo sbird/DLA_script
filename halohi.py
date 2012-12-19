@@ -7,6 +7,7 @@ Classes:
     HaloHI - Creates a grid around the halo center with the HI fraction calculated at each grid cell
 """
 import numpy as np
+import numexpr as ne
 import readsubf
 import readsubfHDF5
 import hdfsim
@@ -328,7 +329,7 @@ class HaloHI:
             if minpart == -1:
                 #global grid
                 self.nhalo = 1
-                self.sub_radii=self.box/2.
+                self.sub_radii=np.array([self.box/2.])
             else:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
@@ -447,7 +448,12 @@ class HaloHI:
         epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
-        indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
+	xpos = sub_pos[0]
+	xxpos = ipos[:,0]
+	sub_radius = self.sub_radii[ii]
+# 	indz=np.where(ne.evaluate("prod(abs(ipos-sub_pos) < self.sub_radii[ii],axis=1)"))
+#         indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
+        indx=np.where(ne.evaluate("abs(xxpos-xpos) < sub_radius"))
         pposx=ipos[indx]
         indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
         if np.size(indz) == 0:
@@ -459,7 +465,7 @@ class HaloHI:
         #Convert smoothing lengths to grid coordinates.
         smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
-            print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
