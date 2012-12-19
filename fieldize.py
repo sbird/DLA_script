@@ -424,6 +424,9 @@ def cic_str(pos,value,field,in_radii,periodic=False):
                     field[gx,gy]+=weight[p]
     return field
 
+from _fieldize_priv import _SPH_Fieldize
+import sys
+
 def sph_str(pos,value,field,radii,weights=None,periodic=False):
     """Interpolate a particle onto the grid using an SPH kernel.
        This is similar to the cic_str() routine, but spherical.
@@ -447,6 +450,10 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
         raise ValueError("Periodic grid not supported")
     if weights == None:
         weights = np.array([0])
+
+    nval = _SPH_Fieldize(pos, radii, value, field, weights)
+    return field
+
     expr="""for(int p=0;p<nval;p++){
         //Temp variables
         double pp[2];
@@ -521,6 +528,7 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
     try:
         scipy.weave.inline(expr,['nval','pos','radii','value','field','nx','weights'],type_converters=scipy.weave.converters.blitz)
     except Exception:
+	print "Falling back to slow!"
         for p in xrange(0,nval):
             #Upper and lower bounds
             pp = pos[p,1:dim+1]
