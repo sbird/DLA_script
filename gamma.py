@@ -32,6 +32,7 @@ def read_gamma(num,base):
     head=f["Header"].attrs
     npart=head["NumPart_ThisFile"]
     redshift=head["Redshift"]
+    print "z=",redshift
     atime=head["Time"]
     h100=head["HubbleParam"]
 
@@ -64,6 +65,10 @@ def read_gamma(num,base):
     sy = 0
     sxx = 0
     sxy = 0
+    met = 0
+    totmass=0
+    totigmmass=0
+    totmet = 0
 
     for i in np.arange(0,500) :
         ffname=fname+"."+str(i)+".hdf5"
@@ -82,9 +87,11 @@ def read_gamma(num,base):
             print "No gas particles in file ",i,"!\n"
             break
         bar = f["PartType0"]
-        u=np.array(bar['InternalEnergy'])
-        rho=np.array(bar['Density'])
-        nelec=np.array(bar['ElectronAbundance'])
+        u=np.array(bar['InternalEnergy'],dtype=np.float64)
+        rho=np.array(bar['Density'],dtype=np.float64)
+        nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
+        metalic = np.array(bar['GFM_Metallicity'],dtype=np.float64)
+        mass = np.array(bar['Masses'], dtype=np.float64)
         #nH0=np.array(bar['NeutralHydrogenAbundance'])
         f.close()
         # Convert to physical SI units. Only energy and density considered here.
@@ -141,7 +148,7 @@ def read_gamma(num,base):
         #print
         #
 
-        ind2 = np.where((overden > -1.0) * (overden <  0.0) * (templog < 5.0))
+        ind2 = np.where((overden > -5.0) * (overden <  0) *(templog< 5))
         tempfit = templog[ind2]
         overdenfit = overden[ind2]
 
@@ -152,6 +159,10 @@ def read_gamma(num,base):
         sy += np.sum(tempfit)
         sxx += np.sum(overdenfit*overdenfit)
         sxy += np.sum(overdenfit*tempfit)
+        met += np.sum(mass[ind2]*metalic[ind2])
+        totmet += np.sum(mass*metalic)
+        totmass += np.sum(mass)
+        totigmmass += np.sum(mass[ind2])
 
 
     # log T = log(T_0) + (gamma-1) log(rho/rho_0)
@@ -160,6 +171,7 @@ def read_gamma(num,base):
     a = ((sxx*sy) - (sx*sxy))/delta
     b = ((N*sxy) - (sx*sy))/delta
 
-    print num,": gamma", b+1.0,"  log(T0)", a,"  T0 (K)", (10.0)**a
+    print num,": gamma", b+1.0,"  log(T0)", a,"  T0 (K)", (10.0)**a, "Metallicity: ", met/totigmmass,totmet/totmass
+    raise Exception
     return (redshift,10.0**a, b+1)
 
