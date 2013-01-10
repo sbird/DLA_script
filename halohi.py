@@ -302,6 +302,10 @@ class HaloHI:
 #             self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
             self.ind=np.array(grid_file["halo_ind"])
             self.nhalo=np.size(self.ind)
+            if minpart == -1:
+                #global grid
+                self.nhalo = 1
+                self.sub_radii=np.array([self.box/2.])
             if not skip_grid == 1:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridHIData"]
@@ -448,9 +452,9 @@ class HaloHI:
         epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
-	xpos = sub_pos[0]
-	xxpos = ipos[:,0]
-	sub_radius = self.sub_radii[ii]
+        xpos = sub_pos[0]
+        xxpos = ipos[:,0]
+        sub_radius = self.sub_radii[ii]
 # 	indz=np.where(ne.evaluate("prod(abs(ipos-sub_pos) < self.sub_radii[ii],axis=1)"))
 #         indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
         indx=np.where(ne.evaluate("abs(xxpos-xpos) < sub_radius"))
@@ -696,7 +700,7 @@ class HaloHI:
         """
         if grids == None:
             grids = self.sub_nHI_grid
-        if grids== 1:
+        elif grids == 1:
             grids = self.sub_gas_grid
         NHI_table = np.arange(minN, maxN, dlogN)
         bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
@@ -851,6 +855,49 @@ class BoxHI(HaloHI):
         rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
+
+    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9,grids=None):
+        """
+        This computes the DLA column density function, which is the number
+        of absorbers per sight line with HI column densities in the interval
+        [NHI, NHI+dNHI] at the absorption distance X.
+        Absorption distance is simply a single simulation box.
+        A sightline is assumed to be equivalent to one grid cell.
+        That is, there is presumed to be only one halo in along the sightline
+        encountering a given halo.
+
+        So we have f(N) = d n_DLA/ dN dX
+        and n_DLA(N) = number of absorbers per sightline in this column density bin.
+                     1 sightline is defined to be one grid cell.
+                     So this is (cells in this bins) / (no. of cells)
+        ie, f(N) = n_DLA / ΔN / ΔX
+        Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
+
+        Parameters:
+            dlogN - bin spacing
+            minN - minimum log N
+            maxN - maximum log N
+            maxM - maximum log M halo mass to consider
+            minM - minimum log M halo mass to consider
+
+        Returns:
+            (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
+        """
+        if grids == None:
+            grids = self.sub_nHI_grid
+        elif grids == 1:
+            grids = self.sub_gas_grid
+        NHI_table = np.arange(minN, maxN, dlogN)
+        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        #Grid size (in cm^2)
+        dX=self.absorption_distance()
+        #This is for whole box grids
+        tot_f_N=np.histogram(grids,NHI_table)
+        tot_cells = np.size(grids)
+        tot_f_N=(tot_f_N[0])/(deltaNHI*dX*tot_cells)
+        return (10**bin_center, tot_f_N)
+
 
 class VelocityHI(HaloHI):
     """Class for computing velocity diagrams"""
