@@ -89,6 +89,12 @@ def pr_num(num,rnd=2):
     return str(np.round(num,rnd))
 
 
+def tight_layout_wrapper():
+    try:
+        plt.tight_layout()
+    except AttributeError:
+        pass
+
 class PrettyHalo(halohi.HaloHI):
     """
     Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
@@ -113,7 +119,7 @@ class PrettyHalo(halohi.HaloHI):
             plt.yticks((-300,-150,0,150,300))
         plt.xlabel(r"y (kpc h$^{-1}$)")
         plt.ylabel(r"z (kpc h$^{-1}$)")
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_pretty_halo(self,num=0):
@@ -143,7 +149,7 @@ class PrettyHalo(halohi.HaloHI):
             plt.yticks((-300,-150,0,150,300))
         plt.xlabel(r"y (kpc h$^{-1}$)")
         plt.ylabel(r"z (kpc h$^{-1}$)")
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_pretty_cut_gas_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
@@ -161,7 +167,7 @@ class PrettyHalo(halohi.HaloHI):
         plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3, cmap=spb_jet2)
         plt.xlabel(r"y (kpc h$^{-1}$)")
         plt.xlabel(r"z (kpc h$^{-1}$)")
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_pretty_gas_halo(self,num=0):
@@ -188,12 +194,12 @@ class PrettyHalo(halohi.HaloHI):
             pass
         plt.xlabel(r"R (kpc h$^{-1}$)")
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23.):
+    def plot_column_density(self,minN=17,maxN=23., grid=None):
         """Plots the column density distribution function. """
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1, grids=grid)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
         #Make the ticks be less-dense
         ax=plt.gca()
@@ -205,7 +211,7 @@ class PrettyHalo(halohi.HaloHI):
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-26,1e-18)
 #         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_column_density_breakdown(self,minN=17,maxN=23.):
@@ -225,7 +231,7 @@ class PrettyHalo(halohi.HaloHI):
         ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $",size=25)
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-2,2)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
 
@@ -308,7 +314,7 @@ class TotalHIPlots:
         self.atHI.plot_totalHI(color=acol,label="Arepo")
         #Axes
         plt.legend(loc=4)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_MHI(self):
@@ -319,7 +325,7 @@ class TotalHIPlots:
         self.atHI.plot_MHI(color=acol,label="Arepo")
         #Axes
         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_gas(self):
@@ -329,7 +335,7 @@ class TotalHIPlots:
         self.atHI.plot_gas(color=acol,label="Arepo")
         #Axes
         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
 
@@ -406,7 +412,7 @@ class HaloHIPlots:
         else:
             plt.ylim(ymin=1,ymax=10**4)
         #Fits
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_sigma_DLA_contour(self, DLA_cut=20.3,DLA_upper_cut=42.):
@@ -462,7 +468,7 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Arepo) - $\sigma_\mathrm{DLA}$ (Gadget) (kpc$^2$ h$^{-2}$)")
         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_dN_dla(self,Mmin=1e9,Mmax=1e13):
@@ -482,7 +488,7 @@ class HaloHIPlots:
 #         plt.legend(loc=3)
         plt.xlim(Mmin,1e12)
         plt.ylim(10**(-2),1)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 #         print "Arepo mean halo mass: ",self.ahalo.get_mean_halo_mass(arepo_halo_p[self.ahalo.snapnum])/1e10
 #         print "Gadget mean halo mass: ",self.ghalo.get_mean_halo_mass(gadget_halo_p[self.ghalo.snapnum])/1e10
@@ -507,7 +513,7 @@ class HaloHIPlots:
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-26,1e-18)
 #         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_column_density_breakdown(self,minN=17,maxN=23.):
@@ -540,7 +546,7 @@ class HaloHIPlots:
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-2,2)
 #         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_radial_profile(self,minM=4e11,maxM=1e12,minR=0,maxR=40.):
@@ -591,7 +597,7 @@ class HaloHIPlots:
 	else:
 	    plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
         plt.xlim(minR,maxR)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_rel_column_density(self,minN=17,maxN=23.):
@@ -607,7 +613,7 @@ class HaloHIPlots:
         plt.ylabel(r"$ \delta f(N)$")
         plt.xlim(10**minN, 10**maxN)
 #         plt.legend(loc=0)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def plot_halo_mass_func(self):
@@ -630,7 +636,7 @@ class HaloHIPlots:
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.legend(loc=0)
         plt.xlim(self.minplot,self.maxplot)
-        plt.tight_layout()
+        tight_layout_wrapper()
         plt.show()
 
     def print_halo_fits(self):
