@@ -850,9 +850,9 @@ class BoxHI(HaloHI):
         if self.once:
             print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        rho=(irho)*(epsilon/(1+self.redshift)**2)
+        rho=irho*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth)
-        rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
+        rhoH0=irhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
         return
 
