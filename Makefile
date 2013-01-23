@@ -19,10 +19,10 @@ endif
 
 #Are we using gcc or icc?
 ifeq (icc,$(findstring icc,${CC}))
-  CFLAGS +=-O2 -g -c -w1 -openmp -I${GREAD} -fpic -std=gnu99
+  CFLAGS +=-O2 -g -c -w1 -openmp -fpic -std=gnu99
   LINK +=${CXX} -openmp
 else
-  CFLAGS +=-O2 -g -c -Wall -fopenmp -I${GREAD} -fPIC -std=gnu99
+  CFLAGS +=-O2 -g -c -Wall -fopenmp -fPIC -std=gnu99
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif
