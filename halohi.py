@@ -282,11 +282,12 @@ class HaloHI:
         self.once=False
         try:
             if reload_file:
-                raise KeyError("reloading")
+                print "Reloading"
+                #raise KeyError("reloading")
             #First try to load from a file
             f=h5py.File(self.savefile,'r')
             grid_file=f["HaloData"]
-            if  not (grid_file.attrs["minpart"] == self.minpart):
+            if not (grid_file.attrs["minpart"] == self.minpart):
                 raise KeyError("File not for this structure")
             #Otherwise...
             self.redshift=grid_file.attrs["redshift"]
