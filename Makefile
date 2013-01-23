@@ -1,5 +1,6 @@
 #Python include path
-PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
+# PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
+PYINC=-I/n/sw/hpc-001/python-2.7.1/include/python2.7 -I/n/sw/numpy-1.6.2_python-2.7.1/lib/python2.7/site-packages/numpy/core/include
 
 ifeq ($(CC),cc)
   ICC:=$(shell which icc --tty-only 2>&1)
