@@ -17,11 +17,6 @@ def tight_layout_wrapper():
         pass
 
 class CoverFrac(halohi.HaloHI):
-    """
-    Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
-    """
-
-
 
     def kpc_to_grid(self, kpc_dist, halo_num):
         fac = self.ngrid[halo_num]/(2.*self.sub_radii[halo_num])
