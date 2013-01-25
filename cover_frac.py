@@ -10,81 +10,164 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.colors
 
+def tight_layout_wrapper():
+    try:
+        plt.tight_layout()
+    except AttributeError:
+        pass
+
 class CoverFrac(halohi.HaloHI):
     """
     Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
     """
 
-    def kpc_to_grid(self, kpc_dist, halo_num=0):
-    	fac = self.ngrid[halo_num]/(2.*self.sub_radii[halo_num])
-    	grid_dist = kpc_dist * fac
-    	return grid_dist
-
-    #def _dist(self,grid_cent,gridx,gridy)
 
 
-	def halo_covering_frac(self, halo_num, N0_cutoffs, r_min_array, delta_r_kpc, return_cutoffs=False):
-		halo_grid=np.array(self.sub_nHI_grid[halo_num])
-		halo_radius = self.sub_radii[halo_num]
+    def kpc_to_grid(self, kpc_dist, halo_num):
+        fac = self.ngrid[halo_num]/(2.*self.sub_radii[halo_num])
+        grid_dist = kpc_dist * fac
+        return grid_dist
 
-		#grid_len = np.size(halo_grid,axis=0)
-		[gridx,gridy] = np.meshgrid(np.arange(ngrid),np.arange(ngrid))
-		grid_cent = self.ngrid[halo_num]/2. #assume square grid: grid_centx = grid_centy = grid_cent
-
-		delta_r_grid = self.kpc_to_grid(delta_r_kpc)
-		r_grid = np.sqrt((gridx-grid_cent)**2+(gridy-grid_cent)**2)
-
-		N_r_ticks = np.size(self.r_min_array)
-		N_N0_ticks = np.size(N0_cutoffs)
-		cover_frac = np.zeros([N_r_ticks,N_N0_ticks])
-		
-		for r_ind in np.arange(N_r_ticks):
-			rmin = r_min_array[i]
-			rmax = rmin + delta_r_grid
-
-			rmin_cond = (r_grid >= rmin)
-			rmax_cond = (r_grid < rmax)
-
-			ind = np.where(np.logical_and(rmin_cond,rmax_cond))
-
-			nHI_annulus = halo_grid[ind]
-			n_tot = np.float(np.size(nHI_annulus))
-
-			for N0_ind in np.arange(N_N0_ticks):
-				if n_tot > 0:
-					N0 = N0_cutoffs[j]
-					n_covered = np.float(np.sum(nHI_annulus > N0))
-					cover_frac[r_ind,N0_ind] = n_covered/n_tot
-				elif n_tot == 0:
-					cover_frac[r_ind,N0_ind] = -1.
-
-		if return_cutoffs:
-			return [cover_frac, r_min_array, N0_cutoffs]
-		else:
-			return [cover_frac, r_min_array]
+    def halo_covering_frac(self, halo_num, N0_cutoffs, r_min_array, delta_r_kpc):
+        halo_grid=np.array(self.sub_nHI_grid[halo_num])
+        halo_radius = self.sub_radii[halo_num]
+        print "halo_radius ",halo_radius
+        #print "np.size(halo_grid,axis=0)", np.size(halo_grid,axis=0)
+        #print "np.size(halo_grid,axis=1)", np.size(halo_grid,axis=1)
+        n_covered = np.float(np.sum(halo_grid > 13.))
+        print "percent covered by N>13: ",n_covered/(np.size(halo_grid,axis=0)**2)
+        #print "n_covered ",n_covered
+        #plt.hist(np.ravel(halo_grid),normed=False)
+        #plt.show()
 
 
-	def aggregate_covering_fracs(self):
-		topmass = 100.
-		botmass = 10.
+        halo_ngrid = self.ngrid[halo_num]
+        #print "self.ngrid", self.ngrid
+        #print "self.ngrid[halo_num] ", self.ngrid[halo_num]
 
-		mass_ind = np.where(np.logical_and(self.sub_mass > botmass, self.submass < topmass))
-		n_halo = np.size(mass_ind)
+        [gridx,gridy] = np.meshgrid(np.arange(halo_ngrid),np.arange(halo_ngrid))
+        grid_cent = halo_ngrid/2. #assume square grid: grid_centx = grid_centy = grid_cent
 
-		r_min_array = np.arange(0.,2900.,delta_r_kpc)
-		N_r_ticks = np.size(self.r_min_array)
+        delta_r_grid = self.kpc_to_grid(delta_r_kpc,halo_num)
+        r_grid = np.sqrt((gridx-grid_cent)**2+(gridy-grid_cent)**2)
 
-		N0_cutoffs = [13.0, 13.5, 14.0, 14.5, 15.0, 16.0]
 
-		delta_r_kpc = 100.
-		r_min_array = np.arange(0.,2900.,delta_r_kpc)
+        N_r_ticks = np.size(r_min_array)
+        N_N0_ticks = np.size(N0_cutoffs)
+        cover_frac = np.zeros([N_r_ticks,N_N0_ticks])
+        
+        for r_ind in np.arange(N_r_ticks):
+            rmin = self.kpc_to_grid(r_min_array[r_ind],halo_num)
+            rmax = rmin + delta_r_grid
 
-		Q1 = np.zeros(self.N_r_ticks)
-		Q3 = np.zeros(self.N_r_ticks)
-		for mass in massrange:
-			#calculate cover frac for each halo 
-			for N0_ind in np.arange(N_N0_ticks):
-			#
+            rmin_cond = (r_grid >= rmin)
+            rmax_cond = (r_grid < rmax)
+
+            ind = np.where(np.logical_and(rmin_cond,rmax_cond))
+
+            nHI_annulus = halo_grid[ind]
+            #print "nHI_annulus ",nHI_annulus
+            n_tot = np.float(np.size(nHI_annulus))
+            #print "n_tot ",n_tot
+
+
+            for N0_ind in np.arange(N_N0_ticks):
+                if n_tot > 0:
+                    N0 = N0_cutoffs[N0_ind]
+                    n_covered = np.float(np.sum(nHI_annulus > N0))
+                    cover_frac[r_ind,N0_ind] = n_covered/n_tot
+                elif n_tot == 0:
+                    cover_frac[r_ind,N0_ind] = -1.
+
+        return cover_frac
+
+
+
+    def aggregate_covering_fracs(self,num=0):
+
+
+        #m_min_array = np.array([10.**10.,10.**10.5,10.**11.0,10.**11.5,10.**12.0])
+        m_min_array = np.array([10.**11.,10.**12.])
+        m_max_array = m_min_array*(10.**1.0)
+        n_mbins = np.size(m_min_array)
+
+        fig = plt.figure()
+
+        for m_ind in np.arange(n_mbins):
+            topmass = m_max_array[m_ind]
+            botmass = m_min_array[m_ind]
+            print "self.sub_mass ",self.sub_mass
+
+            mass_ind = np.where(np.logical_and(self.sub_mass > botmass, self.sub_mass < topmass))[0]
+            n_halo = np.size(mass_ind)
+
+            delta_r_kpc = 10. #100.
+            #r_min_array = np.arange(0.,2900.,delta_r_kpc)
+            r_min_array = np.arange(0.,290.,delta_r_kpc)
+            N_r_ticks = np.size(r_min_array)
+
+            N0_cutoffs = [13.0, 13.5, 14.0, 14.5, 15.0, 16.0]
+            N_N0_ticks = np.size(N0_cutoffs)
+
+            all_cover_dat = np.zeros([N_r_ticks,N_N0_ticks,n_halo])
+
+            # Aggregate all covering fraction data for halos of interest
+            for i in np.arange(n_halo):
+                cover_frac = self.halo_covering_frac(mass_ind[i],N0_cutoffs,r_min_array,delta_r_kpc)
+                all_cover_dat[:,:,i] = cover_frac
+
+
+
+            for N0_ind in np.arange(N_N0_ticks):
+                ax = fig.add_subplot(2,3,N0_ind+1)
+
+                Q1 = np.zeros(N_r_ticks)
+                median = np.zeros(N_r_ticks)
+                Q3 = np.zeros(N_r_ticks)
+
+                for r_ind in np.arange(N_r_ticks):
+                    data_on_grid = np.where(all_cover_dat[r_ind,N0_ind,:] >= 0.)[0]
+                    # wherever the cover_frac is -1, this means that the grid did not extend far enough to calculate the covering fraction
+                    #print "all_cover_dat[r_ind,N0_ind,data_on_grid]", all_cover_dat[r_ind,N0_ind,data_on_grid]
+
+                    Q3[r_ind] = np.percentile(all_cover_dat[r_ind,N0_ind,data_on_grid],75)
+                    median[r_ind] = np.median(all_cover_dat[r_ind,N0_ind,data_on_grid])
+                    Q1[r_ind] = np.percentile(all_cover_dat[r_ind,N0_ind,data_on_grid],25)
+
+                    #print "Q3[r_ind]", Q3[r_ind]
+                    #print "median[r_ind]", median[r_ind]
+                    #print "Q1[r_ind]", Q1[r_ind]
+
+                plt.title("N_HI > "+str(N0_cutoffs[N0_ind]))
+                if m_ind == 0: 
+                    facecolor='blue'
+                elif m_ind == 1: 
+                    facecolor='green'
+                elif m_ind == 2:
+                    facecolor='red'
+
+                #comoving_to_physical = 1+self.redshift
+                #print "self.redshift ",self.redshift
+
+                plt.plot(comoving_to_physical*r_min_array,median)
+                #plt.semilogy(r_min_array,median) #drawstyle='steps-pre'
+                #plt.fill_between(r_min_array, Q3, Q1, facecolor=facecolor,alpha=0.25)  #, facecolor='blue'
+                plt.ylim(0.,1.)
+                plt.ylabel("f_C")
+                plt.xlabel(r"r (kpc h$^{-1}$)")
+
+        tight_layout_wrapper()
+        plt.show()
+
+
+
+
+
+
+    #for mass in massrange:
+        #calculate cover frac for each halo 
+    #    for N0_ind in np.arange(N_N0_ticks):
+        #
 
 
 
