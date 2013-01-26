@@ -146,8 +146,45 @@ class StarFormation:
 
         return LambdaFF
 
+    def get_reproc_rhoHI(self,bar,rho_phys_thresh=0.1):
+        """Get a neutral hydrogen density in cm^-2
+        applying the correction in eq. 1 of Tescari & Viel
+        Parameters:
+            bar = a baryon type from an HDF5 file.
+            rho_phys_thresh - physical SFR threshold density in hydrogen atoms/cm^3
+                            - 0.1 (Tornatore & Borgani 2007)
+                            - 0.1289 (derived from the SH star formation model)
+        Returns:
+            nH0 - the density of neutral hydrogen in these particles in atoms/cm^3
+        """
+
+        inH0 = self.reproc_gas(bar,rho_phys_thresh=0.1)
+
+        #Calculate rho_HI
+        nH0=irho*inH0
+        #Now in atoms /cm^3
 
     def get_reproc_rhoHI(self,bar,rho_phys_thresh=0.1):
+        """Get a neutral hydrogen density in cm^-2
+        applying the correction in eq. 1 of Tescari & Viel
+        Parameters:
+            bar = a baryon type from an HDF5 file.
+            rho_phys_thresh - physical SFR threshold density in hydrogen atoms/cm^3
+                            - 0.1 (Tornatore & Borgani 2007)
+                            - 0.1289 (derived from the SH star formation model)
+        Returns:
+            nH0 - the density of neutral hydrogen in these particles in atoms/cm^3
+        """
+
+        [irho,inH0] = self.reproc_gas(bar,rho_phys_thresh=0.1)
+
+        #Calculate rho_HI
+        nH0=irho*inH0
+        #Now in atoms /cm^3
+        return nH0
+
+
+    def reproc_gas(self,bar,rho_phys_thresh=0.1):
         """Get a neutral hydrogen density in cm^-2
         applying the correction in eq. 1 of Tescari & Viel
         Parameters:
@@ -181,13 +218,9 @@ class StarFormation:
         fcold=self.cold_gas_frac(irho[dens_ind],tcool,rho_phys_thresh)
         #Adjust the neutral hydrogen fraction
         inH0[dens_ind]=fcold
+        return [irho,inH0]
 
-        #Calculate rho_HI
-        nH0=irho*inH0
-        #Now in atoms /cm^3
-        return nH0
-
-    def get_reproc_rhoHI(self,bar,rho_phys_thresh=6.3e-3):
+    def reproc_gas(self,bar,rho_phys_thresh=6.3e-3):
         """Get a neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
         This is just neutral over a certain density."""
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
@@ -202,7 +235,4 @@ class StarFormation:
         #Interpolate between r1 and r2
         n=2.6851
         inH0[ind2] = (inH0[ind2]*(r1-irho[ind2])**n+(irho[ind2]-r2)**n)/(r1-r2)**n
-        #Calculate rho_HI
-        nH0=irho*inH0
-        #Now in atoms /cm^3
-        return nH0
+        return [irho,inH0]
