@@ -138,37 +138,38 @@ class TotalHaloHI:
         #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
         target_mass = self.box**3 * rhom / self.npart[0]
         #Get halo catalog
-	try:
-        	subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.group_pos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.group_r_crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-	except IOError:
-		# We might have the halo catalog stored in the new format, which is HDF5.
-        	subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.GroupPos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.Group_R_Crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-		# We might have the halo catalog stored in the new format, which is HDF5.
+        try:
+            subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
+            #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+            ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
+            #Store the indices of the halos we are using
+            #Get particle center of mass, use group catalogue.
+            sub_cofm=np.array(subs.group_pos[ind])
+            #halo masses in M_sun/h: use M_200
+            sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+            #r200 in kpc.
+            sub_radii = np.array(subs.group_r_crit200[ind])
+            #Gas mass in M_sun/h
+#             sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+            del subs
+        except IOError:
+        # We might have the halo catalog stored in the new format, which is HDF5.
+            subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
+            #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+            ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
+            #Store the indices of the halos we are using
+            #Get particle center of mass, use group catalogue.
+            sub_cofm=np.array(subs.GroupPos[ind])
+            #halo masses in M_sun/h: use M_200
+            sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+            #r200 in kpc.
+            sub_radii = np.array(subs.Group_R_Crit200[ind])
+            #Gas mass in M_sun/h
+#             sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+            del subs
+        # We might have the halo catalog stored in the new format, which is HDF5.
 
+        # blehh
         #For each halo
         ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
         ind=(np.ravel(ind)[ind2],)
@@ -338,6 +339,8 @@ class HaloHI:
                 self.sub_radii=np.array([self.box/2.])
             else:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
+                print "Smallest has mass: ", np.min(self.sub_mass)
+                print "Largest has mass: ", np.max(self.sub_mass)
             #Set ngrid to be the gravitational softening length
             if grid_width == -1.:
                 self.grid_radii = self.sub_radii
@@ -455,27 +458,27 @@ class HaloHI:
         """
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
+        epsilon=2.*self.grid_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
         xpos = sub_pos[0]
         xxpos = ipos[:,0]
-        sub_radius = self.sub_radii[ii]
-# 	indz=np.where(ne.evaluate("prod(abs(ipos-sub_pos) < self.sub_radii[ii],axis=1)"))
+        grid_radius = self.grid_radii[ii]
+#   indz=np.where(ne.evaluate("prod(abs(ipos-sub_pos) < self.sub_radii[ii],axis=1)"))
 #         indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
-        indx=np.where(ne.evaluate("abs(xxpos-xpos) < sub_radius"))
+        indx=np.where(ne.evaluate("abs(xxpos-xpos) < grid_radius"))
         pposx=ipos[indx]
-        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
+        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.grid_radii[ii],axis=1))
         if np.size(indz) == 0:
             return
         #coords in grid units
-        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
+        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid[ii],2*self.grid_radii[ii])
         #NH0
         smooth = (ismooth[indx])[indz]
         #Convert smoothing lengths to grid coordinates.
-        smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
+        smooth*=(self.ngrid[ii]/(2*self.grid_radii[ii]))
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.grid_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
@@ -491,36 +494,36 @@ class HaloHI:
         #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
         target_mass = self.box**3 * rhom / self.npart[0]
         #Get halo catalog
-	try:
-        	subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.group_pos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.group_r_crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-	except IOError:
-		# We might have the halo catalog stored in the new format, which is HDF5.
-        	subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.GroupPos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.Group_R_Crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-		# We might have the halo catalog stored in the new format, which is HDF5.
+        try:
+            subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
+            #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+            ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
+            #Store the indices of the halos we are using
+            #Get particle center of mass, use group catalogue.
+            sub_cofm=np.array(subs.group_pos[ind])
+            #halo masses in M_sun/h: use M_200
+            sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+            #r200 in kpc.
+            sub_radii = np.array(subs.group_r_crit200[ind])
+            #Gas mass in M_sun/h
+#             sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+            del subs
+        except IOError:
+        # We might have the halo catalog stored in the new format, which is HDF5.
+            subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
+            #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+            ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
+            #Store the indices of the halos we are using
+            #Get particle center of mass, use group catalogue.
+            sub_cofm=np.array(subs.GroupPos[ind])
+            #halo masses in M_sun/h: use M_200
+            sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+            #r200 in kpc.
+            sub_radii = np.array(subs.Group_R_Crit200[ind])
+            #Gas mass in M_sun/h
+#             sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
+            del subs
+        # We might have the halo catalog stored in the new format, which is HDF5.
 
         #For each halo
         ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
@@ -536,8 +539,8 @@ class HaloHI:
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
         Returns result in (kpc)^2."""
         #Linear dimension of cell in kpc.
-        epsilon=2.*self.sub_radii[halo]/(self.ngrid[halo])/self.hubble
-        cell_area=epsilon**2 #(2.*self.sub_radii[halo]/self.ngrid[halo])**2
+        epsilon=2.*self.grid_radii[halo]/(self.ngrid[halo])/self.hubble
+        cell_area=epsilon**2 #(2.*self.grid_radii[halo]/self.ngrid[halo])**2
         sigma_DLA = np.shape(np.where((self.sub_nHI_grid[halo] > DLA_cut)*(self.sub_nHI_grid[halo] < DLA_upper_cut)))[1]*cell_area
         return sigma_DLA
 
@@ -605,8 +608,8 @@ class HaloHI:
 
         #Find r in grid units:
         total=0.
-        gminR=minR/(2.*self.sub_radii[halo])*self.ngrid[halo]
-        gmaxR=maxR/(2.*self.sub_radii[halo])*self.ngrid[halo]
+        gminR=minR/(2.*self.grid_radii[halo])*self.ngrid[halo]
+        gmaxR=maxR/(2.*self.grid_radii[halo])*self.ngrid[halo]
         cen=self.ngrid[halo]/2.
         #Broken part of the annulus:
         for x in xrange(-int(gminR),int(gminR)):
@@ -626,7 +629,7 @@ class HaloHI:
                 total+=np.sum(10**grid[-x+cen,miny:maxy])
             except IndexError:
                 pass
-        return total*((2.*self.sub_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
+        return total*((2.*self.grid_radii[halo])/self.ngrid[halo]*self.UnitLength_in_cm)
 
 
 
@@ -709,4 +712,258 @@ class HaloHI:
         elif grids == 1:
             grids = self.sub_gas_grid
         NHI_table = np.arange(minN, maxN, dlogN)
-        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(N
+        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        #Grid size (in cm^2)
+        dX=self.absorption_distance()
+        ind = np.where((self.sub_mass < 10.**maxM)*(self.sub_mass > 10.**minM))
+        tot_cells = np.sum(self.ngrid**2)
+        array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in grids[ind]])
+        tot_f_N = np.sum(array[:,0])
+        tot_f_N=(tot_f_N)/(deltaNHI*dX*tot_cells)
+        return (10**bin_center, tot_f_N)
+
+    def omega_DLA(self, maxN):
+        """Compute Omega_DLA, defined as:
+            Ω_DLA = m_p H_0/(c f_HI rho_c) \int_10^20.3^Nmax  f(N,X) N dN
+        """
+        (NHI_table, f_N) = self.column_density_function(minN=20.3,maxN=maxN)
+        dNHI_table = np.arange(20.3, maxN, 0.2)
+        deltaNHI =  np.array([10**dNHI_table[i+1]-10**dNHI_table[i] for i in range(0,np.size(dNHI_table)-1)])
+        omega_DLA=np.sum(NHI_table*f_N*deltaNHI)
+        h100=3.2407789e-18*self.hubble
+        light=2.9979e10
+        rho_crit=3*h100**2/(8*math.pi*6.672e-8)
+        protonmass=1.66053886e-24
+        hy_mass = 0.76 # Hydrogen massfrac
+        omega_DLA*=(h100/light)*(protonmass/hy_mass)/rho_crit
+        return 1000*omega_DLA
+
+    def get_dndm(self,minM,maxM):
+        """Get the halo mass function from the simulations,
+        in units of h^4 M_sun^-1 Mpc^-3.
+        Parameters:
+            minM and maxM are the sides of the bin to use.
+        """
+        #Number of halos in this mass bin in the whole box
+        Nhalo=np.shape(np.where((self.sub_mass <= maxM)*(self.sub_mass > minM)))[1]
+        Mpch_in_cm=3.085678e24
+        #Convert to halos per Mpc/h^3
+        Nhalo/=(self.box*self.UnitLength_in_cm/Mpch_in_cm)**3
+        #Convert to per unit mass
+        return Nhalo/(maxM-minM)
+
+    def sDLA_analytic(self,M,params, DLA_cut=20.3):
+        """An analytic fit to the DLA radius,
+        based on a power law."""
+        a = params[0]
+        b = params[1]
+        ra = params[2]
+        e = params[4]
+        br = 10.5
+        n=5.
+        d = params[3]/10**(DLA_cut/n)
+        N0 = 10.**(a*(np.log10(M)-br))
+        sDLA = (d*N0**e+N0)*10**((b-DLA_cut)/n) -ra
+        ind = np.where(sDLA <= 0)
+        if np.size(ind) > 0:
+            try:
+                sDLA[ind]=1e-50
+            except TypeError:
+                #This is necessary in case RDLA is a single float, not an array
+                sDLA=1e-50
+        return sDLA
+
+    def drdz(self,zz):
+        """Calculates dr/dz in a flat cosmology in units of cm/h"""
+        #Speed of light in cm/s
+        light=2.9979e10
+        #h * 100 km/s/Mpc in h/s
+        h100=3.2407789e-18
+        #       cm/s   s/h   =>
+        return light/h100*np.sqrt(self.omegam*(1+zz)**3+self.omegal)
+
+    def get_mean_halo_mass(self,params,mass=5e8):
+        """Get the mean halo mass for DLAs"""
+#         gsigDLA=self.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        #Generate mean halo mass
+#         g_mean_halo_mass = np.sum(self.sub_mass*gsigDLA)/np.sum(gsigDLA)
+        maxmass=np.log10(np.max(self.sub_mass))
+        abund=self.get_N_DLA_dz(params,mass,maxmass)/(self.drdz(self.redshift)/self.UnitLength_in_cm)
+        abund_mass = integ.quad(self.mass_integrand,np.log10(mass),maxmass, epsrel=1e-2,args=(params,))
+        return abund_mass[0]/abund
+
+    def mass_integrand(self,log10M,params):
+        """Integrand for above"""
+        M=10**log10M
+        return M*self.NDLA_integrand(log10M,params)
+
+    def get_N_DLA_dz(self,params, mass=1e9,maxmass=12.5):
+        """Get the DLA number density as a function of redshift, defined as:
+        d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
+        where n_h is the Sheth-Torman mass function, and
+        sigma_DLA is a power-law fit to self.sigma_DLA.
+        Parameters:
+            lower_mass in M_sun/h.
+        """
+        try:
+            self.halo_mass.dndm(mass)
+        except AttributeError:
+            #Halo mass function object
+            self.halo_mass=halo_mass_function.HaloMassFunction(self.redshift,omega_m=self.omegam, omega_l=self.omegal, hubble=self.hubble,log_mass_lim=(7,15))
+        result = integ.quad(self.NDLA_integrand,np.log10(mass),maxmass, epsrel=1e-2,args=(params,))
+        #drdz is in cm/h, while the rest is in kpc/h, so convert.
+        return self.drdz(self.redshift)*result[0]/self.UnitLength_in_cm
+
+    def NDLA_integrand(self,log10M,params):
+        """Integrand for above"""
+        M=10**log10M
+        #sigma_DLA_analytic is in kpc^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), and M is in M_sun/h.
+        #Output therefore in kpc/h
+        return self.sDLA_analytic(M,params,20.3)*self.hubble**2*M/(10**9)*self.halo_mass.dndm(M)
+
+class BoxHI(HaloHI):
+    """Class for calculating a large grid encompassing the whole simulation.
+    Stores a big grid projecting the neutral hydrogen along the line of sight for the whole box.
+
+    Parameters:
+        dir - Simulation directory
+        snapnum - Number of simulation
+        reload_file - Ignore saved files if true
+        self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
+        self.sub_mass is a list of halo masses
+        self.sub_cofm is a list of halo positions"""
+    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
+        if savefile==None:
+            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
+        else:
+            savefile_s = savefile
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        return
+
+    def sub_gridize_single_file(self,ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
+        """Helper function for sub_gas_grid and sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        #Linear dimension of each cell in cm:
+        #               kpc/h                   1 cm/kpc
+        epsilon=2.*self.sub_radii/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        #coords in grid units
+        coords=fieldize.convert(ipos,self.ngrid,2*self.sub_radii)
+        #NH0
+        if self.once:
+            print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            self.once=False
+        rho=(irho)*(epsilon/(1+self.redshift)**2)
+        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth)
+        rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
+        return
+
+    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9,grids=None):
+        """
+        This computes the DLA column density function, which is the number
+        of absorbers per sight line with HI column densities in the interval
+        [NHI, NHI+dNHI] at the absorption distance X.
+        Absorption distance is simply a single simulation box.
+        A sightline is assumed to be equivalent to one grid cell.
+        That is, there is presumed to be only one halo in along the sightline
+        encountering a given halo.
+
+        So we have f(N) = d n_DLA/ dN dX
+        and n_DLA(N) = number of absorbers per sightline in this column density bin.
+                     1 sightline is defined to be one grid cell.
+                     So this is (cells in this bins) / (no. of cells)
+        ie, f(N) = n_DLA / ΔN / ΔX
+        Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
+
+        Parameters:
+            dlogN - bin spacing
+            minN - minimum log N
+            maxN - maximum log N
+            maxM - maximum log M halo mass to consider
+            minM - minimum log M halo mass to consider
+
+        Returns:
+            (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
+        """
+        if grids == None:
+            grids = self.sub_nHI_grid
+        elif grids == 1:
+            grids = self.sub_gas_grid
+        NHI_table = np.arange(minN, maxN, dlogN)
+        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        #Grid size (in cm^2)
+        dX=self.absorption_distance()
+        #This is for whole box grids
+        tot_f_N=np.histogram(grids,NHI_table)
+        tot_cells = np.size(grids)
+        tot_f_N=(tot_f_N[0])/(deltaNHI*dX*tot_cells)
+        return (10**bin_center, tot_f_N)
+
+
+class VelocityHI(HaloHI):
+    """Class for computing velocity diagrams"""
+    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
+        if savefile==None:
+            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"velocity_grid.hdf5")
+        else:
+            savefile_s = savefile
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        return
+
+    def set_nHI_grid(self):
+        """Set up the grid around each halo where the velocity HI is calculated.
+        """
+        star=cold_gas.StarFormation(hubble=self.hubble)
+        self.once=True
+        #This is the real HI grid
+        nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        #Now grid the HI for each halo
+        for fnum in xrange(0,500):
+            try:
+                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
+            except IOError:
+                break
+            print "Starting file ",fnum
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"],dtype=np.float64)
+            smooth = hsml.get_smooth_length(bar)
+            # Velocity in cm/s
+            vel = np.array(bar["Velocities"],dtype=np.float64)*self.UnitVelocity_in_cm_per_s
+            #We will weight by neutral mass per cell
+            irhoH0 = star.get_reproc_rhoHI(bar)
+            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            #HI * Cell Mass, internal units
+            mass = np.array(bar["Masses"],dtype=np.float64)*irhoH0/irho
+            f.close()
+            #Perform the grid interpolation
+            #sub_gas_grid is x velocity
+            #sub_nHI_grid is y velocity
+            [self.sub_gridize_single_file(ii,ipos,smooth,vel[:,1]*mass,self.sub_gas_grid,vel[:,2]*mass,self.sub_nHI_grid,mass) for ii in xrange(0,self.nhalo)]
+            #Find the HI density also, so that we can discard
+            #velocities in cells that are not DLAs.
+            [self.sub_gridize_single_file(ii,ipos,smooth,irhoH0,nHI_grid,np.zeros(np.size(irhoH0)),nHI_grid) for ii in xrange(0,self.nhalo)]
+            #Explicitly delete some things.
+            del ipos
+            del irhoH0
+            del irho
+            del smooth
+            del mass
+            del vel
+        #No /= in list comprehensions...  :|
+        #Average over z
+        for i in xrange(0,self.nhalo):
+            self.sub_gas_grid[i]/=self.sub_radii[i]
+            self.sub_nHI_grid[i]/=self.sub_radii[i]
+            ind = np.where(nHI_grid[i] < 10**20.3)
+            self.sub_nHI_grid[i][ind] = 0
+            self.sub_gas_grid[i][ind] = 0
+        return
+
