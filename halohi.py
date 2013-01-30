@@ -468,11 +468,16 @@ class HaloHI:
         xpos = sub_pos[0]
         xxpos = ipos[:,0]
         grid_radius = self.grid_radii[ii]
-#   indz=np.where(ne.evaluate("prod(abs(ipos-sub_pos) < self.sub_radii[ii],axis=1)"))
-#         indx=np.where(np.abs(ipos[:,0]-sub_pos[0]) < self.sub_radii[ii])
-        indx=np.where(ne.evaluate("abs(xxpos-xpos) < grid_radius"))
+        sub_radius = self.sub_radii[ii]
+        #Need a local for numexpr
+        box = self.box
+        #The second part deals with periodic boundary conditions
+        indx=np.where(ne.evaluate("(abs(xxpos-xpos) < sub_radius) | (abs(xxpos-xpos+box) < sub_radius)"))
         pposx=ipos[indx]
-        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.grid_radii[ii],axis=1))
+        #Check for periodic bcs
+        bc_ind = np.where(np.abs(pposx-sub_pos) > np.abs(pposx-sub_pos + box))
+        pposx[bc_ind] += box
+        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
         if np.size(indz) == 0:
             return
         #coords in grid units
@@ -717,14 +722,16 @@ class HaloHI:
             grids = self.sub_gas_grid
         NHI_table = np.arange(minN, maxN, dlogN)
         bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
-        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
-        ind = np.where((self.sub_mass < 10.**maxM)*(self.sub_mass > 10.**minM))
         tot_cells = np.sum(self.ngrid**2)
-        array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in grids[ind]])
-        tot_f_N = np.sum(array[:,0])
-        tot_f_N=(tot_f_N)/(deltaNHI*dX*tot_cells)
+        if np.size(self.sub_mass) == np.shape(grids)[0]:
+            ind = np.where((self.sub_mass < 10.**maxM)*(self.sub_mass > 10.**minM))
+            array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in grids[ind]])
+            tot_f_N = np.sum(array[:,0])
+        else:
+            tot_f_N = np.histogram(grids,NHI_table)[0]
+        tot_f_N=(tot_f_N)/(dlogN*10**bin_center*dX*tot_cells)
         return (10**bin_center, tot_f_N)
 
     def omega_DLA(self, maxN):
@@ -843,9 +850,13 @@ class BoxHI(HaloHI):
         else:
             savefile_s = savefile
         HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        #global grid
+        self.nhalo = 1
+        self.sub_radii=np.array([self.box/2.])
+        self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
         return
 
-    def sub_gridize_single_file(self,ii,ipos,smooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid):
+    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid,weights=None):
         """Helper function for sub_gas_grid and sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -856,61 +867,21 @@ class BoxHI(HaloHI):
         """
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.sub_radii/(self.ngrid)*self.UnitLength_in_cm/self.hubble
+        epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid,2*self.sub_radii)
+        coords=fieldize.convert(ipos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
+        smooth = ismooth
+        #Convert smoothing lengths to grid coordinates.
+        smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
-            print "Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii/self.ngrid," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        rho=(irho)*(epsilon/(1+self.redshift)**2)
-        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth)
-        rhoH0=(irhoH0)*(epsilon/(1+self.redshift)**2)
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth)
+        rho=irho*epsilon*(1+self.redshift)**2
+        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
+        rhoH0=irhoH0*epsilon*(1+self.redshift)**2
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
-
-    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9,grids=None):
-        """
-        This computes the DLA column density function, which is the number
-        of absorbers per sight line with HI column densities in the interval
-        [NHI, NHI+dNHI] at the absorption distance X.
-        Absorption distance is simply a single simulation box.
-        A sightline is assumed to be equivalent to one grid cell.
-        That is, there is presumed to be only one halo in along the sightline
-        encountering a given halo.
-
-        So we have f(N) = d n_DLA/ dN dX
-        and n_DLA(N) = number of absorbers per sightline in this column density bin.
-                     1 sightline is defined to be one grid cell.
-                     So this is (cells in this bins) / (no. of cells)
-        ie, f(N) = n_DLA / ΔN / ΔX
-        Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
-
-        Parameters:
-            dlogN - bin spacing
-            minN - minimum log N
-            maxN - maximum log N
-            maxM - maximum log M halo mass to consider
-            minM - minimum log M halo mass to consider
-
-        Returns:
-            (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
-        """
-        if grids == None:
-            grids = self.sub_nHI_grid
-        elif grids == 1:
-            grids = self.sub_gas_grid
-        NHI_table = np.arange(minN, maxN, dlogN)
-        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
-        deltaNHI =  np.array([10**NHI_table[i+1]-10**NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
-        #Grid size (in cm^2)
-        dX=self.absorption_distance()
-        #This is for whole box grids
-        tot_f_N=np.histogram(grids,NHI_table)
-        tot_cells = np.size(grids)
-        tot_f_N=(tot_f_N[0])/(deltaNHI*dX*tot_cells)
-        return (10**bin_center, tot_f_N)
-
 
 class VelocityHI(HaloHI):
     """Class for computing velocity diagrams"""

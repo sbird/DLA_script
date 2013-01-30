@@ -1,6 +1,29 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 
+#define IL 128
+
+void empty_cache(double * value, int * id1, int * id2, PyArrayObject * field, int il)
+{
+    #pragma omp critical
+    {
+    for(int i=0; i< il; i++)
+         *((double *) PyArray_GETPTR2(field,id1[i],id2[i]))+=value[i];
+    }
+}
+
+void add_to_data_array(double * result, int * id1, int * id2, PyArrayObject * field, int * il, int gx, int gy, double value)
+{
+            if(*il > IL -1){
+                empty_cache(result, id1, id2, field, *il);
+                *il=0;
+            }
+            result[*il] = value;
+            id1[*il] = gx;
+            id2[*il] = gy;
+            (*il)++;
+}
+
 //  int    3*nval arr  nval arr  nval arr   nx*nx arr  int     nval arr  (or 0)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
 PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
@@ -8,9 +31,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     PyArrayObject *pos, *radii, *value, *field, *weights;
     if(!PyArg_ParseTuple(args, "O!O!O!O!O!",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights) )
         return NULL;
-    npy_intp nval = PyArray_DIM(radii,0);
-    npy_intp nx = PyArray_DIM(field,0);
+    const npy_intp nval = PyArray_DIM(radii,0);
+    const npy_intp nx = PyArray_DIM(field,0);
+    int il = 0;
+/*     #pragma omp parallel for firstprivate(il) */
     for(int p=0;p<nval;p++){
+        //Thread-local cache
+        double result[IL];
+        int id1[IL], id2[IL];
         //Temp variables
         double pp[2];
         pp[0]= *(double *)PyArray_GETPTR2(pos,p,1);
@@ -18,8 +46,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         double rr= *((double *)PyArray_GETPTR1(radii,p));
         double val= *((double *)PyArray_GETPTR1(value,p));
         double weight = 1;
-        if (PyArray_DIM(weights,0) == nval)
+        if (PyArray_DIM(weights,0) == nval){
             weight= *((double *)PyArray_GETPTR1(weights,p));
+            //Why do we do this? Because PyArray_DIM(None) == 1.
+            //Thus, if we have been passed a single particle,
+            //we can set its weight to 0, and cause infinities.
+            if (weight == 0)
+                weight = 1;
+        }
         //99% of the kernel is inside 0.85 of the smoothing length.
         //Neglect the rest.
         int upgx = floor(pp[0]+0.85*rr);
@@ -27,8 +61,10 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         int lowgx = floor(pp[0]-0.85*rr);
         int lowgy = floor(pp[1]-0.85*rr);
         //Try to save some integrations if this particle is totally in this cell
-        if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0)
+        if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
                 *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight;
+/*             add_to_data_array(result, id1, id2, field, &il, lowgx, lowgy, val/weight); */
+        }
         else {
             //Deal with the edges
             if(upgx > nx-1)
@@ -76,10 +112,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
                             total +=(zz2[i+1]-zz2[i])*(kern2[i+1]+kern2[i]);
                         }
                     }
+/*                     add_to_data_array(result, id1, id2, field, &il, gx, gy, val*total/weight); */
                     *((double *) PyArray_GETPTR2(field,gx,gy))+=val*total/weight;
 /*                     field(gx,gy)+=val*total/weight; */
                 }
         }
+        /*Empty on final iteration*/
+/*         if(p == nval-1) */
+/*             empty_cache(result, id1, id2, field,il); */
         }
 	return Py_BuildValue("i",nval);
 }
