@@ -24,7 +24,7 @@ class CoverFrac(halohi.HaloHI):
         return grid_dist
 
     def halo_covering_frac(self, halo_num, N0_cutoffs, r_min_array, delta_r_kpc,return_LLA_DLA_totalfrac=False,return_percents=False):
-        halo_grid=np.array(self.sub_gas_grid[halo_num])
+        halo_grid=np.array(self.sub_nHI_grid[halo_num])
         halo_radius = self.sub_radii[halo_num]
         #print "halo_radius ",halo_radius
         #print "np.size(halo_grid,axis=0)", np.size(halo_grid,axis=0)
@@ -34,7 +34,6 @@ class CoverFrac(halohi.HaloHI):
         DLA_percent = np.float(np.sum(halo_grid > 20.3))/(np.size(halo_grid,axis=0)**2)
 
         tot_n_cells = np.float(np.size(halo_grid,axis=0)**2)
-        print "tot_n_cells", tot_n_cells
         percents_N0_cutoffs = np.arange(13,25)
         percents = np.ones(np.size(percents_N0_cutoffs)-1)
         for i in np.arange(np.size(percents_N0_cutoffs)-1):
@@ -123,29 +122,29 @@ class CoverFrac(halohi.HaloHI):
             all_cover_dat = np.zeros([N_r_ticks,N_N0_ticks,n_halo])
 
             # Aggregate all covering fraction data for halos of interest
-            #LLS_percent = np.zeros(n_halo)
-            #DLA_percent = np.zeros(n_halo)
+            LLS_percent = np.zeros(n_halo)
+            DLA_percent = np.zeros(n_halo)
             percents_N0_cutoffs = np.arange(13,25)
             percents_dat = np.zeros([n_halo,np.size(percents_N0_cutoffs)-1])
             for i in np.arange(n_halo):
-                [cover_frac, percents_dat[i,:], percents_N0_cutoffs] = self.halo_covering_frac(mass_ind[i],N0_cutoffs,r_min_array,delta_r_kpc,return_percents=True)
+                #[cover_frac, percents_dat[i,:], percents_N0_cutoffs] = self.halo_covering_frac(mass_ind[i],N0_cutoffs,r_min_array,delta_r_kpc,return_percents=True)
+                [cover_frac, LLS_percent[i],DLA_percent[i]] = self.halo_covering_frac(mass_ind[i],N0_cutoffs,r_min_array,delta_r_kpc,return_LLA_DLA_totalfrac=True)
                 all_cover_dat[:,:,i] = cover_frac
 
-            print "percents_dat ",percents_dat
-
             print "For M >",botmass," and < ",topmass,", we find that within 1 Rvir: "
-            #print "LLS percent", np.mean(LLS_percent)
-            #print "DLA_percent", np.mean(DLA_percent)
-            percents_avg = np.ones(np.size(percents_N0_cutoffs)-1)
-            percents_std = np.ones(np.size(percents_N0_cutoffs)-1)
-            for i in np.arange(np.size(percents_N0_cutoffs)-1):
-                percents_avg[i] = np.mean(percents_dat[:,i])
-                print "Between ",percents_N0_cutoffs[i]," and ",percents_N0_cutoffs[i+1], ", we find ",np.mean(percents_dat[:,i])
+            print "LLS percent", np.mean(LLS_percent)
+            print "DLA_percent", np.mean(DLA_percent)
+            #percents_avg = np.ones(np.size(percents_N0_cutoffs)-1)
+            #percents_std = np.ones(np.size(percents_N0_cutoffs)-1)
+            #for i in np.arange(np.size(percents_N0_cutoffs)-1):
+            #    percents_avg[i] = np.mean(percents_dat[:,i])
+            #    print "Between ",percents_N0_cutoffs[i]," and ",percents_N0_cutoffs[i+1], ", we find ",np.mean(percents_dat[:,i])
 
-            plt.semilogy(percents_N0_cutoffs[:-1],percents_avg)
+            #plt.semilogy(percents_N0_cutoffs[:-1],percents_avg)
             #plt.title("")
-            plt.ylabel("Fc(< 1 rvir)")
-            plt.xlabel("N_HI")
+            #plt.ylim(10.**-5.,0.1)
+            #plt.ylabel("Fc(< 1 rvir)")
+            #plt.xlabel("N_HI")
             #plt.show()
 
             for N0_ind in np.arange(N_N0_ticks):
