@@ -284,7 +284,7 @@ class HaloHI:
         self.once=False
         try:
             if reload_file:
-                print "Reloading"
+                print "Will try to reload"
                 #raise KeyError("reloading")
             #First try to load from a file
             f=h5py.File(self.savefile,'r')
@@ -292,6 +292,7 @@ class HaloHI:
             if not (grid_file.attrs["minpart"] == self.minpart):
                 raise KeyError("File not for this structure")
             #Otherwise...
+
             self.redshift=grid_file.attrs["redshift"]
             self.omegam=grid_file.attrs["omegam"]
             self.omegal=grid_file.attrs["omegal"]
@@ -305,6 +306,7 @@ class HaloHI:
 #             self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
             self.ind=np.array(grid_file["halo_ind"])
             self.nhalo=np.size(self.ind)
+
             if minpart == -1:
                 #global grid
                 self.nhalo = 1
@@ -401,6 +403,8 @@ class HaloHI:
         fH2 = 1./(1+(0.1/nHI)**(0.92*5./3.)*35**0.92)
         fH2[np.where(nHI < 0.1)] = 0
         return fH2
+
+    #rmate test
 
     def set_nHI_grid(self):
         """Set up the grid around each halo where the HI is calculated.
