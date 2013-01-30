@@ -455,8 +455,14 @@ class HaloHI:
         xpos = sub_pos[0]
         xxpos = ipos[:,0]
         sub_radius = self.sub_radii[ii]
-        indx=np.where(ne.evaluate("abs(xxpos-xpos) < sub_radius"))
+        #Need a local for numexpr
+        box = self.box
+        #The second part deals with periodic boundary conditions
+        indx=np.where(ne.evaluate("(abs(xxpos-xpos) < sub_radius) | (abs(xxpos-xpos+box) < sub_radius)"))
         pposx=ipos[indx]
+        #Check for periodic bcs
+        bc_ind = np.where(np.abs(pposx-sub_pos) > np.abs(pposx-sub_pos + box))
+        pposx[bc_ind] += box
         indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
         if np.size(indz) == 0:
             return
