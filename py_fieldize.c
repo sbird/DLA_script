@@ -46,8 +46,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         double rr= *((double *)PyArray_GETPTR1(radii,p));
         double val= *((double *)PyArray_GETPTR1(value,p));
         double weight = 1;
-        if (PyArray_DIM(weights,0) == nval)
+        if (PyArray_DIM(weights,0) == nval){
             weight= *((double *)PyArray_GETPTR1(weights,p));
+            //Why do we do this? Because PyArray_DIM(None) == 1.
+            //Thus, if we have been passed a single particle,
+            //we can set its weight to 0, and cause infinities.
+            if (weight == 0)
+                weight = 1;
+        }
         //99% of the kernel is inside 0.85 of the smoothing length.
         //Neglect the rest.
         int upgx = floor(pp[0]+0.85*rr);
