@@ -5,11 +5,11 @@
 
 void empty_cache(double * value, int * id1, int * id2, PyArrayObject * field, int il)
 {
-    #pragma omp critical
-    {
+/*     #pragma omp critical */
+/*     { */
     for(int i=0; i< il; i++)
          *((double *) PyArray_GETPTR2(field,id1[i],id2[i]))+=value[i];
-    }
+/*     } */
 }
 
 void add_to_data_array(double * result, int * id1, int * id2, PyArrayObject * field, int * il, int gx, int gy, double value)
