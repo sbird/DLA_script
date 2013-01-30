@@ -56,8 +56,8 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         int lowgy = floor(pp[1]-0.85*rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-/*                 *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight; */
-            add_to_data_array(result, id1, id2, field, &il, lowgx, lowgy, val/weight);
+                *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight;
+/*             add_to_data_array(result, id1, id2, field, &il, lowgx, lowgy, val/weight); */
         }
         else {
             //Deal with the edges
@@ -106,14 +106,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
                             total +=(zz2[i+1]-zz2[i])*(kern2[i+1]+kern2[i]);
                         }
                     }
-                    add_to_data_array(result, id1, id2, field, &il, gx, gy, val*total/weight);
-/*                     *((double *) PyArray_GETPTR2(field,gx,gy))+=val*total/weight; */
+/*                     add_to_data_array(result, id1, id2, field, &il, gx, gy, val*total/weight); */
+                    *((double *) PyArray_GETPTR2(field,gx,gy))+=val*total/weight;
 /*                     field(gx,gy)+=val*total/weight; */
                 }
         }
         /*Empty on final iteration*/
-        if(p == nval-1)
-            empty_cache(result, id1, id2, field,il);
+/*         if(p == nval-1) */
+/*             empty_cache(result, id1, id2, field,il); */
         }
 	return Py_BuildValue("i",nval);
 }
