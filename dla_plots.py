@@ -197,16 +197,16 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23., grid=None):
+    def plot_column_density(self,minN=17,maxN=23., grid=None,color=acol):
         """Plots the column density distribution function. """
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1, grids=grid)
-        plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
+        plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
-        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$",size=25)
+        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
+        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$")
         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-26,1e-18)
