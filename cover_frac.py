@@ -4,6 +4,7 @@ Module for computing covering fractions, similar to how they are defined in Rudi
 """
 
 import halohi
+import dla_plots
 import numpy as np
 import os.path as path
 import math
@@ -16,7 +17,8 @@ def tight_layout_wrapper():
     except AttributeError:
         pass
 
-class CoverFrac(halohi.HaloHI):
+#class CoverFrac(halohi.HaloHI):
+class CoverFrac(dla_plots.PrettyHalo):
 
     def kpc_to_grid(self, kpc_dist, halo_num):
         fac = self.ngrid[halo_num]/(2.*self.sub_radii[halo_num])
@@ -26,9 +28,6 @@ class CoverFrac(halohi.HaloHI):
     def halo_covering_frac(self, halo_num, N0_cutoffs, r_min_array, delta_r_kpc,return_LLA_DLA_totalfrac=False,return_percents=False):
         halo_grid=np.array(self.sub_nHI_grid[halo_num])
         halo_radius = self.sub_radii[halo_num]
-        #print "halo_radius ",halo_radius
-        #print "np.size(halo_grid,axis=0)", np.size(halo_grid,axis=0)
-        #print "np.size(halo_grid,axis=1)", np.size(halo_grid,axis=1)
         N13_percent = np.float(np.sum(halo_grid > 13.))/(np.size(halo_grid,axis=0)**2)
         LLS_percent = np.float(np.sum(np.logical_and(halo_grid > 17.2,halo_grid < 20.3)))/(np.size(halo_grid,axis=0)**2)
         DLA_percent = np.float(np.sum(halo_grid > 20.3))/(np.size(halo_grid,axis=0)**2)
@@ -38,15 +37,11 @@ class CoverFrac(halohi.HaloHI):
         percents = np.ones(np.size(percents_N0_cutoffs)-1)
         for i in np.arange(np.size(percents_N0_cutoffs)-1):
             percents[i] = np.float(np.sum(np.logical_and(halo_grid > percents_N0_cutoffs[i],halo_grid < percents_N0_cutoffs[i+1])))/tot_n_cells
-        #print "N13_percent ",N13_percent
-        #print "n_covered ",n_covered
         #plt.hist(np.ravel(halo_grid),normed=False)
         #plt.show()
 
 
         halo_ngrid = self.ngrid[halo_num]
-        #print "self.ngrid", self.ngrid
-        #print "self.ngrid[halo_num] ", self.ngrid[halo_num]
 
         [gridx,gridy] = np.meshgrid(np.arange(halo_ngrid),np.arange(halo_ngrid))
         grid_cent = (halo_ngrid-1)/2. #assume square grid: grid_centx = grid_centy = grid_cent
@@ -188,6 +183,49 @@ class CoverFrac(halohi.HaloHI):
 
         tight_layout_wrapper()
         plt.show()
+
+
+
+
+    def grid_check(self):
+        m_min_array = np.array([10.**11.25,10.**11.75])
+        m_max_array = m_min_array*(10.**0.5)
+        n_mbins = np.size(m_min_array)
+
+        fig = plt.figure()
+
+        for m_ind in np.arange(n_mbins):
+            topmass = m_max_array[m_ind]
+            botmass = m_min_array[m_ind]
+            #print "self.sub_mass ",self.sub_mass
+
+            mass_ind = np.where(np.logical_and(self.sub_mass > botmass, self.sub_mass < topmass))[0]
+            n_halo = np.size(mass_ind)
+
+            for num in mass_ind:
+                print "num ",num
+                self.plot_pretty_gas_halo(num=num)
+
+                halo_grid = self.sub_nHI_grid[num]
+                inf_cells = np.isinf(halo_grid)
+                nan_cells = np.isnan(halo_grid)
+                if (np.sum(inf_cells)>0) or (np.sum(nan_cells)>0):
+                    print "Bad cells!!"
+
+                N13_percent = np.float(np.sum(halo_grid > 13.))/(np.size(halo_grid,axis=0)**2)
+                LLS_percent = np.float(np.sum(np.logical_and(halo_grid > 17.2,halo_grid < 20.3)))/(np.size(halo_grid,axis=0)**2)
+                DLA_percent = np.float(np.sum(halo_grid > 20.3))/(np.size(halo_grid,axis=0)**2)
+
+                print "N13_percent ",N13_percent
+                print "LLS_percent", LLS_percent
+                print "DLA_percent", DLA_percent
+
+
+
+
+
+
+
 
 
 
