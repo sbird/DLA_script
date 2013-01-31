@@ -75,18 +75,27 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
                 *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight;
+                continue;
         }
-        else {
-            /*Array for storing cell weights*/
-            double sph_w[upgy-lowgy+1][upgx-lowgx+1];
-            /*Total of cell weights*/
-            double total=0;
-            /*First compute the cell weights*/
-            #pragma omp parallel for reduction(+:total)
-            for(int gy=lowgy;gy<=upgy;gy++)
-                for(int gx=lowgx;gx<=upgx;gx++){
-                    double xx = gx-pp[0]+0.5;
-                    double yy = gy-pp[1]+0.5;
+        /*Array for storing cell weights*/
+        double sph_w[upgy-lowgy+1][upgx-lowgx+1];
+        /*Total of cell weights*/
+        double total=0;
+        /* First compute the cell weights.
+         * Subsample the cells if the smoothing length is O(1 cell).
+         * This is more accurate, and also avoids edge cases where the particle can rest just between a cell.*/
+        int nsub=2*((int)(1./rr))+1;
+        double subs[nsub];
+        /*Spread subsamples evenly across cell*/
+        for(int i=0; i < nsub; i++)
+            subs[i] = (i+1.)/(1.*nsub+1);
+        #pragma omp parallel for reduction(+:total)
+        for(int gy=lowgy;gy<=upgy;gy++)
+            for(int gx=lowgx;gx<=upgx;gx++){
+                for(int iy=0; iy< nsub; iy++)
+                for(int ix=0; ix< nsub; ix++){
+                    double xx = gx-pp[0]+subs[ix];
+                    double yy = gy-pp[1]+subs[iy];
                     double r0 = sqrt(xx*xx+yy*yy);
                     if(r0 > rr){
                         sph_w[gy-lowgy][gx-lowgx]=0;
@@ -95,17 +104,21 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
                     sph_w[gy-lowgy][gx-lowgx]=compute_sph_cell_weight(rr,r0);
                     total+=sph_w[gy-lowgy][gx-lowgx];
                 }
-            //Some cells will be only partially in the array: only partially add them.
-            upgx = MIN(upgx,nx-1);
-            upgy = MIN(upgy,nx-1);
-            lowgy = MAX(lowgy, 0);
-            lowgx = MAX(lowgx, 0);
-            /*Then add the right fraction to the total array*/
-            for(int gy=lowgy;gy<=upgy;gy++)
-                for(int gx=lowgx;gx<=upgx;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx,gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
-                }
+            }
+        if(total == 0){
+            printf("Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
+            exit(1);
         }
+        //Some cells will be only partially in the array: only partially add them.
+        upgx = MIN(upgx,nx-1);
+        upgy = MIN(upgy,nx-1);
+        lowgy = MAX(lowgy, 0);
+        lowgx = MAX(lowgx, 0);
+        /*Then add the right fraction to the total array*/
+        for(int gy=lowgy;gy<=upgy;gy++)
+            for(int gx=lowgx;gx<=upgx;gx++){
+                *((double *) PyArray_GETPTR2(field,gx,gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+            }
     }
 	return Py_BuildValue("i",nval);
 }
