@@ -463,6 +463,10 @@ class HaloHI:
             jpos = sub_pos[dim]
             jjpos = ipos[:,dim]
             indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius) | (abs(jjpos-jpos+box) < grid_radius) | (abs(jjpos-jpos-box) < grid_radius)"))
+            
+            if np.size(indj) == 0:
+                return
+            
             ipos = ipos[indj]
 
             # Update smooth and rho arrays as well:
