@@ -101,7 +101,7 @@ class TotalHaloHI:
             self.Mgas=np.zeros(np.size(self.ind))
             self.tot_found=np.zeros(np.size(self.ind))
             print "Found ",np.size(self.ind)," halos with > ",minpart,"particles"
-            star=cold_gas.StarFormation(hubble=self.hubble)
+            star=cold_gas.RahmatiRT(self.redshift, self.hubble)
             #Now find the average HI for each halo
             for fnum in range(0,500):
                 try:
@@ -396,7 +396,7 @@ class HaloHI:
     def set_nHI_grid(self):
         """Set up the grid around each halo where the HI is calculated.
         """
-        star=cold_gas.StarFormation(hubble=self.hubble)
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
         self.once=True
         #Now grid the HI for each halo
         for fnum in xrange(0,500):
@@ -473,7 +473,7 @@ class HaloHI:
         #Convert smoothing lengths to grid coordinates.
         smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
         rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
@@ -882,7 +882,7 @@ class VelocityHI(HaloHI):
     def set_nHI_grid(self):
         """Set up the grid around each halo where the velocity HI is calculated.
         """
-        star=cold_gas.StarFormation(hubble=self.hubble)
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
         self.once=True
         #This is the real HI grid
         nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
