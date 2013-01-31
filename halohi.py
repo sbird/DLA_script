@@ -447,37 +447,57 @@ class HaloHI:
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
+
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
-        xpos = sub_pos[0]
-        xxpos = ipos[:,0]
+        grid_radius = self.sub_radii[ii]
         sub_radius = self.sub_radii[ii]
         #Need a local for numexpr
         box = self.box
-        #The second part deals with periodic boundary conditions
-        indx=np.where(ne.evaluate("(abs(xxpos-xpos) < sub_radius) | (abs(xxpos-xpos+box) < sub_radius)"))
-        pposx=ipos[indx]
-        #Check for periodic bcs
-        bc_ind = np.where(np.abs(pposx-sub_pos) > np.abs(pposx-sub_pos + box))
-        pposx[bc_ind] += box
-        indz=np.where(np.all(np.abs(pposx[:,1:3]-sub_pos[1:3]) < self.sub_radii[ii],axis=1))
-        if np.size(indz) == 0:
+
+        #Gather all nearby cells, paying attention to periodic box conditions
+        for dim in np.arange(3):
+            jpos = sub_pos[dim]
+            jjpos = ipos[:,dim]
+            indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius) | (abs(jjpos-jpos+box) < grid_radius) | (abs(jjpos-jpos-box) < grid_radius)"))
+            ipos = ipos[indj]
+
+            # Update smooth and rho arrays as well:
+            ismooth = ismooth[indj]
+            irho = irho[indj]
+            irhoH0 = irhoH0[indj]
+
+            jjpos = ipos[:,dim]
+            # BC 1:
+            ind_bc1 = np.where(ne.evaluate("(abs(jjpos-jpos+box) < grid_radius)"))
+            ipos[ind_bc1,dim] = ipos[ind_bc1,dim] + box
+            # BC 2:
+            ind_bc2 = np.where(ne.evaluate("(abs(jjpos-jpos-box) < grid_radius)"))
+            ipos[ind_bc2,dim] = ipos[ind_bc2,dim] - box
+
+            #if np.size(ind_bc1)>0 or np.size(ind_bc2)>0:
+            #    print "Fixed some periodic cells!"
+
+        if np.size(ipos) == 0:
             return
+
         #coords in grid units
-        coords=fieldize.convert_centered(pposx[indz]-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
+        coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
-        smooth = (ismooth[indx])[indz]
+        smooth = ismooth
+        rho = irho
+        rhoH0 = irhoH0
         #Convert smoothing lengths to grid coordinates.
         smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
-        rho=((irho[indx])[indz])*epsilon*(1+self.redshift)**2
+        rho=rho*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
-        rhoH0=(irhoH0[indx])[indz]*epsilon*(1+self.redshift)**2
+        rhoH0=rhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
 
