@@ -164,7 +164,7 @@ class StarFormation:
         nH0=irho*inH0
         #Now in atoms /cm^3
 
-    def get_reproc_rhoHI(self,bar,rho_phys_thresh=0.1):
+    def get_tescari_rhoHI(self,bar,rho_phys_thresh=0.1):
         """Get a neutral hydrogen density in cm^-2
         applying the correction in eq. 1 of Tescari & Viel
         Parameters:
@@ -220,7 +220,8 @@ class StarFormation:
         inH0[dens_ind]=fcold
         return [irho,inH0]
 
-    def reproc_gas(self,bar,rho_phys_thresh=6.3e-3):
+
+    def get_yajima_rhoHI(self,bar):
         """Get a neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
         This is just neutral over a certain density."""
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
@@ -235,4 +236,104 @@ class StarFormation:
         #Interpolate between r1 and r2
         n=2.6851
         inH0[ind2] = (inH0[ind2]*(r1-irho[ind2])**n+(irho[ind2]-r2)**n)/(r1-r2)**n
-        return [irho,inH0]
+
+        #Calculate rho_HI
+        nH0=irho*inH0
+        #Now in atoms /cm^3
+        return nH0
+
+    def get_reproc_rhoHI(self, bar):
+        """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
+        return self.get_yajima_rhoHI(bar)
+
+#Opacities for the FG09 UVB from Rahmati 2012.
+gray_opac = [2.59e-18,2.37e-18,2.27e-18, 2.15e-18, 2.02e-18, 1.94e-18]
+gamma_UVB = [3.99e-14, 3.03e-13, 6e-13, 5.53e-13, 4.31e-13, 3.52e-13]
+zz = [0, 1, 2, 3, 4, 5]
+
+import scipy.interpolate.interpolate as intp
+
+class RahmatiRT:
+    """Class implementing the neutral fraction ala Rahmati 2012"""
+    def __init__(self, redshift,hubble = 0.71, fbar=0.17):
+        self.f_bar = fbar
+        self.redshift = redshift
+        #Interpolate for opacity and gamma_UVB
+        gamma_inter = intp.interp1d(zz,gamma_UVB)
+        gray_inter = intp.interp1d(zz,gray_opac)
+        self.gray_opac = gray_inter(redshift)
+        self.gamma_UVB = gamma_inter(redshift)
+        #Some constants and unit systems
+        #Internal gadget mass unit: 1e10 M_sun/h in g/h
+        self.UnitMass_in_g=1.989e43
+        #Internal gadget length unit: 1 kpc/h in cm/h
+        self.UnitLength_in_cm=3.085678e21
+        #Internal velocity unit : 1 km/s in cm/s
+        self.UnitVelocity_in_cm_per_s=1e5
+        #proton mass in g
+        self.protonmass=1.66053886e-24
+        self.hy_mass = 0.76 # Hydrogen massfrac
+        self.gamma=5./3
+        #Boltzmann constant (cgs)
+        self.boltzmann=1.38066e-16
+
+        self.hubble = hubble
+
+
+    def photo_rate(self, nH, temp):
+        """Photoionisation rate as  a function of density from Rahmati 2012, eq. 14.
+        Calculates Gamma_{Phot}.
+        Inputs: hydrogen density, temperature
+            n_H
+
+        The coefficients are their best-fit from appendix A."""
+        nSSh = self.self_shield_dens(temp)
+        photUVBratio= 0.98*(1+nH/nSSh**1.64)**-2.28+0.02*(1+nH/nSSh)**-0.84
+        return photUVBratio * self.gamma_UVB
+
+    def self_shield_dens(self,temp):
+        """Calculate the critical self-shielding density. Rahmati 202 eq. 13.
+        gray_opac and gamma_UVB are parameters of the UVB used.
+        gray_opac is in cm^2 (2.49e-18 is HM01 at z=3)
+        gamma_UVB in 1/s (1.16e-12 is HM01 at z=3)
+        temp is particle temperature in K
+        f_bar is the baryon fraction. 0.17 is roughly 0.045/0.265
+        Returns density in atoms/cm^3"""
+        T4 = temp/1e4
+        G12 = self.gamma_UVB/1e-12
+        return 6.73e-3 * (self.gray_opac / 2.49e-18)**(-2./3)*(T4)**0.17*(G12)**(2./3)*(self.f_bar/0.17)**(-1./3)
+
+    def recomb_rate(self, temp):
+        """The reconbination rate from Rahmati eq A3, also Hui Gnedin 1997.
+        Takes temperature in K, returns rate in cm^3 / s"""
+        lamb = 315614/temp
+        return 1.269e-13*lamb**1.503 / (1+(lamb/0.522)**0.47)**1.923
+
+    def neutral_fraction(self, nH, temp):
+        """The neutral fraction from Rahmati 2012 eq. A8"""
+        alpha_A = self.recomb_rate(temp)
+        #A6 from Theuns 98
+        LambdaT = 1.17e-10*temp**0.5*np.exp(-157809/temp)/(1+np.sqrt(temp/1e5))
+        A = alpha_A + LambdaT
+        B = 2*alpha_A + self.photo_rate(nH, temp)/nH + LambdaT
+
+        return (B - np.sqrt(B**2-4*A*alpha_A))/(2*A)
+
+    def get_reproc_rhoHI(self, bar):
+        """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
+        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+
+        ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)
+        #Calculate temperature from internal energy and electron abundance
+        nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
+        mu = 1.0 / ((self.hy_mass * (0.75 + nelec)) + 0.25)
+        temp = (self.gamma-1) *  mu * self.protonmass / self.boltzmann * ienergy
+        #Set the temperature of particles with densities of nH > 0.1 cm^-3 to 10^4 K.
+        ind = np.where(nH > 0.1)
+        temp[ind] = 1e4
+
+        nH0 = self.neutral_fraction(nH, temp) * nH
+
+        return nH0
+
