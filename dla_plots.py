@@ -174,7 +174,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_gas_grid[num],"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
 
     def plot_radial_profile(self,minM=3e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
