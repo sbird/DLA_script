@@ -84,7 +84,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     plt.figure(1)
 
-    if  False and len(sys.argv) < 2 or int(sys.argv[1]) == 2:
+    if  False and (len(sys.argv) < 2 or int(sys.argv[1]) == 2):
         #Load only the gas grids
         hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
         #Find a smallish halo
@@ -155,6 +155,28 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         dp.tight_layout_wrapper()
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_halo"))
         plt.clf()
+        #Get the right halo
+        g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:],maxpos=50.)[0]
+        try:
+            a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 1e10))
+            #Get the right halo for a smaller halo
+            s_mass=hplots.ahalo.sub_mass[a_shalo]
+            s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
+            g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+            #Make sure it has a gadget counterpart
+            if np.size(g_shalo) == 0:
+                nosmall=1
+                for i in np.where(hplots.ahalo.sub_mass < 1e10)[0]:
+                    s_mass=hplots.ahalo.sub_mass[i]
+                    s_pos=hplots.ahalo.sub_cofm[i,:]
+                    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
+                    if np.size(g_shalo) != 0 :
+                        a_shalo=i
+                        nosmall=0
+                        break
+        except ValueError:
+            nosmall=1
+
         hplots.ghalo.plot_pretty_halo(g_halo_0)
 	plt.title(r"Gadget, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
         dp.tight_layout_wrapper()
