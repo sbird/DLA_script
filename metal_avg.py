@@ -93,10 +93,10 @@ def get_met(num,base):
         overden = rho*Xh/mH  / nHc
         print np.max(overden)
 
-        for i in np.arange(0,np.size(denbins)):
-            ind = np.where(np.logical_and(overden > dedges[i], overden < dedges[i+1]))
-            totmass[i] += np.sum(mass[ind])
-            totmet[i] += np.sum(mass[ind]*metalic[ind])
+        for j in np.arange(0,np.size(denbins)):
+            ind = np.where(np.logical_and(overden > dedges[j], overden < dedges[j+1]))
+            totmass[j] += np.sum(mass[ind])
+            totmet[j] += np.sum(mass[ind]*metalic[ind])
 
     ind = np.where(totmass > 0)
     totmet[ind]/=totmass[ind]
