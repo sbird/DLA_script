@@ -234,6 +234,53 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
+    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot the median and scatter of sigma_DLA against mass."""
+        mass=np.logspace(np.log10(np.min(self.sub_mass)),np.log10(np.max(self.sub_mass)),num=7)
+        abin_mass = np.empty(np.size(mass)-1)
+        abin_mass = halohi.calc_binned_median(mass,self.sub_mass, self.sub_mass)
+        (amed,aloq,aupq)=self.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
+        #To avoid zeros
+        aloq-=1e-2
+        #Plot median sigma DLA
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
+
+    def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot sigma_DLA vs mass"""
+        self.plot_sigma_DLA_contour(DLA_cut,DLA_upper_cut)
+        self.plot_sigma_DLA_median(DLA_cut,DLA_upper_cut)
+        #Plot Axes stuff
+        ax=plt.gca()
+        ax.set_yscale('log')
+        ax.set_xscale('log')
+# 	ax.tick_params(labelsize=30)
+        ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
+        ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
+        if DLA_cut == 20.3:
+            plt.title(r"DLA cross-section at $z="+pr_num(self.redshift,1)+"$")
+        if DLA_cut == 17.:
+       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
+            plt.title(r"LLS cross-section at $z="+pr_num(self.redshift,1)+"$")
+        plt.xlim(self.minplot,self.maxplot)
+        if DLA_cut < 19:
+            plt.ylim(ymin=10)
+        else:
+            plt.ylim(ymin=1,ymax=10**4)
+        #Fits
+        tight_layout_wrapper()
+        plt.show()
+
+    def plot_sigma_DLA_contour(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot sigma_DLA against mass."""
+        asigDLA=self.get_sigma_DLA(DLA_cut,DLA_upper_cut)
+        #Plot sigma DLA
+        #As contour
+        ind = np.where(asigDLA > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.sub_mass[ind]),np.log10(asigDLA[ind]),bins=(30,30))
+        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+
 
 
 class PrettyBox(halohi.BoxHI,PrettyHalo):
@@ -375,19 +422,8 @@ class HaloHIPlots:
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot the median and scatter of sigma_DLA against mass."""
-        mass=np.logspace(np.log10(np.min(self.ahalo.sub_mass)),np.log10(np.max(self.ahalo.sub_mass)),num=7)
-        abin_mass = np.empty(np.size(mass)-1)
-        gbin_mass = np.empty(np.size(mass)-1)
-        abin_mass = halohi.calc_binned_median(mass,self.ahalo.sub_mass, self.ahalo.sub_mass)
-        gbin_mass = halohi.calc_binned_median(mass,self.ghalo.sub_mass, self.ghalo.sub_mass)
-        (amed,aloq,aupq)=self.ahalo.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
-        (gmed,gloq,gupq)=self.ghalo.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
-        #To avoid zeros
-        aloq-=1e-2
-        gloq-=1e-2
-        #Plot median sigma DLA
-        plt.errorbar(gbin_mass*1.1, gmed,yerr=[gloq,gupq],fmt='s',color=gcol,ms=10,elinewidth=4)
-        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
+        self.ahalo.plot_sigma_DLA_median(DLA_cut, DLA_upper_cut)
+        self.ghalo.plot_sigma_DLA_median(DLA_cut, DLA_upper_cut)
 
     def plot_sigma_DLA(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA vs mass"""
@@ -417,20 +453,8 @@ class HaloHIPlots:
 
     def plot_sigma_DLA_contour(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot sigma_DLA against mass."""
-        gsigDLA=self.ghalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
-        asigDLA=self.ahalo.get_sigma_DLA(DLA_cut,DLA_upper_cut)
-        #Plot sigma DLA
-        #As contour
-        ind = np.where(gsigDLA > 0)
-        (hist,xedges, yedges)=np.histogram2d(np.log10(self.ghalo.sub_mass[ind]),np.log10(gsigDLA[ind]),bins=(30,30))
-        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#87cefa",gcol2),alpha=0.6)
-        ind = np.where(asigDLA > 0)
-        (hist,xedges, yedges)=np.histogram2d(np.log10(self.ahalo.sub_mass[ind]),np.log10(asigDLA[ind]),bins=(30,30))
-        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        self.ahalo.plot_sigma_DLA_contour(DLA_cut, DLA_upper_cut)
+        self.ghalo.plot_sigma_DLA_contour(DLA_cut, DLA_upper_cut)
 
     def get_rel_sigma_DLA(self,DLA_cut=20.3, DLA_upper_cut=42.,min_sigma=15.):
         """
