@@ -7,10 +7,10 @@ import numpy as np
 class MassMap:
     """Grid of mass at given density and temperature."""
     def __init__(self):
-        self.minT=3.4
-        self.maxT=5.0
-        self.minR=-1.2
-        self.maxR=0.2
+        self.minT=-8
+        self.maxT=3
+        self.minR=-2
+        self.maxR=8
         self.map = np.zeros([300,300])
         self.r_size=np.shape(self.map)[0]
         self.t_size=np.shape(self.map)[1]
@@ -79,16 +79,19 @@ def get_temp_overden_mass(num,base,snap_file=0):
     escale = 1e6            # convert energy/unit mass to J kg^-1
 
     bar = f["PartType0"]
-    u=escale*np.array(bar['InternalEnergy'],dtype=np.float64) # J kg^-1
+    #u=escale*np.array(bar['InternalEnergy'],dtype=np.float64) # J kg^-1
+    met = np.array(bar['GFM_Metallicity'], dtype=np.float64)/0.02 #solar
+    ind2 = np.where(met < 1e-12)
+    met[ind2] = 1e-12
     rho=dscale*np.array(bar['Density'],dtype=np.float64) # kg m^-3, ,physical
     mass=np.array(bar['Masses'],dtype=np.float64)  #1e10 Msun
-    nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
+    #nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
     #nH0=np.array(bar['NeutralHydrogenAbundance'],dtype=np.float64)
     f.close()
     # Convert to physical SI units. Only energy and density considered here.
     ## Mean molecular weight
-    mu = 1.0 / ((Xh * (0.75 + nelec)) + 0.25)
-    templog=np.log10(mu/kB * (gamma-1) * u * mH)
+    #mu = 1.0 / ((Xh * (0.75 + nelec)) + 0.25)
+    #templog=np.log10(mu/kB * (gamma-1) * u * mH)
     ##### Critical matter/energy density at z=0.0
     rhoc = 3 * (H0*h100)**2 / (8. * math.pi * G) # kg m^-3
     ##### Mean hydrogen density of the Universe
@@ -96,7 +99,7 @@ def get_temp_overden_mass(num,base,snap_file=0):
     ### Hydrogen density as a fraction of the mean hydrogen density
     overden = np.log10(rho*Xh/mH  / nHc)
 
-    return (templog,overden,mass)
+    return (np.log10(met),overden,mass)
 
 def get_temp_overden_volume(num,base,snap_file=0):
     """Extract from a file the cell radius, rho/rho_c and mass
