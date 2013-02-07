@@ -8,8 +8,7 @@ Classes:
 """
 import numpy as np
 import numexpr as ne
-import readsubf
-import readsubfHDF5
+import halocat
 import hdfsim
 import h5py
 import math
@@ -21,12 +20,6 @@ import hsml
 import scipy.integrate as integ
 import scipy.stats
 import mpfit
-
-def is_masked(halo,sub_mass,sub_cofm, sub_radii):
-    """Find out whether a halo is a mere satellite and if so mask it"""
-    near=np.where(np.all((np.abs(sub_cofm[:,:]-sub_cofm[halo,:]) < sub_radii[halo]),axis=1))
-    #If there is a larger halo nearby, mask this halo
-    return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
 
 def calc_binned_median(bin_edge,xaxis,data):
     """Calculate the median value of an array in some bins"""
@@ -92,9 +85,16 @@ class TotalHaloHI:
             self.box=f["Header"].attrs["BoxSize"]
             self.npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
             self.omegam=f["Header"].attrs["Omega0"]
+            self.redshift=f["Header"].attrs["Redshift"]
             f.close()
             #Get halo catalog
-            (self.ind,self.mass,self.cofm,self.sub_radii)=self.find_wanted_halos()
+            #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
+            rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
+            #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
+            target_mass = self.box**3 * rhom / self.npart[0]
+            min_mass = target_mass * self.minpart
+            #Get halo catalog
+            (self.ind,self.mass,self.cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass)
             #Initialise arrays
             self.nHI=np.zeros(np.size(self.ind))
             self.MHI=np.zeros(np.size(self.ind))
@@ -128,54 +128,6 @@ class TotalHaloHI:
             ind=np.where(self.tot_found > 0)
             self.nHI[ind]/=self.tot_found[ind]
         return
-
-    def find_wanted_halos(self):
-        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos.
-        Select halos via their M_200 mass, defined in terms of the critical density."""
-        #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
-        rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
-        #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
-        target_mass = self.box**3 * rhom / self.npart[0]
-        #Get halo catalog
-	try:
-        	subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.group_pos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.group_r_crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-	except IOError:
-		# We might have the halo catalog stored in the new format, which is HDF5.
-        	subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.GroupPos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.Group_R_Crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-		# We might have the halo catalog stored in the new format, which is HDF5.
-
-        #For each halo
-        ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
-        ind=(np.ravel(ind)[ind2],)
-        sub_mass=sub_mass[ind2]
-        sub_cofm=sub_cofm[ind2]
-        sub_radii=sub_radii[ind2]
-#         sub_gas_mass=sub_gas_mass[ind2]
-        return (ind, sub_mass,sub_cofm,sub_radii)
 
 
 #     def get_virial_radius(self,mass):
@@ -328,7 +280,13 @@ class HaloHI:
             self.omegam=f["Header"].attrs["Omega0"]
             self.omegal=f["Header"].attrs["OmegaLambda"]
             f.close()
-            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=self.find_wanted_halos()
+            #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
+            rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
+            #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
+            target_mass = self.box**3 * rhom / self.npart[0]
+            min_mass = target_mass * self.minpart
+            #Get halo catalog
+            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass)
             self.nhalo=np.size(self.ind)
             if minpart == -1:
                 #global grid
@@ -463,10 +421,10 @@ class HaloHI:
             jpos = sub_pos[dim]
             jjpos = ipos[:,dim]
             indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius) | (abs(jjpos-jpos+box) < grid_radius) | (abs(jjpos-jpos-box) < grid_radius)"))
-            
+
             if np.size(indj) == 0:
                 return
-            
+
             ipos = ipos[indj]
 
             # Update smooth and rho arrays as well:
@@ -504,54 +462,6 @@ class HaloHI:
         rhoH0=rhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
-
-    def find_wanted_halos(self):
-        """When handed a halo catalogue, remove from it the halos that are close to other, larger halos.
-        Select halos via their M_200 mass, defined in terms of the critical density."""
-        #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
-        rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
-        #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
-        target_mass = self.box**3 * rhom / self.npart[0]
-        #Get halo catalog
-	try:
-        	subs=readsubf.subfind_catalog(self.snap_dir,self.snapnum,masstab=True,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.group_m_crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.group_pos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.group_m_crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.group_r_crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-	except IOError:
-		# We might have the halo catalog stored in the new format, which is HDF5.
-        	subs=readsubfHDF5.subfind_catalog(self.snap_dir,self.snapnum,long_ids=True)
-        	#Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        	ind=np.where(subs.Group_M_Crit200 > self.minpart*target_mass)
-        	#Store the indices of the halos we are using
-        	#Get particle center of mass, use group catalogue.
-        	sub_cofm=np.array(subs.GroupPos[ind])
-        	#halo masses in M_sun/h: use M_200
-        	sub_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
-        	#r200 in kpc.
-        	sub_radii = np.array(subs.Group_R_Crit200[ind])
-        	#Gas mass in M_sun/h
-#       	  sub_gas_mass=np.array(subs.sub_masstab[ind][:,0])*self.UnitMass_in_g/self.SolarMass_in_g
-        	del subs
-		# We might have the halo catalog stored in the new format, which is HDF5.
-
-        #For each halo
-        ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
-        ind=(np.ravel(ind)[ind2],)
-        sub_mass=sub_mass[ind2]
-        sub_cofm=sub_cofm[ind2]
-        sub_radii=sub_radii[ind2]
-#         sub_gas_mass=sub_gas_mass[ind2]
-        return (ind, sub_mass,sub_cofm,sub_radii)
 
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
         """Get the DLA cross-section for a single halo.
@@ -746,7 +656,7 @@ class HaloHI:
 
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
-            Ω_DLA = m_p H_0/(c f_HI rho_c) \int_10^20.3^Nmax  f(N,X) N dN
+            Ω_DLA = m_p H_0/(c f_HI rho_c) int_10^20.3^Nmax  f(N,X) N dN
         """
         (NHI_table, f_N) = self.column_density_function(minN=20.3,maxN=maxN)
         dNHI_table = np.arange(20.3, maxN, 0.2)
@@ -804,16 +714,6 @@ class HaloHI:
         #       cm/s   s/h   =>
         return light/h100*np.sqrt(self.omegam*(1+zz)**3+self.omegal)
 
-    def get_mean_halo_mass(self,params,mass=5e8):
-        """Get the mean halo mass for DLAs"""
-#         gsigDLA=self.get_sigma_DLA(DLA_cut,DLA_upper_cut)
-        #Generate mean halo mass
-#         g_mean_halo_mass = np.sum(self.sub_mass*gsigDLA)/np.sum(gsigDLA)
-        maxmass=np.log10(np.max(self.sub_mass))
-        abund=self.get_N_DLA_dz(params,mass,maxmass)/(self.drdz(self.redshift)/self.UnitLength_in_cm)
-        abund_mass = integ.quad(self.mass_integrand,np.log10(mass),maxmass, epsrel=1e-2,args=(params,))
-        return abund_mass[0]/abund
-
     def mass_integrand(self,log10M,params):
         """Integrand for above"""
         M=10**log10M
@@ -821,7 +721,7 @@ class HaloHI:
 
     def get_N_DLA_dz(self,params, mass=1e9,maxmass=12.5):
         """Get the DLA number density as a function of redshift, defined as:
-        d N_DLA / dz ( > M, z) = dr/dz int^\infinity_M n_h(M', z) sigma_DLA(M',z) dM'
+        d N_DLA / dz ( > M, z) = dr/dz int^infinity_M n_h(M', z) sigma_DLA(M',z) dM'
         where n_h is the Sheth-Torman mass function, and
         sigma_DLA is a power-law fit to self.sigma_DLA.
         Parameters:
