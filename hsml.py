@@ -7,6 +7,7 @@ import numpy as np
 def get_smooth_length(bar):
     """Figures out if the particles are from AREPO or GADGET
     and computes the smoothing length.
+    Note the Volume array in HDF5 is comoving and this returns a comoving smoothing length
     If we are Arepo, this smoothing length is  cell radius, where
     cell volume = 4/3 \pi (cell radius) **3 and cell volume = mass / density
     Arguments:
@@ -26,5 +27,4 @@ def get_smooth_length(bar):
     else:
         #If we are gadget, the SmoothingLength array is actually the smoothing length.
         radius=np.array(bar["SmoothingLength"],dtype=np.float64)
-        radius = hsml/1.5
     return radius
