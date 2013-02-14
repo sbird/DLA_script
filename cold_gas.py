@@ -302,4 +302,14 @@ class RahmatiRT:
 
         return nH0
 
+    def get_code_rhoHI(self, bar):
+        """Get a neutral hydrogen density using values given by Arepo
+        which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on."""
+        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+
+        nH0 = np.array(bar["NeutralHydrogenAbundance"]) * nH
+
+        return nH0
+
 
