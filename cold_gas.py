@@ -298,7 +298,7 @@ class RahmatiRT:
         ind = np.where(nH > 0.1)
         temp[ind] = 1e4
 
-        nH0 = self.neutral_fraction(nH, temp) * nH
+        nH0 = self.neutral_fraction(nH*(1+self.redshift)**3, temp) * nH
 
         return nH0
 
