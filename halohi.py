@@ -365,16 +365,16 @@ class HaloHI:
             print "Starting file ",fnum
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            #Returns neutral density in atoms/cm^3
+            #Returns neutral density in atoms/cm^3 (comoving)
             irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
-            # gas density in g/cm^3
+            # gas density in g/cm^3 (comoving)
             irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
             #Re-use sub_gas_grid to be metallicity
 #             irho=np.array(bar["Metallicity"],dtype=np.float64)
             protonmass=1.66053886e-24
             hy_mass = 0.76 # Hydrogen massfrac
-            # gas density in hydrogen atoms/cm^3
+            # gas density in hydrogen atoms/cm^3 (comoving)
             irho*=(hy_mass/protonmass)
             f.close()
             #Re-use sub_gas_grid to be molecular hydrogen
@@ -457,6 +457,7 @@ class HaloHI:
         if self.once:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
+        # Convert from comoving to physical
         rho=rho*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
         rhoH0=rhoH0*epsilon*(1+self.redshift)**2
