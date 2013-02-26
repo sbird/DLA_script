@@ -295,9 +295,11 @@ class HaloHI:
                 print "Found ",self.nhalo," halos with > ",minpart,"particles"
             #Set ngrid to be the gravitational softening length
             self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
-            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.set_nHI_grid()
+            if not skip_grid == 1:
+                self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            if not skip_grid == 2:
+                self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            self.set_nHI_grid(skip_grid)
         return
 
     def save_file(self):
@@ -350,7 +352,7 @@ class HaloHI:
         fH2[np.where(nHI < 0.1)] = 0
         return fH2
 
-    def set_nHI_grid(self):
+    def set_nHI_grid(self, skip_grid = None):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble)
@@ -368,30 +370,30 @@ class HaloHI:
             irhoH0 = star.get_code_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
             # gas density in g/cm^3 (comoving)
-            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
-            #Re-use sub_gas_grid to be metallicity
-#             irho=np.array(bar["Metallicity"],dtype=np.float64)
-            protonmass=1.66053886e-24
-            hy_mass = 0.76 # Hydrogen massfrac
-            # gas density in hydrogen atoms/cm^3 (comoving)
-            irho*=(hy_mass/protonmass)
+            if not skip_grid == 2:
+                irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+                protonmass=1.66053886e-24
+                hy_mass = 0.76 # Hydrogen massfrac
+                # gas density in hydrogen atoms/cm^3 (comoving)
+                irho*=(hy_mass/protonmass)
+            else:
+                irho = None
             f.close()
-            #Re-use sub_gas_grid to be molecular hydrogen
-#             fH2 = self.get_H2_frac(irhoH0)
-#             irhoH2 = irhoH0 * fH2
-#             irhoH0 *= (1-fH2)
             #Perform the grid interpolation
             [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
             del ipos
             del irhoH0
-            del irho
+            if not skip_grid == 2:
+                del irho
             del smooth
-        [np.log1p(grid,grid) for grid in self.sub_gas_grid]
+        if not skip_grid == 2:
+            [np.log1p(grid,grid) for grid in self.sub_gas_grid]
         [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
         #No /= in list comprehensions...  :|
         for i in xrange(0,self.nhalo):
-            self.sub_gas_grid[i]/=np.log(10)
+            if not skip_grid == 2:
+                self.sub_gas_grid[i]/=np.log(10)
             self.sub_nHI_grid[i]/=np.log(10)
         return
 
@@ -428,8 +430,10 @@ class HaloHI:
 
             # Update smooth and rho arrays as well:
             ismooth = ismooth[indj]
-            irho = irho[indj]
-            irhoH0 = irhoH0[indj]
+            if irho != None:
+                irho = irho[indj]
+            if irhoH0 != None:
+                irhoH0 = irhoH0[indj]
 
             jjpos = ipos[:,dim]
             # BC 1:
@@ -449,18 +453,20 @@ class HaloHI:
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
         smooth = ismooth
-        rho = irho
-        rhoH0 = irhoH0
         #Convert smoothing lengths to grid coordinates.
         smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
         # Convert from comoving to physical
-        rho=rho*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
-        rhoH0=rhoH0*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
+        if irho != None:
+            rho = irho
+            rho*=epsilon*(1+self.redshift)**2
+            fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
+        if irhoH0 != None:
+            rhoH0 = irhoH0
+            rhoH0=rhoH0*epsilon*(1+self.redshift)**2
+            fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
 
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
