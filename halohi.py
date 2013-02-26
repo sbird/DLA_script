@@ -1,6 +1,6 @@
 # vim: set fileencoding=utf-8
-"""Module for creating the DLA hydrogen density plots, as found in Tescari & Viel,
-and Nagamine, Springel and Hernquist, 2003.
+"""Module for creating the DLA hydrogen density plots. Can find integrated HI grids around halos (or across the whole box).
+   column density functions, cross-sections, etc.
 
 Classes:
     TotalHaloHI - Finds the average HI fraction in a halo
@@ -42,8 +42,7 @@ def calc_binned_percentile(bin_edge,xaxis,data,per=75):
     return percen
 
 class TotalHaloHI:
-    """Find the average HI fraction in a halo
-    This is like Figure 9 of Tescari & Viel"""
+    """Find the average HI fraction in a halo"""
     def __init__(self,snap_dir,snapnum,minpart=400):
         self.snap_dir=snap_dir
         self.snapnum=snapnum
