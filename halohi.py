@@ -113,7 +113,7 @@ class TotalHaloHI:
                 #Density in (g/h)/(cm/h)^3 = g/cm^3 h^2
                 irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)
                 #nH0 in atoms/cm^3 (NOTE NO h!)
-                inH0 = star.get_reproc_rhoHI(bar)
+                inH0 = star.get_code_rhoHI(bar)
                 #Convert to neutral fraction: this is in neutral atoms/total hydrogen.
                 inH0/=(irho*self.hubble**2*self.hy_mass/self.protonmass)
                 #So nH0 is dimensionless
@@ -366,7 +366,7 @@ class HaloHI:
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
             #Returns neutral density in atoms/cm^3 (comoving)
-            irhoH0 = star.get_reproc_rhoHI(bar)
+            irhoH0 = star.get_code_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
             # gas density in g/cm^3 (comoving)
             irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
@@ -824,7 +824,7 @@ class VelocityHI(HaloHI):
             # Velocity in cm/s
             vel = np.array(bar["Velocities"],dtype=np.float64)*self.UnitVelocity_in_cm_per_s
             #We will weight by neutral mass per cell
-            irhoH0 = star.get_reproc_rhoHI(bar)
+            irhoH0 = star.get_code_rhoHI(bar)
             irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
             #HI * Cell Mass, internal units
             mass = np.array(bar["Masses"],dtype=np.float64)*irhoH0/irho
