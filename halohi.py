@@ -660,6 +660,11 @@ class HaloHI:
         tot_f_N=(tot_f_N)/(dlogN*10**bin_center*dX*tot_cells)
         return (10**bin_center, tot_f_N)
 
+    def get_frac(self, threshold=20.3):
+        """Get the fraction of absorbers above the threshold, defaulting to the DLA density"""
+        DLA = np.where(self.sub_nHI_grid > threshold)
+        return np.size(self.sub_nHI_grid[ind])/ np.size(self.sub_nHI_grid)
+
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
             Ω_DLA = m_p H_0/(c f_HI rho_c) int_10^20.3^Nmax  f(N,X) N dN
