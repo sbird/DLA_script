@@ -237,7 +237,7 @@ class RahmatiRT:
         self.UnitVelocity_in_cm_per_s=1e5
         #proton mass in g
         self.protonmass=1.66053886e-24
-        self.hy_mass = 0.76 # Hydrogen massfrac
+        #self.hy_mass = 0.76 # Hydrogen massfrac
         self.gamma=5./3
         #Boltzmann constant (cgs)
         self.boltzmann=1.38066e-16
@@ -269,7 +269,7 @@ class RahmatiRT:
         return 6.73e-3 * (self.gray_opac / 2.49e-18)**(-2./3)*(T4)**0.17*(G12)**(2./3)*(self.f_bar/0.17)**(-1./3)
 
     def recomb_rate(self, temp):
-        """The reconbination rate from Rahmati eq A3, also Hui Gnedin 1997.
+        """The recombination rate from Rahmati eq A3, also Hui Gnedin 1997.
         Takes temperature in K, returns rate in cm^3 / s"""
         lamb = 315614/temp
         return 1.269e-13*lamb**1.503 / (1+(lamb/0.522)**0.47)**1.923
@@ -286,13 +286,16 @@ class RahmatiRT:
 
     def get_reproc_rhoHI(self, bar):
         """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
-        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
-
+        #Convert density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
+        #Hydrogen mass fraction
+        hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
+        #Now in hydrogen atoms / cm^3
+        nH/=hy_mass
         ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)
         #Calculate temperature from internal energy and electron abundance
         nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
-        mu = 1.0 / ((self.hy_mass * (0.75 + nelec)) + 0.25)
+        mu = 1.0 / ((hy_mass * (0.75 + nelec)) + 0.25)
         temp = (self.gamma-1) *  mu * self.protonmass / self.boltzmann * ienergy
         #Set the temperature of particles with densities of nH > 0.1 cm^-3 to 10^4 K.
         ind = np.where(nH > 0.1)
@@ -305,8 +308,12 @@ class RahmatiRT:
     def get_code_rhoHI(self, bar):
         """Get a neutral hydrogen density using values given by Arepo
         which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on."""
-        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+        #Convert density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
+        #Hydrogen mass fraction
+        hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
+        #Now in hydrogen atoms / cm^3
+        nH/=hy_mass
 
         nH0 = np.array(bar["NeutralHydrogenAbundance"]) * nH
 
