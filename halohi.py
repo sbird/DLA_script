@@ -376,16 +376,15 @@ class HaloHI:
                 hy_mass = 0.76 # Hydrogen massfrac
                 # gas density in hydrogen atoms/cm^3 (comoving)
                 irho*=(hy_mass/protonmass)
+                #Perform the grid interpolation
+                [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+                del irho
             else:
-                irho = None
+                [self.sub_gridize_single_file(ii,ipos,smooth,None,None,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
-            #Perform the grid interpolation
-            [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
             del ipos
             del irhoH0
-            if not skip_grid == 2:
-                del irho
             del smooth
         if not skip_grid == 2:
             [np.log1p(grid,grid) for grid in self.sub_gas_grid]
@@ -765,12 +764,12 @@ class BoxHI(HaloHI):
         self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
         if savefile==None:
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
             savefile_s = savefile
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=2,savefile=savefile_s)
         #global grid
         self.nhalo = 1
         self.sub_radii=np.array([self.box/2.])
@@ -798,8 +797,6 @@ class BoxHI(HaloHI):
         if self.once:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        rho=irho*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
         rhoH0=irhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
