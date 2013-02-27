@@ -662,7 +662,7 @@ class HaloHI:
     def get_frac(self, threshold=20.3):
         """Get the fraction of absorbers above the threshold, defaulting to the DLA density"""
         DLA = np.where(self.sub_nHI_grid > threshold)
-        return np.size(self.sub_nHI_grid[ind])/ np.size(self.sub_nHI_grid)
+        return np.size(self.sub_nHI_grid[DLA])/ np.size(self.sub_nHI_grid)
 
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
