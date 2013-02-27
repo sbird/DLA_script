@@ -798,7 +798,7 @@ class BoxHI(HaloHI):
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rhoH0=irhoH0*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
         return
 
 class VelocityHI(HaloHI):

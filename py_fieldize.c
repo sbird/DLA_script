@@ -47,7 +47,8 @@ double compute_sph_cell_weight(double rr, double r0)
 PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 {
     PyArrayObject *pos, *radii, *value, *field, *weights;
-    if(!PyArg_ParseTuple(args, "O!O!O!O!O!",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights) )
+    int periodic=0;
+    if(!PyArg_ParseTuple(args, "O!O!O!O!O!i",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights,&periodic) )
         return NULL;
     const npy_intp nval = PyArray_DIM(radii,0);
     const npy_intp nx = PyArray_DIM(field,0);
@@ -109,16 +110,60 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             printf("Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
             exit(1);
         }
-        //Some cells will be only partially in the array: only partially add them.
-        upgx = MIN(upgx,nx-1);
-        upgy = MIN(upgy,nx-1);
-        lowgy = MAX(lowgy, 0);
-        lowgx = MAX(lowgx, 0);
-        /*Then add the right fraction to the total array*/
-        for(int gy=lowgy;gy<=upgy;gy++)
-            for(int gx=lowgx;gx<=upgx;gx++){
+        /* Some cells will be only partially in the array: only partially add them.
+         * Then add the right fraction to the total array*/
+        #pragma omp parallel for
+        for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++)
+            for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
                 *((double *) PyArray_GETPTR2(field,gx,gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
             }
+        //Deal with cells that have wrapped around the edges of the grid
+        if (periodic){
+            //Wrapping y over
+            #pragma omp parallel for
+            for(int gy=nx-1;gy<=upgy;gy++){
+                //Wrapping only y over
+                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                    *((double *) PyArray_GETPTR2(field,gx,gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+                //y over, x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+                //y over, x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+            }
+            //Wrapping y under
+            #pragma omp parallel for
+            for(int gy=lowgy;gy<=0;gy++){
+                //Only y under
+                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                    *((double *) PyArray_GETPTR2(field,gx,gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+                //y under, x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+                //y under, x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+            }
+            //Finally wrap only x
+            #pragma omp parallel for
+            for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++){
+                //x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+                //x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                }
+            }
+        }
     }
 	return Py_BuildValue("i",nval);
 }

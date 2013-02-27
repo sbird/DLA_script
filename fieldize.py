@@ -446,12 +446,10 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
     dim=np.size(dim)
     if dim != 2:
         raise ValueError("Non 2D grid not supported!")
-    if periodic:
-        raise ValueError("Periodic grid not supported")
     if weights == None:
         weights = np.array([0])
 
-    nval = _SPH_Fieldize(pos, radii, value, field, weights)
+    nval = _SPH_Fieldize(pos, radii, value, field, weights,periodic)
     return field
 
     expr="""for(int p=0;p<nval;p++){
