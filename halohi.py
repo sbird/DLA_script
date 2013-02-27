@@ -325,8 +325,14 @@ class HaloHI:
         grp_grid = f.create_group("GridHIData")
         grp_gas_grid = f.create_group("GridGasData")
         for i in xrange(0,self.nhalo):
-            grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
-            grp_gas_grid.create_dataset(str(i),data=self.sub_gas_grid[i])
+            try:
+                grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
+            except AttributeError:
+                pass
+            try:
+                grp_gas_grid.create_dataset(str(i),data=self.sub_gas_grid[i])
+            except AttributeError:
+                pass
         f.close()
 
     def __del__(self):

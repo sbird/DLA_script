@@ -287,8 +287,8 @@ class PrettyBox(halohi.BoxHI,PrettyHalo):
     """
     As above but for the whole box grid
     """
-    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
-        halohi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None)
+    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
+        halohi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=reload_file,savefile=savefile)
 
 
 class PrettyTotalHI(halohi.TotalHaloHI):
