@@ -28,12 +28,18 @@ else
 endif
 .PHONY: all
 
-all: _fieldize_priv.so
+all: _fieldize_priv.so _autocorr_priv.so
 
 clean:
 	rm py_fieldize.o _fieldize_priv.so
+	rm py_autocorr.o _autocorr_priv.so
 
 py_fieldize.o: py_fieldize.c
 	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
 _fieldize_priv.so: py_fieldize.o
+	$(LINK) -shared $^ -o $@
+
+py_autocorr.o: autocorr.c
+	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
+_autocorr_priv.so: py_autocorr.o
 	$(LINK) -shared $^ -o $@
