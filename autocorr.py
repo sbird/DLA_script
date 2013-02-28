@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+from _autocorr_priv import _autocorr_list
 
 def autocorr_python(field):
     """Pure python implementation of the 1-d autocorrelation function.
@@ -27,6 +28,21 @@ def autocorr_python(field):
         autocorr[r]/=count[r]
 
     return autocorr
+
+
+def autocorr_list_c(plist, nbins, size, weight=1,norm=True):
+    """Find the autocorrelation function from a sparse list of discrete tracer points.
+       The field is assumed to be 1 at these points and zero elsewhere
+       list - list of points to autocorrelate. A tuple length n of 1xP arrays:
+       the output of an np.where on an n-d field
+       nbins - number of bins in output autocorrelation function
+       size - size of the original field (assumed square), so field has dimensions (size,size..) n times
+       weight - weight each point has: use 1/(avg. density)
+       norm - If true, normalise by the number of possible cells in each bin
+    """
+    #Make an array of shape (n,P)
+    plist = np.array(plist)
+    return _autocorr_list(plist, nbins, size, norm, weight)
 
 def autocorr_list(plist, nbins, size, weight=1,norm=True):
     """Find the autocorrelation function from a sparse list of discrete tracer points.
