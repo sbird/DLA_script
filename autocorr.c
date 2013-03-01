@@ -2,6 +2,7 @@
 
 #include <Python.h>
 #include "numpy/arrayobject.h"
+#include <omp.h>
 
 //Compute the absolute distance between two points
 double distance(const int * a, const int * b, const npy_intp dims)
@@ -13,36 +14,62 @@ double distance(const int * a, const int * b, const npy_intp dims)
     return sqrt(total);
 }
 
+
+//Compute the absolute distance between two points
+double distance2(const int * a, const int * b)
+{
+    const int dif1 = (*(a)-*(b));
+    const int dif2 = (*(a+1)-*(b+1));
+    return sqrt(dif1*dif1+dif2*dif2);
+}
 /*Find the autocorrelation function from a sparse list of discrete tracer points.
    The field is assumed to be 1 at these points and zero elsewhere
-   list - list of points to autocorrelate. A tuple length n of 1xP arrays:
+   list - list of points to autocorrelate. A tuple length n (n=2) of 1xP arrays:
    the output of an np.where on an n-d field
    nbins - number of bins in output autocorrelation function
    size - size of the original field (assumed square), so field has dimensions (size,size..) n times
-   weight - weight each point has: use 1/(avg. density)
    norm - If true, normalise by the number of possible cells in each bin
 */
 PyObject * _autocorr_list(PyObject *self, PyObject *args)
 {
     PyArrayObject *plist;
     int nbins, size,norm=1;
-    double weight=1.;
-    if(!PyArg_ParseTuple(args, "O!iiid",&PyArray_Type, &plist, &nbins, &size, &norm, &weight) )
+    if(!PyArg_ParseTuple(args, "O!iii",&PyArray_Type, &plist, &nbins, &size, &norm) )
         return NULL;
+    /*In practice assume this is 2*/
     npy_intp dims = PyArray_DIM(plist,0);
     npy_intp points = PyArray_DIM(plist,1);
     npy_intp npnbins = nbins;
     //Bin autocorrelation, must cover sqrt(dims)*size
     //so each bin has size sqrt(dims)*size /nbins
+    const int nproc = omp_get_max_threads();
+    int autocorr_C[nproc][nbins];
+    memset(autocorr_C,0,nproc*nbins*sizeof(int));
+    //Avg. density of the field: rho-bar
+    const double avg = points/(1.*size*size);
+    #pragma omp parallel
+    {
+        const int tid = omp_get_thread_num();
+        #pragma omp for
+        for(int b=0; b<points; b++){
+            for(int a=0; a<points; a++){
+                double rr = distance2(PyArray_GETPTR2(plist,0,a), PyArray_GETPTR2(plist,0,b));
+                //Which bin to add this one to?
+                int cbin = floor(rr * nbins / (size*sqrt(dims)));
+                autocorr_C[tid][cbin]+=1;
+            }
+        }
+    }
     PyArrayObject *autocorr = (PyArrayObject *) PyArray_SimpleNew(1,&npnbins,NPY_DOUBLE);
     PyArray_FILLWBYTE(autocorr, 0);
-    for(int b=0; b<points; b++)
-        for(int a=0; a<points; a++){
-            double rr = distance(PyArray_GETPTR2(plist,0,a), PyArray_GETPTR2(plist,0,b),dims);
-            //Which bin to add this one to?
-            int cbin = floor(rr * nbins / size*sqrt(dims));
-            *(double *)PyArray_GETPTR1(autocorr,cbin)+=weight;
+    for(int tid=0; tid < nproc; tid++){
+        for(int nn=0; nn< nbins; nn++){
+            *(double *)PyArray_GETPTR1(autocorr,nn)+=autocorr_C[tid][nn];
         }
+    }
+    /*Normalise field*/
+    for(int nn=0; nn< nbins; nn++)
+        *(double *)PyArray_GETPTR1(autocorr,nn) = *(double *)PyArray_GETPTR1(autocorr,nn)/avg/avg-1;
 
     if(norm){
         double count[nbins];
@@ -71,7 +98,7 @@ PyObject * _autocorr_list(PyObject *self, PyObject *args)
 static PyMethodDef __autocorr[] = {
   {"_autocorr_list", _autocorr_list, METH_VARARGS,
    "Calculate the autocorrelation function"
-   "    Arguments: plist, nbins, size, norm, weight"
+   "    Arguments: plist, nbins, size, norm"
    "    "},
   {NULL, NULL, 0, NULL},
 };
