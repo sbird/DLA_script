@@ -3,6 +3,7 @@
 
 import numpy as np
 from _autocorr_priv import _autocorr_list
+from scipy.special import j0
 
 def autocorr_python(field):
     """Pure python implementation of the 1-d autocorrelation function.
@@ -30,7 +31,7 @@ def autocorr_python(field):
     return autocorr
 
 
-def autocorr_list_c(plist, nbins, size, weight=1,norm=True):
+def autocorr_list_c(plist, nbins, size,norm=True):
     """Find the autocorrelation function from a sparse list of discrete tracer points.
        The field is assumed to be 1 at these points and zero elsewhere
        list - list of points to autocorrelate. A tuple length n of 1xP arrays:
@@ -42,7 +43,7 @@ def autocorr_list_c(plist, nbins, size, weight=1,norm=True):
     """
     #Make an array of shape (n,P)
     plist = np.array(plist)
-    return _autocorr_list(plist, nbins, size, norm, weight)
+    return _autocorr_list(plist, nbins, size, norm)
 
 def autocorr_list(plist, nbins, size, weight=1,norm=True):
     """Find the autocorrelation function from a sparse list of discrete tracer points.
@@ -65,7 +66,7 @@ def autocorr_list(plist, nbins, size, weight=1,norm=True):
         for a in xrange(points):
             rr = distance(plist[:,a], plist[:,b])
             #Which bin to add this one to?
-            cbin = np.floor(rr * nbins / size*np.sqrt(dims))
+            cbin = np.floor(rr * nbins / (size*np.sqrt(dims)))
             autocorr[cbin]+=weight
 
     if norm:
@@ -89,4 +90,19 @@ def autocorr_list(plist, nbins, size, weight=1,norm=True):
 
 def distance(a, b):
     """Compute the absolute distance between two points"""
-    return np.sqrt(np.sum((a-b)**2))
+    return np.sqrt(np.sum((a-b)**2))from scipy.special import j0
+
+def autofrompower(k, pk,rr):
+    """From Challinor's structure notes.
+        P(k) =  < δ δ*>
+        Δ^2 = P(k) k^3/(2π^2)
+        ζ(r) = \int dk/k Δ^2 j_0(kr)
+             = \int dk (k^2) P(k) j_0(kr) / (2π^2)
+        Arguments:
+            k - k values
+            pk - power spectrum
+            r - values of r = | x-y |
+                at which to evaluate the autocorrelation
+    """
+    auto = np.array([np.sum(pk*j0(k*r)*k**2/2/math.pi**2)/np.size(k) for r in rr])
+    return auto

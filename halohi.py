@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # vim: set fileencoding=utf-8
 """Module for creating the DLA hydrogen density plots. Can find integrated HI grids around halos (or across the whole box).
    column density functions, cross-sections, etc.
@@ -651,24 +652,25 @@ class HaloHI:
             grids = self.sub_nHI_grid
         elif grids == 1:
             grids = self.sub_gas_grid
-        NHI_table = np.arange(minN, maxN, dlogN)
-        bin_center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        NHI_table = 10**np.arange(minN, maxN, dlogN)
+        center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
         tot_cells = np.sum(self.ngrid**2)
         if np.size(self.sub_mass) == np.shape(grids)[0]:
             ind = np.where((self.sub_mass < 10.**maxM)*(self.sub_mass > 10.**minM))
-            array=np.array([np.histogram(np.ravel(grid),NHI_table) for grid in grids[ind]])
+            array=np.array([np.histogram(np.ravel(grid),np.log10(NHI_table)) for grid in grids[ind]])
             tot_f_N = np.sum(array[:,0])
         else:
-            tot_f_N = np.histogram(grids,NHI_table)[0]
-        tot_f_N=(tot_f_N)/(dlogN*10**bin_center*dX*tot_cells)
-        return (10**bin_center, tot_f_N)
+            tot_f_N = np.histogram(grids,np.log10(NHI_table))[0]
+        tot_f_N=(tot_f_N)/(width*dX*tot_cells)
+        return (center, tot_f_N)
 
     def get_frac(self, threshold=20.3):
         """Get the fraction of absorbers above the threshold, defaulting to the DLA density"""
         DLA = np.where(self.sub_nHI_grid > threshold)
-        return np.size(self.sub_nHI_grid[DLA])/ np.size(self.sub_nHI_grid)
+        return np.size(self.sub_nHI_grid[DLA])/ (1.*np.size(self.sub_nHI_grid))
 
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
