@@ -1,9 +1,19 @@
-"""Module to compute the autocorrelation function of a field
+# -*- coding: utf-8 -*-
+"""Module to compute the autocorrelation function of a field:
+this uses the naive O(n^2) method.
+The idea here was that because our field is sparse,
+n would be small. However, this fails because you
+need to normalise by the number of modes per bin,
+and computing that is still O(n^2).
+It should be possible to do this analytically,
+but I have not. The code remains in case I find a use for it later.
 """
 
 import numpy as np
-from _autocorr_priv import _autocorr_list
+# from _autocorr_priv import _autocorr_list
+import _autocorr_priv
 from scipy.special import j0
+import math
 
 def autocorr_python(field):
     """Pure python implementation of the 1-d autocorrelation function.
@@ -31,7 +41,7 @@ def autocorr_python(field):
     return autocorr
 
 
-def autocorr_list_c(plist, nbins, size,norm=True):
+def autocorr_list_c(plist, nbins, size):
     """Find the autocorrelation function from a sparse list of discrete tracer points.
        The field is assumed to be 1 at these points and zero elsewhere
        list - list of points to autocorrelate. A tuple length n of 1xP arrays:
@@ -43,7 +53,7 @@ def autocorr_list_c(plist, nbins, size,norm=True):
     """
     #Make an array of shape (n,P)
     plist = np.array(plist)
-    return _autocorr_list(plist, nbins, size, norm)
+    return _autocorr_priv.autocorr_list(plist, nbins, size)
 
 def autocorr_list(plist, nbins, size, weight=1,norm=True):
     """Find the autocorrelation function from a sparse list of discrete tracer points.
@@ -70,6 +80,7 @@ def autocorr_list(plist, nbins, size, weight=1,norm=True):
             autocorr[cbin]+=weight
 
     if norm:
+        autocorr /= size*size
         for nn in xrange(0,nbins):
             #Count number of square bins in a circle of radius sqrt(dims)*size
             #This is 4 * (quarter circle)
@@ -90,14 +101,14 @@ def autocorr_list(plist, nbins, size, weight=1,norm=True):
 
 def distance(a, b):
     """Compute the absolute distance between two points"""
-    return np.sqrt(np.sum((a-b)**2))from scipy.special import j0
+    return np.sqrt(np.sum((a-b)**2))
 
 def autofrompower(k, pk,rr):
     """From Challinor's structure notes.
         P(k) =  < δ δ*>
         Δ^2 = P(k) k^3/(2π^2)
-        ζ(r) = \int dk/k Δ^2 j_0(kr)
-             = \int dk (k^2) P(k) j_0(kr) / (2π^2)
+        ζ(r) = int dk/k Δ^2 j_0(kr)
+             = int dk (k^2) P(k) j_0(kr) / (2π^2)
         Arguments:
             k - k values
             pk - power spectrum
@@ -106,3 +117,26 @@ def autofrompower(k, pk,rr):
     """
     auto = np.array([np.sum(pk*j0(k*r)*k**2/2/math.pi**2)/np.size(k) for r in rr])
     return auto
+
+def modecount(box, nbins):
+    """Count the modes in each bin."""
+    return _autocorr_priv.modecount(box, nbins)
+
+def modecount2(box,nbins):
+    """An analyitc approximation to modecount, above. Does not work because of finite box-size effects"""
+    count = np.zeros(nbins)
+    for nn in xrange(0,nbins):
+        #Count number of square bins in a circle of radius sqrt(dims)*size,
+        #intersecting with a square box of length L
+        #This is 4 * (quarter circle)
+        # = 4 * sum(y < r) \sqrt(r^2-y^2)
+        #Maximal radius in this bin
+        rr = (1+nn)*np.sqrt(2)*box/(1.*nbins)
+        #Vector of y values
+        yy = np.arange(0,np.floor(rr))
+        #Vector of integrands along x axis
+        count[nn] = 4*np.sum(np.ceil(np.sqrt(rr**2 - yy**2)))
+    #Take off the modes in previous bin to get an annulus
+    for nn in xrange(nbins-1,0,-1):
+        count[nn] -= count[nn-1]
+

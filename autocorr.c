@@ -33,8 +33,8 @@ double distance2(const int * a, const int * b)
 PyObject * _autocorr_list(PyObject *self, PyObject *args)
 {
     PyArrayObject *plist;
-    int nbins, size,norm=1;
-    if(!PyArg_ParseTuple(args, "O!iii",&PyArray_Type, &plist, &nbins, &size, &norm) )
+    int nbins, size;
+    if(!PyArg_ParseTuple(args, "O!iii",&PyArray_Type, &plist, &nbins, &size) )
         return NULL;
     /*In practice assume this is 2*/
     npy_intp dims = PyArray_DIM(plist,0);
@@ -42,7 +42,7 @@ PyObject * _autocorr_list(PyObject *self, PyObject *args)
     npy_intp npnbins = nbins;
     //Bin autocorrelation, must cover sqrt(dims)*size
     //so each bin has size sqrt(dims)*size /nbins
-    const int nproc = omp_get_max_threads();
+    const int nproc = omp_get_num_procs();
     int autocorr_C[nproc][nbins];
     memset(autocorr_C,0,nproc*nbins*sizeof(int));
     //Avg. density of the field: rho-bar
@@ -67,38 +67,41 @@ PyObject * _autocorr_list(PyObject *self, PyObject *args)
             *(double *)PyArray_GETPTR1(autocorr,nn)+=autocorr_C[tid][nn];
         }
     }
-    /*Normalise field*/
-    for(int nn=0; nn< nbins; nn++)
-        *(double *)PyArray_GETPTR1(autocorr,nn) = *(double *)PyArray_GETPTR1(autocorr,nn)/avg/avg-1;
-
-    if(norm){
-        double count[nbins];
-        for(int nn=0; nn< nbins; nn++){
-            //Count number of square bins in a circle of radius sqrt(dims)*size
-            //This is 4 * (quarter circle)
-            // = 4 * sum(y < r) \sqrt(r^2-y^2)
-            //Maximal radius in this bin
-            double rr = (1+nn)*sqrt(dims)*size/(1.*nbins);
-            //Vector of y values
-            count[nn]=0;
-            for(int yy=0; yy<floor(rr);yy++){
-                //Vector of integrands along x axis
-                count[nn] += 4*ceil(sqrt(rr*rr - yy*yy));
-            }
-        }
-        //Take off the modes in previous bin to get an annulus
-        for(int nn=nbins-1; nn > 0; nn--)
-            count[nn] -= count[nn-1];
-        for(int nn=0; nn< nbins; nn++)
-            *(double *)PyArray_GETPTR1(autocorr,nn)/=count[nn];
-    }
     return Py_BuildValue("O", autocorr);
 }
 
+
+PyObject * _modecount(PyObject *self, PyObject *args)
+{
+    int box;
+    int nbins;
+    if(!PyArg_ParseTuple(args, "ii",&box, &nbins) )
+        return NULL;
+    int count[nbins];
+    memset(count,0,nbins*sizeof(int));
+    npy_intp npnbins = nbins;
+    for (int a=0; a<box;a++)
+    for (int b=0; b<box;b++)
+    for (int x=0; x<box;x++)
+    for (int y=0; y<box;y++){
+       double rr = sqrt((x-a)*(x-a)+(y-b)*(y-b));
+       int cbin = floor(rr * nbins / (1.*box*sqrt(2.)));
+       count[cbin]++;
+    }
+    PyArrayObject *pycount = (PyArrayObject *) PyArray_SimpleNew(1,&npnbins,NPY_INT);
+    for(int nn=0; nn< nbins; nn++){
+        *(double *)PyArray_GETPTR1(pycount,nn)=count[nn];
+    }
+    return Py_BuildValue("O", pycount);
+}
+
+
 static PyMethodDef __autocorr[] = {
-  {"_autocorr_list", _autocorr_list, METH_VARARGS,
+  {"autocorr_list", _autocorr_list, METH_VARARGS,
    "Calculate the autocorrelation function"
    "    Arguments: plist, nbins, size, norm"
+   "    "},
+  {"modecount", _modecount, METH_VARARGS,
    "    "},
   {NULL, NULL, 0, NULL},
 };
