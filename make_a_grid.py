@@ -15,8 +15,9 @@ snapnum=sys.argv[2]
 # 124,
 #]
 
-# ahalo=halohi.HaloHI(base,snapnum,minpart)
-ahalo=halohi.VelocityHI(base,snapnum,minpart)
+base="/home/spb/data/finals/FINAL_E_NC/output"
+# ahalo=halohi.HaloHI(base,snapnum,minpart,reload_file=True)
+ahalo=halohi.BoxHI(base,snapnum, reload_file=True)
 ahalo.save_file()
 # ahalo=halohi.TotalHaloHI(base,snapnum,minpart)
 # ahalo.save_file()

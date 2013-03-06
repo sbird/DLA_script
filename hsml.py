@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """A small module for computing the smoothing length of a particle simulation.
 (Non-trivial in Arepo)"""
 
@@ -9,7 +10,7 @@ def get_smooth_length(bar):
     and computes the smoothing length.
     Note the Volume array in HDF5 is comoving and this returns a comoving smoothing length
     If we are Arepo, this smoothing length is  cell radius, where
-    cell volume = 4/3 \pi (cell radius) **3 and cell volume = mass / density
+    cell volume = 4/3 π (cell radius) **3 and cell volume = mass / density
     Arguments:
         Baryon particles from a simulation
     Returns:

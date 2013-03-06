@@ -1,4 +1,4 @@
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 """
 This is a module for making plots like those in Tescari & Viel, based on the data gathered in the Halohi module
 Figures implemented:
@@ -61,6 +61,7 @@ gadget_halo_p = {
           }
 
 def tab_to_latex():
+    """Convert above table to latex format"""
     i = 4
     for snap in (90, 141, 191):
         print str(i),"  & Arepo ",
@@ -90,6 +91,7 @@ def pr_num(num,rnd=2):
 
 
 def tight_layout_wrapper():
+    """Wrap tight_layout for matplotlib backends like ps which don't have it"""
     try:
         plt.tight_layout()
     except AttributeError:
@@ -126,7 +128,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],r"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_cut_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
         """
@@ -253,15 +255,15 @@ class PrettyHalo(halohi.HaloHI):
         ax=plt.gca()
         ax.set_yscale('log')
         ax.set_xscale('log')
-# 	ax.tick_params(labelsize=30)
+#       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.redshift,1)+"$")
         if DLA_cut == 17.:
-       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
+            ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
             plt.title(r"LLS cross-section at $z="+pr_num(self.redshift,1)+"$")
-        plt.xlim(self.minplot,self.maxplot)
+        #plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
             plt.ylim(ymin=10)
         else:
@@ -290,6 +292,7 @@ class PrettyBox(halohi.BoxHI,PrettyHalo):
     def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
         halohi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=reload_file,savefile=savefile)
 
+import scipy
 
 class PrettyTotalHI(halohi.TotalHaloHI):
     """Derived class for plotting total nHI frac and total nHI mass
@@ -434,13 +437,13 @@ class HaloHIPlots:
         ax=plt.gca()
         ax.set_yscale('log')
         ax.set_xscale('log')
-# 	ax.tick_params(labelsize=30)
+#       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)",size=25)
         ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)",size=25)
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         if DLA_cut == 17.:
-       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)",size=25)
+            ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)",size=25)
             plt.title(r"LLS cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
@@ -588,12 +591,12 @@ class HaloHIPlots:
         try:
             ind = np.where(np.logical_and(self.ahalo.sub_mass > minM, self.ahalo.sub_mass < maxM))
             gind = np.where(np.logical_and(self.ghalo.sub_mass > minM, self.ghalo.sub_mass < maxM))
-	    print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
+            print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI",lw=4)
             plt.semilogy(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI",lw=4)
-	    RR = np.linspace(minR,maxR,100)
+            RR = np.linspace(minR,maxR,100)
             plt.semilogy(RR,1e-5+2*math.pi*RR/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density",lw=4)
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
@@ -618,8 +621,8 @@ class HaloHIPlots:
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
             plt.ylim(1e-2,20*DLAdens)
-	else:
-	    plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
+        else:
+            plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
         plt.xlim(minR,maxR)
         tight_layout_wrapper()
         plt.show()

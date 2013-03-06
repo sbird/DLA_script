@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 """Short script to read cloudy table files and output numpy arrays."""
 
 import numpy as np
@@ -91,7 +92,6 @@ class CloudyTable:
     """Class to interpolate tables from cloudy for a desired density metallicity and redshift"""
     def __init__(self,directory):
         """Read a cloudy table from somewhere"""
-        #TODO: Read the cloudy file
         self.reds = np.array([0])
         self.mets = np.array([-2,-1,0,1])
         self.dens = np.array([-6,-4,-2,0])

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Script for making various DLA-related plots"""
 
 import matplotlib
@@ -55,9 +56,10 @@ if len(sys.argv) > 1 and int(sys.argv[1]) == 1:
         plt.clf()
 
 def print_stuff(string):
-    for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
-        adir=path.join(base,string)
-        ahalo=dp.PrettyHalo(adir,snapnum,minpart,skip_grid=2)
+    """Routine to print the parameters of the fit in a format that can be inserted into python"""
+    for (bs,snp) in [(b,s) for b in bases for s in snaps]:
+        adir=path.join(bs,string)
+        ahalo=dp.PrettyHalo(adir,snp,minpart,skip_grid=2)
         ap=ahalo.get_sDLA_fit()
         print ahalo.snapnum," : [",
         for a in ap:
@@ -151,7 +153,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         plt.clf()
 
         hplots.ahalo.plot_pretty_halo(0)
-	plt.title(r"Arepo, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.title(r"Arepo, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
         dp.tight_layout_wrapper()
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_halo"))
         plt.clf()
@@ -178,18 +180,18 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
             nosmall=1
 
         hplots.ghalo.plot_pretty_halo(g_halo_0)
-	plt.title(r"Gadget, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.title(r"Gadget, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
         dp.tight_layout_wrapper()
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_halo"))
 
         plt.clf()
         hplots.ahalo.plot_pretty_cut_halo(0)
-	plt.title(r"Arepo, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.title(r"Arepo, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
         dp.tight_layout_wrapper()
         save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"pretty_cut_halo"))
         plt.clf()
         hplots.ghalo.plot_pretty_cut_halo(g_halo_0)
-	plt.title(r"Gadget, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
+        plt.title(r"Gadget, $\mathrm{z}="+dp.pr_num(hplots.ahalo.redshift,1)+"$")
         dp.tight_layout_wrapper()
         save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"pretty_cut_halo"))
 
@@ -211,7 +213,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
             plt.clf()
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 3:
-	plt.clf()
+        plt.clf()
         hplots.plot_sigma_DLA()
         save_figure(path.join(outdir,"sigma_DLA_"+str(snapnum)))
 
@@ -255,6 +257,7 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
     del hplots
 
 def plot_omega_DLA():
+    """Plot Omega_DLA for a variety of redshifts"""
     #Cutoff is NHI = 21.75
     ar_om_DLA = [0.0438255320185,0.0877819801446,0.713437467697,1.46144716284,2.60101048655]
     gad_om_DLA = [0.084774233630, 0.180307848083,0.36464657397931499,0.70912333103719749,1.22997188625,1.95213972877,2.63684502775]
