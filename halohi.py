@@ -672,6 +672,15 @@ class HaloHI:
         DLA = np.where(self.sub_nHI_grid > threshold)
         return np.size(self.sub_nHI_grid[DLA])/ (1.*np.size(self.sub_nHI_grid))
 
+    def get_discrete_array(self,threshold=20.3):
+        """Get an array which is 1 where NHI is over the threshold, and zero elsewhere.
+        Then normalise it so it has mean 0."""
+        ind = np.where(self.sub_nHI_grid > threshold)
+        disc = np.zeros(np.shape(self.sub_nHI_grid))
+        disc[ind] = 1
+        disc = disc/np.mean(disc)-1.
+        return disc
+
     def omega_DLA(self, maxN):
         """Compute Omega_DLA, defined as:
             Ω_DLA = m_p H_0/(c f_HI rho_c) int_10^20.3^Nmax  f(N,X) N dN
@@ -808,6 +817,7 @@ class BoxHI(HaloHI):
         rhoH0=irhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
         return
+
 
 class VelocityHI(HaloHI):
     """Class for computing velocity diagrams"""
