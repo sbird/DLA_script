@@ -12,7 +12,6 @@ but I have not. The code remains in case I find a use for it later.
 import numpy as np
 # from _autocorr_priv import _autocorr_list
 import _autocorr_priv
-from scipy.special import j0
 import math
 
 def autocorr_python(field):
@@ -102,21 +101,6 @@ def autocorr_list(plist, nbins, size, weight=1,norm=True):
 def distance(a, b):
     """Compute the absolute distance between two points"""
     return np.sqrt(np.sum((a-b)**2))
-
-def autofrompower(k, pk,rr):
-    """From Challinor's structure notes.
-        P(k) =  < δ δ*>
-        Δ^2 = P(k) k^3/(2π^2)
-        ζ(r) = int dk/k Δ^2 j_0(kr)
-             = int dk (k^2) P(k) j_0(kr) / (2π^2)
-        Arguments:
-            k - k values
-            pk - power spectrum
-            r - values of r = | x-y |
-                at which to evaluate the autocorrelation
-    """
-    auto = np.array([np.sum(pk*j0(k*r)*k**2/2/math.pi**2)/np.size(k) for r in rr])
-    return auto
 
 def modecount(box, nbins):
     """Count the modes in each bin."""
