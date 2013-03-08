@@ -3,7 +3,6 @@
    column density functions, cross-sections, etc.
 
 Classes:
-    TotalHaloHI - Finds the average HI fraction in a halo
     HaloHI - Creates a grid around the halo center with the HI fraction calculated at each grid cell
 """
 import numpy as np
@@ -613,111 +612,4 @@ class HaloHI:
         #sigma_DLA_analytic is in kpc^2, while halo_mass is in h^4 M_sun^-1 Mpc^(-3), and M is in M_sun/h.
         #Output therefore in kpc/h
         return self.sDLA_analytic(M,params,20.3)*self.hubble**2*M/(10**9)*self.halo_mass.dndm(M)
-
-class BoxHI(HaloHI):
-    """Class for calculating a large grid encompassing the whole simulation.
-    Stores a big grid projecting the neutral hydrogen along the line of sight for the whole box.
-
-    Parameters:
-        dir - Simulation directory
-        snapnum - Number of simulation
-        reload_file - Ignore saved files if true
-        self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
-        self.sub_mass is a list of halo masses
-        self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
-        if savefile==None:
-            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
-        else:
-            savefile_s = savefile
-        self.nhalo = 1
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=2,savefile=savefile_s)
-        #global grid
-        self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
-        return
-
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid,weights=None):
-        """Helper function for sub_gas_grid and sub_nHI_grid
-            that puts data arrays loaded from a particular file onto the grid.
-            Arguments:
-                pos - Position array
-                rho - Density array to be interpolated
-                smooth - Smoothing lengths
-                sub_grid - Grid to add the interpolated data to
-        """
-        #Linear dimension of each cell in cm:
-        #               kpc/h                   1 cm/kpc
-        epsilon=self.box/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
-        #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid[ii],self.box)
-        #NH0
-        smooth = ismooth
-        #Convert smoothing lengths to grid coordinates.
-        smooth*=(self.ngrid[ii]/self.box)
-        if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*self.box/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
-            self.once=False
-        rhoH0=irhoH0*epsilon*(1+self.redshift)**2
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
-        return
-
-
-class VelocityHI(HaloHI):
-    """Class for computing velocity diagrams"""
-    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
-        if savefile==None:
-            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"velocity_grid.hdf5")
-        else:
-            savefile_s = savefile
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
-        return
-
-    def set_nHI_grid(self):
-        """Set up the grid around each halo where the velocity HI is calculated.
-        """
-        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
-        self.once=True
-        #This is the real HI grid
-        nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-        #Now grid the HI for each halo
-        for fnum in xrange(0,500):
-            try:
-                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
-            except IOError:
-                break
-            print "Starting file ",fnum
-            bar=f["PartType0"]
-            ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            smooth = hsml.get_smooth_length(bar)
-            # Velocity in cm/s
-            vel = np.array(bar["Velocities"],dtype=np.float64)*self.UnitVelocity_in_cm_per_s
-            #We will weight by neutral mass per cell
-            irhoH0 = star.get_code_rhoHI(bar)
-            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
-            #HI * Cell Mass, internal units
-            mass = np.array(bar["Masses"],dtype=np.float64)*irhoH0/irho
-            f.close()
-            #Perform the grid interpolation
-            #sub_gas_grid is x velocity
-            #sub_nHI_grid is y velocity
-            [self.sub_gridize_single_file(ii,ipos,smooth,vel[:,1]*mass,self.sub_gas_grid,vel[:,2]*mass,self.sub_nHI_grid,mass) for ii in xrange(0,self.nhalo)]
-            #Find the HI density also, so that we can discard
-            #velocities in cells that are not DLAs.
-            [self.sub_gridize_single_file(ii,ipos,smooth,irhoH0,nHI_grid,np.zeros(np.size(irhoH0)),nHI_grid) for ii in xrange(0,self.nhalo)]
-            #Explicitly delete some things.
-            del ipos
-            del irhoH0
-            del irho
-            del smooth
-            del mass
-            del vel
-        #No /= in list comprehensions...  :|
-        #Average over z
-        for i in xrange(0,self.nhalo):
-            self.sub_gas_grid[i]/=self.sub_radii[i]
-            self.sub_nHI_grid[i]/=self.sub_radii[i]
-            ind = np.where(nHI_grid[i] < 10**20.3)
-            self.sub_nHI_grid[i][ind] = 0
-            self.sub_gas_grid[i][ind] = 0
-        return
 
