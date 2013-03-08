@@ -253,11 +253,11 @@ class HaloHI:
             self.sub_radii=np.array(grid_file["sub_radii"])
 #             self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
             self.ind=np.array(grid_file["halo_ind"])
-            self.nhalo=np.size(self.ind)
-            if minpart == -1:
-                #global grid
-                self.nhalo = 1
-                self.sub_radii=np.array([self.box/2.])
+            #If nhalo has been preset by a child class, do not set it.
+            try:
+                self.nhalo
+            except NameError:
+                self.nhalo=np.size(self.ind)
             if not skip_grid == 1:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
                 grp = f["GridHIData"]
@@ -287,15 +287,18 @@ class HaloHI:
             min_mass = target_mass * self.minpart
             #Get halo catalog
             (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass)
-            self.nhalo=np.size(self.ind)
-            if minpart == -1:
-                #global grid
-                self.nhalo = 1
+            try:
+                self.nhalo
+            except NameError:
+                self.nhalo=np.size(self.ind)
+            if self.nhalo == 1:
                 self.sub_radii=np.array([self.box/2.])
-            else:
-                print "Found ",self.nhalo," halos with > ",minpart,"particles"
-            #Set ngrid to be the gravitational softening length
-            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
+            #Set ngrid to be the gravitational softening length if not already set
+            try:
+                self.ngrid
+            except NameError:
+                self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
+            print "Found ",self.nhalo," halos with > ",minpart,"particles"
             if not skip_grid == 1:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             if not skip_grid == 2:
@@ -786,10 +789,9 @@ class BoxHI(HaloHI):
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
             savefile_s = savefile
+        self.nhalo = 1
         HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=2,savefile=savefile_s)
         #global grid
-        self.nhalo = 1
-        self.sub_radii=np.array([self.box/2.])
         self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
         return
 
@@ -804,15 +806,15 @@ class BoxHI(HaloHI):
         """
         #Linear dimension of each cell in cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
+        epsilon=self.box/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid[ii],2*self.sub_radii[ii])
+        coords=fieldize.convert(ipos,self.ngrid[ii],self.box)
         #NH0
         smooth = ismooth
         #Convert smoothing lengths to grid coordinates.
-        smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
+        smooth*=(self.ngrid[ii]/self.box)
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*self.box/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
         rhoH0=irhoH0*epsilon*(1+self.redshift)**2
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
