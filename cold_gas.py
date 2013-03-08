@@ -291,7 +291,7 @@ class RahmatiRT:
         #Hydrogen mass fraction
         hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
         #Now in hydrogen atoms / cm^3
-        nH/=hy_mass
+        nH*=hy_mass
         ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)
         #Calculate temperature from internal energy and electron abundance
         nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
@@ -312,8 +312,8 @@ class RahmatiRT:
         nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
         #Hydrogen mass fraction
         hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
-        #Now in hydrogen atoms / cm^3
-        nH/=hy_mass
+        #Now in hydrogen atoms / cm^3 (comoving)
+        nH*=hy_mass
 
         nH0 = np.array(bar["NeutralHydrogenAbundance"]) * nH
 
