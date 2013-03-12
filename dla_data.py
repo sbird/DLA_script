@@ -99,3 +99,31 @@ def prochaska_10_data(datadir="data"):
 #     ind = np.where(NHI > 10**breaks[3])
 #
 #
+
+def absorption_distance():
+    """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
+    in dimensionless units."""
+    #h * 100 km/s/Mpc in h/s
+    h100=3.2407789e-18
+    # in cm/s
+    light=2.9979e10
+    #Internal gadget length unit: 1 kpc/h in cm/h
+    UnitLength_in_cm=3.085678e21
+    redshift = 3
+    box = 25000
+    #Units: h/s   s/cm                        kpc/h      cm/kpc
+    return h100/light*(1+redshift)**2*box*UnitLength_in_cm
+
+def altay_data():
+    """Plot the simulation cddf from Altay 2011: 1012.4014"""
+    #His bins
+    edges = 10**np.arange(17,22.51,0.1)
+    #His data values
+    cddf = np.array([858492, 747955, 658685, 582018, 518006, 468662, 431614, 406575, 387631, 374532, 359789, 350348, 342146, 334534, 329178, 324411, 320648, 318207, 316232, 314852, 314504, 314583, 313942, 315802, 316330, 316884, 317336, 317979, 316526, 317212, 314774,  309333,  302340,  291816,  275818,  254368,  228520,  198641,  167671,  135412,  103583, 76751, 54326, 37745, 25140, 16784, 10938, 6740, 3667, 1614, 637, 206, 33, 14, 7])
+    center = np.array([(edges[i]+edges[i+1])/2. for i in range(0,np.size(edges)-1)])
+    width =  np.array([edges[i+1]-edges[i] for i in range(0,np.size(edges)-1)])
+    #Grid size (in cm^2)
+    dX=absorption_distance()
+    tot_cells = 16384**2
+    cddf=(cddf)/(width*dX*tot_cells)
+    plt.loglog(center,cddf)
