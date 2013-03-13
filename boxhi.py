@@ -25,7 +25,6 @@ class BoxHI(HaloHI):
         else:
             savefile_s = savefile
         self.nhalo = 1
-        self.ngrid = 5000
         HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=2,savefile=savefile_s)
         #global grid
         self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
