@@ -216,7 +216,7 @@ class HaloHI:
             print "Starting file ",fnum
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            #Returns neutral density in atoms/cm^3 (comoving)
+            #Returns neutral density in atoms/cm^3 (physical)
             irhoH0 = star.get_code_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
             # gas density in g/cm^3 (comoving)
@@ -307,14 +307,14 @@ class HaloHI:
         if self.once:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
-        # Convert from comoving to physical
+        # Convert the integrated direction from comoving to physical
         if irho != None:
             rho = irho
-            rho*=epsilon*(1+self.redshift)**2
+            rho*=epsilon/(1+self.redshift)
             fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
         if irhoH0 != None:
             rhoH0 = irhoH0
-            rhoH0=rhoH0*epsilon*(1+self.redshift)**2
+            rhoH0=rhoH0*epsilon/(1+self.redshift)
             fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
 
