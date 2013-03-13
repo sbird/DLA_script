@@ -319,7 +319,7 @@ class RahmatiRT:
         temp[ind] = 1e4
         return temp
 
-    def get_reproc_rhoHI(self, bar):
+    def get_rahmati_rhoHI(self, bar):
         """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
         #Convert density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
         nH=self.get_code_rhoH(bar)
@@ -341,16 +341,19 @@ class RahmatiRT:
 
     def code_neutral_fraction(self, bar):
         """Get the neutral fraction from the code"""
-        return np.array(bar["NeutralHydrogenAbundance"])
+        return np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
 
-    def get_code_rhoHI(self, bar):
+    def get_reproc_rhoHI(self, bar):
         """Get a neutral hydrogen density using values given by Arepo
-        which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on."""
+        which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on.
+        Above the star formation density use the Rahmati fitting formula directly,
+        as Arepo reports values for the eEOS. """
         #Convert density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
         nH=self.get_code_rhoH(bar)
-
-        nH0 = self.code_neutral_fraction(bar) * nH
-
-        return nH0
+        ind = np.where(nH > 0.1)
+        nH0 = self.code_neutral_fraction(bar)
+        #Above star-formation threshold, gas is at 10^4K
+        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)
+        return nH0*nH
 
 
