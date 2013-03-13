@@ -217,7 +217,7 @@ class HaloHI:
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"],dtype=np.float64)
             #Returns neutral density in atoms/cm^3 (physical)
-            irhoH0 = star.get_code_rhoHI(bar)
+            irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
             # gas density in g/cm^3 (comoving)
             if not skip_grid == 2:

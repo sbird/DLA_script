@@ -40,7 +40,7 @@ class VelocityHI(HaloHI):
             # Velocity in cm/s
             vel = np.array(bar["Velocities"],dtype=np.float64)*self.UnitVelocity_in_cm_per_s
             #We will weight by neutral mass per cell
-            irhoH0 = star.get_code_rhoHI(bar)
+            irhoH0 = star.get_reproc_rhoHI(bar)
             irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
             #HI * Cell Mass, internal units
             mass = np.array(bar["Masses"],dtype=np.float64)*irhoH0/irho
