@@ -224,8 +224,8 @@ class HaloHI:
                 irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
                 protonmass=1.66053886e-24
                 hy_mass = 0.76 # Hydrogen massfrac
-                # gas density in hydrogen atoms/cm^3 (comoving)
-                irho*=(hy_mass/protonmass)
+                # gas density in hydrogen atoms/cm^3 (physical)
+                irho*=(hy_mass/protonmass)*(1+self.redshift)**3
                 #Perform the grid interpolation
                 [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
                 del irho
@@ -256,13 +256,13 @@ class HaloHI:
                 sub_grid - Grid to add the interpolated data to
         """
 
-        #Linear dimension of each cell in cm:
+        # Linear dimension of each cell in cm: sub_radii is in comoving kpc, and thus so is epsilon
+        # (for easy comparison with positions)
         #               kpc/h                   1 cm/kpc
         epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
         grid_radius = self.sub_radii[ii]
-        sub_radius = self.sub_radii[ii]
         #Need a local for numexpr
         box = self.box
 
@@ -321,7 +321,7 @@ class HaloHI:
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
         """Get the DLA cross-section for a single halo.
         This is defined as the area of all the cells with column density above 10^DLA_cut (10^20.3) cm^-2.
-        Returns result in (kpc)^2."""
+        Returns result in comoving (kpc)^2."""
         #Linear dimension of cell in kpc.
         epsilon=2.*self.sub_radii[halo]/(self.ngrid[halo])/self.hubble
         cell_area=epsilon**2 #(2.*self.sub_radii[halo]/self.ngrid[halo])**2

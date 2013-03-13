@@ -50,7 +50,7 @@ def find_wanted_halos(num, base, min_mass):
         sub_cofm=np.array(subs.GroupPos[ind])
         #halo masses in M_sun/h: use M_200
         sub_mass=np.array(subs.Group_M_Crit200[ind])*UnitMass_in_g/SolarMass_in_g
-        #r200 in kpc.
+        #r200 in kpc/h (comoving).
         sub_radii = np.array(subs.Group_R_Crit200[ind])
         del subs
     # We might have the halo catalog stored in the new format, which is HDF5.
