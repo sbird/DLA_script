@@ -96,7 +96,7 @@ class HaloHI:
             #If nhalo has been preset by a child class, do not set it.
             try:
                 self.nhalo
-            except NameError:
+            except AttributeError:
                 self.nhalo=np.size(self.ind)
             if not skip_grid == 1:
                 self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
@@ -129,14 +129,14 @@ class HaloHI:
             (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass)
             try:
                 self.nhalo
-            except NameError:
+            except AttributeError:
                 self.nhalo=np.size(self.ind)
             if self.nhalo == 1:
                 self.sub_radii=np.array([self.box/2.])
             #Set ngrid to be the gravitational softening length if not already set
             try:
                 self.ngrid
-            except NameError:
+            except AttributeError:
                 self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
             print "Found ",self.nhalo," halos with > ",minpart,"particles"
             if not skip_grid == 1:
