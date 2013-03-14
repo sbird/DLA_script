@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Module for finding the neutral hydrogen in a halo. Each class has a function get_reproc_rhoHI, which returns
 the neutral hydrogen density in *physical* atoms / cm^3
     Contains:
