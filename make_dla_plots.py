@@ -7,6 +7,7 @@ matplotlib.use('PDF')
 import matplotlib.pyplot as plt
 import os.path as path
 import dla_plots as dp
+import dla_total_plots
 import dla_data
 import numpy as np
 from save_figure import save_figure
@@ -41,7 +42,7 @@ if len(sys.argv) > 1 and int(sys.argv[1]) == 1:
         outdir=path.join(base,"plots")
         print "Saving total plots for snapshot ",snapnum," to ",outdir
         #Fig 9
-        tot=dp.TotalHIPlots(base,snapnum,minpart)
+        tot=dla_total_plots.TotalHIPlots(base,snapnum,minpart)
 #         plt.figure()
 #         tot.plot_totalHI()
 #         save_figure(path.join(outdir,"total_HI_"+str(snapnum)))

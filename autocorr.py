@@ -12,7 +12,6 @@ but I have not. The code remains in case I find a use for it later.
 import numpy as np
 # from _autocorr_priv import _autocorr_list
 import _autocorr_priv
-import math
 
 def autocorr_python(field):
     """Pure python implementation of the 1-d autocorrelation function.

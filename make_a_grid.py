@@ -1,5 +1,6 @@
 import sys
 import halohi
+import boxhi
 
 partnum=str(sys.argv[3])
 if sys.argv[1] == 'a':
@@ -17,7 +18,5 @@ snapnum=sys.argv[2]
 
 base="/home/spb/data/finals/FINAL_E_NC/output"
 # ahalo=halohi.HaloHI(base,snapnum,minpart,reload_file=True)
-ahalo=halohi.BoxHI(base,snapnum, reload_file=True)
+ahalo=boxhi.BoxHI(base,snapnum, reload_file=True)
 ahalo.save_file()
-# ahalo=halohi.TotalHaloHI(base,snapnum,minpart)
-# ahalo.save_file()
