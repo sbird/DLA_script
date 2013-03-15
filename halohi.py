@@ -219,13 +219,9 @@ class HaloHI:
             #Returns neutral density in atoms/cm^3 (physical)
             irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
-            # gas density in g/cm^3 (comoving)
+            # gas density in atoms/cm^3
             if not skip_grid == 2:
-                irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
-                protonmass=1.66053886e-24
-                hy_mass = 0.76 # Hydrogen massfrac
-                # gas density in hydrogen atoms/cm^3 (physical)
-                irho*=(hy_mass/protonmass)*(1+self.redshift)**3
+                irho=star.get_code_rhoH(bar)
                 #Perform the grid interpolation
                 [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
                 del irho

@@ -212,7 +212,7 @@ class YajimaRT:
         This is just neutral over a certain density."""
         inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
         #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2*(self.hy_mass/self.protonmass)
         #Slightly less sharp cutoff power law fit to data
         r2 = 10**-2.3437
         r1 = 10**-1.81844
@@ -329,7 +329,7 @@ class RahmatiRT:
         return nH0
 
     def get_code_rhoH(self,bar):
-        """Convert hydrogen density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3"""
+        """Convert hydrogen density to physical atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3"""
         nH = np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
         #Hydrogen mass fraction
         #hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)

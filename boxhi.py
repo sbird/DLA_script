@@ -39,21 +39,21 @@ class BoxHI(HaloHI):
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
-        #Linear dimension of each cell in comoving cm:
+        #Linear dimension of each cell in physical cm:
         #               kpc/h                   1 cm/kpc
-        epsilon=self.box/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
+        epsilon=self.box/(self.ngrid[0])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
         #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid[ii],self.box)
+        coords=fieldize.convert(ipos,self.ngrid[0],self.box)
         #NH0
         smooth = ismooth
         #Convert smoothing lengths to grid coordinates.
         smooth*=(self.ngrid[ii]/self.box)
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*self.box/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells"
+            print ii," Av. smoothing length is ",np.mean(smooth)*self.box/self.ngrid[0]," kpc/h ",np.mean(smooth), "grid cells"
             self.once=False
-        #Epsilon is in comoving cm/cell.
+        #Epsilon is in physical cm/cell.
         #physical atoms cm^-3  -> physical atoms cm^-2 /cell
-        rhoH0=irhoH0*epsilon/(1+self.redshift)
+        rhoH0=irhoH0*epsilon
         fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
         return
 
