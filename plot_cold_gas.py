@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 """Plot the HI fraction as a function of density"""
 
 import cold_gas
+import math
+import hsml
 import numpy as np
 import hdfsim
 import matplotlib.pyplot as plt
@@ -10,6 +13,7 @@ class ColdGas:
         """Plot various things with the cold gas fraction"""
         ff = hdfsim.get_file(num, base,0)
         self.redshift = ff["Header"].attrs["Redshift"]
+        self.box = ff["Header"].attrs["BoxSize"]
         self.hubble = ff["Header"].attrs["HubbleParam"]
         ff.close()
         self.gas=cold_gas.RahmatiRT(self.redshift, self.hubble)
@@ -44,4 +48,36 @@ class ColdGas:
             nH0_bin[i] = np.median(nH0[ind])
             centers[i] = (bin_edges[i+1]-bin_edges[i])/2.
         return (centers, nH0_bin)
+
+    def rho_crit(self):
+        """Get the critical density at z=0 in units of g cm^-3"""
+        #H in units of 1/s
+        h100=3.2407789e-18*self.hubble
+        #G in cm^3 g^-1 s^-2
+        grav=6.672e-8
+        rho_crit=3*h100**2/(8*math.pi*grav)
+        return rho_crit
+
+    def omega_gas(self):
+        """Compute Omega_gas, the sum of the hydrogen mass, divided by the critical density.
+        """
+        mass = 0.
+        kpchincm = 3.085678e21/self.hubble/(1+self.redshift)
+        protonmass=1.66053886e-24
+        for files in np.arange(0,500):
+            try:
+                ff = hdfsim.get_file(self.num, self.base,files)
+            except IOError:
+                break
+            bar = ff["PartType0"]
+            nH = self.gas.get_code_rhoH(bar)
+
+            pvol = 4./3.*math.pi*(hsml.get_smooth_length(bar)*kpchincm)**3
+            #Total mass of H in g
+            mass += np.sum(nH*pvol)*protonmass
+        #Total volume of the box in comoving cm^3
+        volume = (self.box*3.085678e21/self.hubble)**3
+        #Total mass of HI * m_p / r_c
+        omega_g=mass/volume/self.rho_crit()
+        return omega_g
 
