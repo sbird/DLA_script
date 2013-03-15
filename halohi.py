@@ -520,21 +520,35 @@ class HaloHI:
         disc = disc/np.mean(disc)-1.
         return disc
 
-    def omega_DLA(self, maxN):
-        """Compute Omega_DLA, defined as:
-            Ω_DLA = m_p H_0/(c f_HI rho_c) int_10^20.3^Nmax  f(N,X) N dN
-        """
-        (NHI_table, f_N) = self.column_density_function(minN=20.3,maxN=maxN)
-        dNHI_table = np.arange(20.3, maxN, 0.2)
-        deltaNHI =  np.array([10**dNHI_table[i+1]-10**dNHI_table[i] for i in range(0,np.size(dNHI_table)-1)])
-        omega_DLA=np.sum(NHI_table*f_N*deltaNHI)
+    def rho_crit(self):
+        """Get the critical density at z=0 in units of g cm^-3"""
+        #H in units of 1/s
         h100=3.2407789e-18*self.hubble
-        light=2.9979e10
-        rho_crit=3*h100**2/(8*math.pi*6.672e-8)
+        #G in cm^3 g^-1 s^-2
+        grav=6.672e-8
+        rho_crit=3*h100**2/(8*math.pi*grav)
+        return rho_crit
+
+    def omega_DLA(self, thresh=20.3):
+        """Compute Omega_DLA, the sum of the mass in DLAs, divided by the critical density.
+            Ω_DLA = m_p * HI atoms / rho_c
+        """
+        #Grid gives atoms / physical cm^2 in each cell.
+        #Cell size in physical cm (cm/cell)
+        epsilon=2.*self.sub_radii/self.ngrid*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+        #Mass of HI in each grid in atoms
+        if thresh > 0:
+            HImass = np.array([np.sum(10**grid[np.where(grid > thresh)]) for grid in self.sub_nHI_grid])*epsilon**2
+        else:
+            HImass = np.array([np.sum(10**grid) for grid in self.sub_nHI_grid])*epsilon**2
         protonmass=1.66053886e-24
-        hy_mass = 0.76 # Hydrogen massfrac
-        omega_DLA*=(h100/light)*(protonmass/hy_mass)/rho_crit
-        return 1000*omega_DLA
+        #Total mass of HI in g
+        HImass = protonmass * np.sum(HImass)
+        #Total volume of the box in comoving cm^3
+        volume = (self.box*self.UnitLength_in_cm/self.hubble)**3
+        #Total mass of HI * m_p / r_c
+        omega_DLA=HImass/volume/self.rho_crit()
+        return omega_DLA
 
     def get_dndm(self,minM,maxM):
         """Get the halo mass function from the simulations,
