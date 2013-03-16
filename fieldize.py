@@ -445,8 +445,14 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
     if dim != 2:
         raise ValueError("Non 2D grid not supported!")
     if weights == None:
-        weights = np.array([0])
-
+        weights = np.array([0.])
+    #Cast some array types
+    if pos.dtype != np.float32:
+       pos = np.array(pos, dtype=float32)
+    if radii.dtype != np.float32:
+       radii = np.array(radii, dtype=float32)
+    if value.dtype != np.float32:
+        value = np.array(value, dtype=float32)
     nval = _SPH_Fieldize(pos, radii, value, field, weights,periodic)
     if nval < np.size(value):
         raise ValueError("Something went wrong with interpolation")

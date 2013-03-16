@@ -215,7 +215,7 @@ class HaloHI:
                 break
             print "Starting file ",fnum
             bar=f["PartType0"]
-            ipos=np.array(bar["Coordinates"],dtype=np.float64)
+            ipos=np.array(bar["Coordinates"])
             #Returns neutral density in atoms/cm^3 (physical)
             irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)

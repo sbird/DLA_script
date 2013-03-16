@@ -42,6 +42,13 @@ double compute_sph_cell_weight(double rr, double r0)
     return total;
 }
 
+/*Check whether the passed array has type typename. Returns 1 if it doesn't, 0 if it does.*/
+int check_type(PyArrayObject * arr, int npy_typename)
+{
+  return !PyArray_EquivTypes(PyArray_DESCR(arr), PyArray_DescrFromType(npy_typename));
+}
+
+
 //  int    3*nval arr  nval arr  nval arr   nx*nx arr  int     nval arr  (or 0)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
 PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
@@ -49,16 +56,29 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     PyArrayObject *pos, *radii, *value, *field, *weights;
     int periodic=0;
     if(!PyArg_ParseTuple(args, "O!O!O!O!O!i",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights,&periodic) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, radii, value, field, weights periodic=False\n");
         return NULL;
+    }
+    if(check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(field,NPY_DOUBLE) || check_type(weights, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "One of the input arrays does not have appropriate type: pos, radii and value need float32, field and weights float64.\n");
+          return NULL;
+    }
     const npy_intp nval = PyArray_DIM(radii,0);
+    if(nval != PyArray_DIM(value,0) || nval != PyArray_DIM(pos,0))
+    {
+      PyErr_SetString(PyExc_ValueError, "pos, radii and value should have the same length.\n");
+      return NULL;
+    }
     const npy_intp nx = PyArray_DIM(field,0);
     for(int p=0;p<nval;p++){
         //Temp variables
-        double pp[2];
-        pp[0]= *(double *)PyArray_GETPTR2(pos,p,1);
-        pp[1]= *(double *)PyArray_GETPTR2(pos,p,2);
-        double rr= *((double *)PyArray_GETPTR1(radii,p));
-        double val= *((double *)PyArray_GETPTR1(value,p));
+        float pp[2];
+        pp[0]= *(float *)PyArray_GETPTR2(pos,p,1);
+        pp[1]= *(float *)PyArray_GETPTR2(pos,p,2);
+        float rr= *((float *)PyArray_GETPTR1(radii,p));
+        float val= *((float *)PyArray_GETPTR1(value,p));
         double weight = 1;
         if (PyArray_DIM(weights,0) == nval){
             weight= *((double *)PyArray_GETPTR1(weights,p));

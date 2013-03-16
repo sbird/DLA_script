@@ -210,9 +210,9 @@ class YajimaRT:
     def get_yajima_rhoHI(self,bar):
         """Get a neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
         This is just neutral over a certain density."""
-        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+        inH0=np.array(bar["NeutralHydrogenAbundance"])
         #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2*(self.hy_mass/self.protonmass)
+        irho=np.array(bar["Density"])*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2*(self.hy_mass/self.protonmass)
         #Slightly less sharp cutoff power law fit to data
         r2 = 10**-2.3437
         r1 = 10**-1.81844
@@ -307,9 +307,9 @@ class RahmatiRT:
     def get_temp(self,nH, bar):
         """Get the temperature in Kelvin"""
         #Internal energy units are 10^-10 erg/g
-        ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)*1e10
+        ienergy=np.array(bar["InternalEnergy"])*1e10
         #Calculate temperature from internal energy and electron abundance
-        nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
+        nelec=np.array(bar['ElectronAbundance'])
         #hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
         hy_mass = 0.76
         mu = 1.0 / ((hy_mass * (0.75 + nelec)) + 0.25)
@@ -330,7 +330,7 @@ class RahmatiRT:
 
     def get_code_rhoH(self,bar):
         """Convert hydrogen density to physical atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3"""
-        nH = np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
+        nH = np.array(bar["Density"])*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
         #Hydrogen mass fraction
         #hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
         hy_mass = 0.76
@@ -342,7 +342,7 @@ class RahmatiRT:
 
     def code_neutral_fraction(self, bar):
         """Get the neutral fraction from the code"""
-        return np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+        return np.array(bar["NeutralHydrogenAbundance"])
 
     def get_reproc_rhoHI(self, bar):
         """Get a neutral hydrogen density using values given by Arepo
