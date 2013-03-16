@@ -128,8 +128,10 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
                 total+=sph_w[gy-lowgy][gx-lowgx];
             }
         if(total == 0){
-            printf("Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
-            exit(1);
+            char err[500];
+            snprintf(err,500,"Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
+            PyErr_SetString(PyExc_ValueError, err);
+            return NULL;
         }
         /* Some cells will be only partially in the array: only partially add them.
          * Then add the right fraction to the total array*/
