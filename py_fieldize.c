@@ -9,6 +9,9 @@
  * rr is the smoothing length, r0 is the distance of the cell from the center*/
 double compute_sph_cell_weight(double rr, double r0)
 {
+    if(r0 > rr){
+        return 0;
+    }
     double total=0;
     double h2 = rr*rr;
     //Do the z integration with the trapezium rule.
@@ -100,6 +103,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         }
         /*Array for storing cell weights*/
         double sph_w[upgy-lowgy+1][upgx-lowgx+1];
+
         /*Total of cell weights*/
         double total=0;
         /* First compute the cell weights.
@@ -113,18 +117,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         #pragma omp parallel for reduction(+:total)
         for(int gy=lowgy;gy<=upgy;gy++)
             for(int gx=lowgx;gx<=upgx;gx++){
+                sph_w[gy-lowgy][gx-lowgx]=0;
                 for(int iy=0; iy< nsub; iy++)
                 for(int ix=0; ix< nsub; ix++){
                     double xx = gx-pp[0]+subs[ix];
                     double yy = gy-pp[1]+subs[iy];
                     double r0 = sqrt(xx*xx+yy*yy);
-                    if(r0 > rr){
-                        sph_w[gy-lowgy][gx-lowgx]=0;
-                        continue;
-                    }
-                    sph_w[gy-lowgy][gx-lowgx]=compute_sph_cell_weight(rr,r0);
-                    total+=sph_w[gy-lowgy][gx-lowgx];
+                    sph_w[gy-lowgy][gx-lowgx]+=compute_sph_cell_weight(rr,r0);
                 }
+                total+=sph_w[gy-lowgy][gx-lowgx];
             }
         if(total == 0){
             printf("Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
