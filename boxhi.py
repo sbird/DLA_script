@@ -25,13 +25,13 @@ class BoxHI(HaloHI):
         else:
             savefile_s = savefile
         self.nhalo = 1
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,skip_grid=2,savefile=savefile_s)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,savefile=savefile_s)
         #global grid
         self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid,weights=None):
-        """Helper function for sub_gas_grid and sub_nHI_grid
+    def sub_gridize_single_file(self,ii,ipos,ismooth,irhoH0,sub_nHI_grid,weights=None):
+        """Helper function for sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
                 pos - Position array
@@ -54,6 +54,7 @@ class BoxHI(HaloHI):
         #Epsilon is in physical cm/cell.
         #physical atoms cm^-3  -> physical atoms cm^-2 /cell
         rhoH0=irhoH0*epsilon
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights, periodic=True)
+
+        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[0],smooth,weights=weights, periodic=True)
         return
 

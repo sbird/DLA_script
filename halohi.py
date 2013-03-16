@@ -54,7 +54,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -98,14 +98,9 @@ class HaloHI:
                 self.nhalo
             except AttributeError:
                 self.nhalo=np.size(self.ind)
-            if not skip_grid == 1:
-                self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-                grp = f["GridHIData"]
-                [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
-            if not skip_grid == 2:
-                self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-                grp = f["GridGasData"]
-                [ grp[str(i)].read_direct(self.sub_gas_grid[i]) for i in xrange(0,self.nhalo)]
+            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            grp = f["GridHIData"]
+            [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
             f.close()
             del grid_file
             del f
@@ -139,11 +134,8 @@ class HaloHI:
             except AttributeError:
                 self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
             print "Found ",self.nhalo," halos with > ",minpart,"particles"
-            if not skip_grid == 1:
-                self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            if not skip_grid == 2:
-                self.sub_gas_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.set_nHI_grid(skip_grid)
+            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            self.set_nHI_grid()
         return
 
     def save_file(self):
@@ -167,24 +159,15 @@ class HaloHI:
         grp.create_dataset('sub_radii',data=self.sub_radii)
         grp.create_dataset('halo_ind',data=self.ind)
         grp_grid = f.create_group("GridHIData")
-        grp_gas_grid = f.create_group("GridGasData")
         for i in xrange(0,self.nhalo):
             try:
                 grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
-            except AttributeError:
-                pass
-            try:
-                grp_gas_grid.create_dataset(str(i),data=self.sub_gas_grid[i])
             except AttributeError:
                 pass
         f.close()
 
     def __del__(self):
         """Delete big arrays"""
-        try:
-            del self.sub_gas_grid
-        except AttributeError:
-            pass
         try:
             del self.sub_nHI_grid
         except AttributeError:
@@ -202,7 +185,7 @@ class HaloHI:
         fH2[np.where(nHI < 0.1)] = 0
         return fH2
 
-    def set_nHI_grid(self, skip_grid = None):
+    def set_nHI_grid(self):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble)
@@ -219,31 +202,20 @@ class HaloHI:
             #Returns neutral density in atoms/cm^3 (physical)
             irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
-            # gas density in atoms/cm^3
-            if not skip_grid == 2:
-                irho=star.get_code_rhoH(bar)
-                #Perform the grid interpolation
-                [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
-                del irho
-            else:
-                [self.sub_gridize_single_file(ii,ipos,smooth,None,None,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            [self.sub_gridize_single_file(ii,ipos,smooth,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
             #Explicitly delete some things.
             del ipos
             del irhoH0
             del smooth
-        if not skip_grid == 2:
-            [np.log1p(grid,grid) for grid in self.sub_gas_grid]
         [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
         #No /= in list comprehensions...  :|
         for i in xrange(0,self.nhalo):
-            if not skip_grid == 2:
-                self.sub_gas_grid[i]/=np.log(10)
             self.sub_nHI_grid[i]/=np.log(10)
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irho,sub_gas_grid,irhoH0,sub_nHI_grid,weights=None):
-        """Helper function for sub_gas_grid and sub_nHI_grid
+    def sub_gridize_single_file(self,ii,ipos,ismooth,irhoH0,sub_nHI_grid,weights=None):
+        """Helper function for sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
                 pos - Position array
@@ -304,10 +276,6 @@ class HaloHI:
             print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
             self.once=False
         # Convert the integrated direction from comoving to physical
-        if irho != None:
-            rho = irho
-            rho*=epsilon/(1+self.redshift)
-            fieldize.sph_str(coords,rho,sub_gas_grid[ii],smooth,weights=weights)
         if irhoH0 != None:
             rhoH0 = irhoH0
             rhoH0=rhoH0*epsilon/(1+self.redshift)
@@ -367,13 +335,13 @@ class HaloHI:
         else:
             return np.array([])
 
-    def get_stacked_radial_profile(self,minM,maxM,minR,maxR,gas_grid=False):
+    def get_stacked_radial_profile(self,minM,maxM,minR,maxR):
         """Stacks several radial profiles in mass bins"""
         ind = np.where(np.logical_and(self.sub_mass > minM, self.sub_mass < maxM))
-        stack_element=[self.get_radial_profile(ii, minR, maxR,gas_grid) for ii in np.ravel(ind)]
+        stack_element=[self.get_radial_profile(ii, minR, maxR) for ii in np.ravel(ind)]
         return np.mean(stack_element)
 
-    def get_radial_profile(self,halo,minR,maxR,gas_grid=False):
+    def get_radial_profile(self,halo,minR,maxR):
         """Returns the nHI density summed radially
            (but really in Cartesian coordinates).
            So returns R_HI (cm^-1).
@@ -381,10 +349,7 @@ class HaloHI:
            than the grid size.
         """
         #This is an integral over an annulus in Cartesians
-        if gas_grid:
-            grid=self.sub_gas_grid[halo]
-        else:
-            grid=self.sub_nHI_grid[halo]
+        grid=self.sub_nHI_grid[halo]
 
         #Find r in grid units:
         total=0.
@@ -460,7 +425,7 @@ class HaloHI:
         #Units: h/s   s/cm                        kpc/h      cm/kpc
         return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
-    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9,grids=None):
+    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval
@@ -487,10 +452,7 @@ class HaloHI:
         Returns:
             (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
         """
-        if grids == None:
-            grids = self.sub_nHI_grid
-        elif grids == 1:
-            grids = self.sub_gas_grid
+        grids = self.sub_nHI_grid
         NHI_table = 10**np.arange(minN, maxN, dlogN)
         center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])

@@ -60,7 +60,7 @@ def print_stuff(string):
     """Routine to print the parameters of the fit in a format that can be inserted into python"""
     for (bs,snp) in [(b,s) for b in bases for s in snaps]:
         adir=path.join(bs,string)
-        ahalo=dp.PrettyHalo(adir,snp,minpart,skip_grid=2)
+        ahalo=dp.PrettyHalo(adir,snp,minpart)
         ap=ahalo.get_sDLA_fit()
         print ahalo.snapnum," : [",
         for a in ap:
@@ -87,64 +87,8 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
 
     plt.figure(1)
 
-    if  False and (len(sys.argv) < 2 or int(sys.argv[1]) == 2):
-        #Load only the gas grids
-        hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=1)
-        #Find a smallish halo
-        try:
-            a_shalo=np.min(np.where(hplots.ahalo.sub_mass < 1e10))
-            #Get the right halo for a smaller halo
-            s_mass=hplots.ahalo.sub_mass[a_shalo]
-            s_pos=hplots.ahalo.sub_cofm[a_shalo,:]
-            g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
-            #Make sure it has a gadget counterpart
-            if np.size(g_shalo) == 0:
-                nosmall=1
-                for i in np.where(hplots.ahalo.sub_mass < 1e10)[0]:
-                    s_mass=hplots.ahalo.sub_mass[i]
-                    s_pos=hplots.ahalo.sub_cofm[i,:]
-                    g_shalo = hplots.ghalo.identify_eq_halo(s_mass,s_pos)
-                    if np.size(g_shalo) != 0 :
-                        a_shalo=i
-                        nosmall=0
-                        break
-        except ValueError:
-            nosmall=1
-        #Get the right halo
-        g_halo_0 = hplots.ghalo.identify_eq_halo(hplots.ahalo.sub_mass[0],hplots.ahalo.sub_cofm[0,:],maxpos=50.)[0]
-
-
-        hplots.ahalo.plot_pretty_gas_halo(0)
-        save_figure(path.join(outdir,"arepo_"+str(snapnum)+"pretty_gas_halo"))
-        plt.clf()
-        hplots.ghalo.plot_pretty_gas_halo(g_halo_0)
-        save_figure(path.join(outdir,"gadget_"+str(snapnum)+"pretty_gas_halo"))
-        plt.clf()
-        if not nosmall:
-            hplots.ahalo.plot_pretty_gas_halo(a_shalo)
-            save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_gas_halo"))
-            plt.clf()
-            hplots.ghalo.plot_pretty_gas_halo(g_shalo[0])
-            save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_gas_halo"))
-            plt.clf()
-#             hplots.ahalo.plot_pretty_cut_gas_halo(a_shalo)
-#             save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_small_pretty_cut_gas_halo"))
-#             plt.clf()
-#             hplots.ghalo.plot_pretty_cut_gas_halo(g_shalo[0])
-#             save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_small_pretty_cut_gas_halo"))
-#             plt.clf()
-        hplots.ahalo.plot_pretty_cut_gas_halo(0)
-        save_figure(path.join(outdir,"Arepo_"+str(snapnum)+"_pretty_cut_gas_halo"))
-        plt.clf()
-        hplots.ghalo.plot_pretty_cut_gas_halo(g_halo_0)
-        save_figure(path.join(outdir,"Gadget_"+str(snapnum)+"_pretty_cut_gas_halo"))
-
-        #Radial profiles
-        plt.clf()
-        del hplots
-
     #Load only the nHI grids
-    hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart,skip_grid=2)
+    hplots=dp.HaloHIPlots(base,snapnum,minpart=minpart)
 
     if len(sys.argv) < 2 or int(sys.argv[1]) == 2:
         #low-mass halo radial profile

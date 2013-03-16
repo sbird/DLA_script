@@ -110,8 +110,8 @@ class PrettyVelocity(velhi.VelocityHI):
     """
     Make a velocity plot
     """
-    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
-        velhi.VelocityHI.__init__(self,snap_dir,snapnum,minpart,reload_file=reload_file,skip_grid=None,savefile=savefile)
+    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,savefile=None):
+        velhi.VelocityHI.__init__(self,snap_dir,snapnum,minpart,reload_file=reload_file,savefile=savefile)
 
     def radial_log(self,x,y,cut=1e25):
         """If we have x and y st. x+iy = r e^iθ, find x' and y' s.t. x'+iy' = log(r) e^iθ"""

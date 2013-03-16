@@ -12,15 +12,15 @@ from halohi import HaloHI
 
 class VelocityHI(HaloHI):
     """Class for computing velocity diagrams"""
-    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,savefile=None):
         if savefile==None:
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"velocity_grid.hdf5")
         else:
             savefile_s = savefile
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,savefile=savefile_s)
         return
 
-    def set_nHI_grid(self, skip_grid = None):
+    def set_nHI_grid(self):
         """Set up the grid around each halo where the velocity HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble)

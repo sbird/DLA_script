@@ -16,16 +16,16 @@ import halohi as hi
 class HaloMet(hi.HaloHI):
     """Class to find the integrated metal density around a halo.
     Inherits from HaloMet, and finds grids of metal density in amu / cm^3."""
-    def __init__(self,snap_dir,snapnum,elem,minpart=400,reload_file=False,skip_grid=None,savefile=None):
+    def __init__(self,snap_dir,snapnum,elem,minpart=400,reload_file=False,savefile=None):
         self.elem=elem
         self.species = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Mg', 'Si', 'Fe']
         if savefile==None:
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"halomet_grid.hdf5")
         else:
             savefile_s = savefile
-        hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,skip_grid=skip_grid,savefile=savefile_s)
+        hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,savefile=savefile_s)
 
-    def set_nHI_grid(self,skip_grid=None):
+    def set_nHI_grid(self):
         """Function finds the metal density around each halo rather than the HI density"""
         self.once=True
         nelem = self.species.index(self.elem)
@@ -49,14 +49,14 @@ class HaloMet(hi.HaloHI):
             irho/=protonmass
             f.close()
             #Perform the grid interpolation
-            [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_gas_grid,None,None) for ii in xrange(0,self.nhalo)]
+            [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
             del ipos
             del irho
             del smooth
-        [np.log1p(grid,grid) for grid in self.sub_gas_grid]
+        [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
         #No /= in list comprehensions...  :|
         for i in xrange(0,self.nhalo):
-            self.sub_gas_grid[i]/=np.log(10)
+            self.sub_nHI_grid[i]/=np.log(10)
         return
 
