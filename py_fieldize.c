@@ -74,6 +74,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
       PyErr_SetString(PyExc_ValueError, "pos, radii and value should have the same length.\n");
       return NULL;
     }
+//     int totlow=0, tothigh=0;
     const npy_intp nx = PyArray_DIM(field,0);
     for(int p=0;p<nval;p++){
         //Temp variables
@@ -109,7 +110,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         /* First compute the cell weights.
          * Subsample the cells if the smoothing length is O(1 cell).
          * This is more accurate, and also avoids edge cases where the particle can rest just between a cell.*/
-        int nsub=2*((int)(1./rr))+1;
+        int nsub=2*((int)(3./rr))+1;
         double subs[nsub];
         /*Spread subsamples evenly across cell*/
         for(int i=0; i < nsub; i++)
@@ -123,10 +124,14 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
                     double xx = gx-pp[0]+subs[ix];
                     double yy = gy-pp[1]+subs[iy];
                     double r0 = sqrt(xx*xx+yy*yy);
-                    sph_w[gy-lowgy][gx-lowgx]+=compute_sph_cell_weight(rr,r0);
+                    sph_w[gy-lowgy][gx-lowgx]+=compute_sph_cell_weight(rr,r0)/nsub/nsub;
                 }
                 total+=sph_w[gy-lowgy][gx-lowgx];
             }
+//         if(total > 1.05)
+//           tothigh++;
+//         if(total< 0.5)
+//           totlow++;
         if(total == 0){
             char err[500];
             snprintf(err,500,"Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
@@ -188,6 +193,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             }
         }
     }
+    //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
 	return Py_BuildValue("i",nval);
 }
 
