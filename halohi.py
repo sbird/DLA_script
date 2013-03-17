@@ -208,10 +208,10 @@ class HaloHI:
             del ipos
             del irhoH0
             del smooth
-        [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
-        #No /= in list comprehensions...  :|
-        for i in xrange(0,self.nhalo):
-            self.sub_nHI_grid[i]/=np.log(10)
+        [np.log10(grid,grid) for grid in self.sub_nHI_grid]
+        #Deal with zeros
+        for grid in self.sub_nHI_grid:
+            grid[np.where(np.isinf(grid))]=0
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,irhoH0,sub_nHI_grid,weights=None):
@@ -423,7 +423,7 @@ class HaloHI:
         #Units: h/s   s/cm                        kpc/h      cm/kpc
         return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
-    def column_density_function(self,dlogN=0.2, minN=20.3, maxN=30., maxM=13,minM=9):
+    def column_density_function(self,dlogN=0.2, minN=16, maxN=25., maxM=13,minM=9):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval
@@ -462,7 +462,7 @@ class HaloHI:
             array=np.array([np.histogram(np.ravel(grid),np.log10(NHI_table)) for grid in grids[ind]])
             tot_f_N = np.sum(array[:,0])
         else:
-            tot_f_N = np.histogram(grids,np.log10(NHI_table))[0]
+            tot_f_N = np.histogram(grids[0],np.log10(NHI_table))[0]
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 
@@ -491,23 +491,23 @@ class HaloHI:
 
     def omega_DLA(self, thresh=20.3):
         """Compute Omega_DLA, the sum of the mass in DLAs, divided by the critical density.
-            Ω_DLA = m_p * HI atoms / rho_c
+            Ω_DLA = m_p * avg. column density / (1+z)^2 / length of column / rho_c
+            Note: If we want the neutral gas density rather than the neutral hydrogen density, divide by 0.76,
+            the hydrogen mass fraction.
         """
-        #Grid gives atoms / physical cm^2 in each cell.
-        #Cell size in physical cm (cm/cell)
-        epsilon=2.*self.sub_radii/self.ngrid*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
-        #Mass of HI in each grid in atoms
+        #Average column density of HI in atoms cm^-2 (physical)
         if thresh > 0:
-            HImass = np.array([np.sum(10**grid[np.where(grid > thresh)]) for grid in self.sub_nHI_grid])*epsilon**2
+            HImass = np.array([np.mean(10**grid[np.where(grid > thresh)]) for grid in self.sub_nHI_grid])
+            HImass = np.mean(HImass)
         else:
-            HImass = np.array([np.sum(10**grid) for grid in self.sub_nHI_grid])*epsilon**2
+            HImass = np.mean(10**self.sub_nHI_grid)
         protonmass=1.66053886e-24
-        #Total mass of HI in g
-        HImass = protonmass * np.sum(HImass)
-        #Total volume of the box in comoving cm^3
-        volume = (self.box*self.UnitLength_in_cm/self.hubble)**3
-        #Total mass of HI * m_p / r_c
-        omega_DLA=HImass/volume/self.rho_crit()
+        #Avg. Column density of HI in g cm^-2 (comoving)
+        HImass = protonmass * HImass/(1+self.redshift)**2
+        #Length of column in comoving cm
+        length = (self.box*self.UnitLength_in_cm/self.hubble)
+        #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
+        omega_DLA=HImass/length/self.rho_crit()
         return omega_DLA
 
     def get_dndm(self,minM,maxM):
