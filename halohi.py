@@ -54,7 +54,7 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
@@ -135,7 +135,7 @@ class HaloHI:
                 self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
             print "Found ",self.nhalo," halos with > ",minpart,"particles"
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.set_nHI_grid()
+            self.set_nHI_grid(gas)
         return
 
     def save_file(self):
@@ -185,7 +185,7 @@ class HaloHI:
         fH2[np.where(nHI < 0.1)] = 0
         return fH2
 
-    def set_nHI_grid(self):
+    def set_nHI_grid(self, gas=False):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble)
@@ -200,7 +200,10 @@ class HaloHI:
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"])
             #Returns neutral density in atoms/cm^3 (physical)
-            irhoH0 = star.get_reproc_rhoHI(bar)
+            if gas:
+                irhoH0 = star.get_code_rhoH(bar)
+            else:
+                irhoH0 = star.get_reproc_rhoHI(bar)
             smooth = hsml.get_smooth_length(bar)
             [self.sub_gridize_single_file(ii,ipos,smooth,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
@@ -275,9 +278,8 @@ class HaloHI:
             self.once=False
         # Convert the integrated direction from comoving to physical
         if irhoH0 != None:
-            rhoH0 = irhoH0
-            rhoH0=rhoH0*epsilon/(1+self.redshift)
-            fieldize.sph_str(coords,rhoH0,sub_nHI_grid[ii],smooth,weights=weights)
+            irhoH0*=epsilon/(1+self.redshift)
+            fieldize.sph_str(coords,irhoH0,sub_nHI_grid[ii],smooth,weights=weights)
         return
 
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):

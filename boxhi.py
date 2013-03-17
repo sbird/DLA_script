@@ -19,13 +19,13 @@ class BoxHI(HaloHI):
         self.sub_nHI_grid is a neutral hydrogen grid, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
+    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None,gas=False):
         if savefile==None:
             savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
             savefile_s = savefile
         self.nhalo = 1
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,savefile=savefile_s)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,savefile=savefile_s,gas=gas)
         #global grid
         self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
         return
