@@ -247,8 +247,6 @@ class HaloHI:
 
             # Update smooth and rho arrays as well:
             ismooth = ismooth[indj]
-            if irho != None:
-                irho = irho[indj]
             if irhoH0 != None:
                 irhoH0 = irhoH0[indj]
 

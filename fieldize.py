@@ -28,7 +28,7 @@ def convert(pos, ngrid,box):
         ngrid - dimension of grid
         box - Size of the grid in units of pos
     """
-    return pos*(ngrid-1)/box
+    return pos*(ngrid-1)/float(box)
 
 def convert_centered(pos, ngrid,box):
     """Rescales coordinates to grid units.
@@ -448,11 +448,11 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
         weights = np.array([0.])
     #Cast some array types
     if pos.dtype != np.float32:
-       pos = np.array(pos, dtype=float32)
+       pos = np.array(pos, dtype=np.float32)
     if radii.dtype != np.float32:
-       radii = np.array(radii, dtype=float32)
+       radii = np.array(radii, dtype=np.float32)
     if value.dtype != np.float32:
-        value = np.array(value, dtype=float32)
+        value = np.array(value, dtype=np.float32)
     nval = _SPH_Fieldize(pos, radii, value, field, weights,periodic)
     if nval < np.size(value):
         raise ValueError("Something went wrong with interpolation")

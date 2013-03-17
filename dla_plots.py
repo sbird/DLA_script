@@ -178,7 +178,7 @@ class PrettyHalo(halohi.HaloHI):
 
     def plot_column_density(self,minN=17,maxN=23., grid=None,color=acol):
         """Plots the column density distribution function. """
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1, grids=grid)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
