@@ -428,7 +428,7 @@ def cic_str(pos,value,field,in_radii,periodic=False):
 from _fieldize_priv import _SPH_Fieldize
 
 def sph_str(pos,value,field,radii,weights=None,periodic=False):
-    """Interpolate a particle onto the grid using an SPH kernel.
+    """Interpolate a particle onto a grid using an SPH kernel.
        This is similar to the cic_str() routine, but spherical.
 
        Field must be 2d
@@ -441,8 +441,7 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
         return field
 
     dim=np.shape(field)
-    dim=np.size(dim)
-    if dim != 2:
+    if np.size(dim) != 2:
         raise ValueError("Non 2D grid not supported!")
     if weights == None:
         weights = np.array([0.])
@@ -453,10 +452,8 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
        radii = np.array(radii, dtype=np.float32)
     if value.dtype != np.float32:
         value = np.array(value, dtype=np.float32)
-    nval = _SPH_Fieldize(pos, radii, value, field, weights,periodic)
-    if nval < np.size(value):
-        raise ValueError("Something went wrong with interpolation")
-    return field
+    field += _SPH_Fieldize(pos, radii, value, weights,periodic,dim[0])
+    return
 
 import scipy.integrate as integ
 

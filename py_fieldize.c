@@ -56,16 +56,16 @@ int check_type(PyArrayObject * arr, int npy_typename)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
 PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 {
-    PyArrayObject *pos, *radii, *value, *field, *weights;
-    int periodic=0;
-    if(!PyArg_ParseTuple(args, "O!O!O!O!O!i",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights,&periodic) )
+    PyArrayObject *pos, *radii, *value, *weights;
+    int periodic, nx;
+    if(!PyArg_ParseTuple(args, "O!O!O!O!ii",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &weights,&periodic, &nx) )
     {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, radii, value, field, weights periodic=False\n");
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, radii, value, weights periodic=False, nx\n");
         return NULL;
     }
-    if(check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(field,NPY_DOUBLE) || check_type(weights, NPY_DOUBLE))
+    if(check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(weights, NPY_DOUBLE))
     {
-          PyErr_SetString(PyExc_AttributeError, "One of the input arrays does not have appropriate type: pos, radii and value need float32, field and weights float64.\n");
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: pos, radii and value need float32, weights float64.\n");
           return NULL;
     }
     const npy_intp nval = PyArray_DIM(radii,0);
@@ -75,7 +75,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
       return NULL;
     }
 //     int totlow=0, tothigh=0;
-    const npy_intp nx = PyArray_DIM(field,0);
+    //Field for the output.
+    npy_intp size[2]={nx,nx};
+    PyArrayObject * pyfield = (PyArrayObject *) PyArray_SimpleNew(2, size, NPY_DOUBLE);
+    PyArray_FILLWBYTE(pyfield, 0);
+    double * field = (double *) PyArray_DATA(pyfield);
+    if( !field ){
+      PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for field arrays.\n");
+      return NULL;
+    }
     for(int p=0;p<nval;p++){
         //Temp variables
         float pp[2];
@@ -99,7 +107,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-                *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight;
+                *(field+nx*lowgx+lowgy)+=val/weight;
                 continue;
         }
         /*Array for storing cell weights*/
@@ -140,10 +148,11 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         }
         /* Some cells will be only partially in the array: only partially add them.
          * Then add the right fraction to the total array*/
+
         #pragma omp parallel for
         for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++)
             for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                *((double *) PyArray_GETPTR2(field,gx,gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                *(field+nx*gx+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
             }
         //Deal with cells that have wrapped around the edges of the grid
         if (periodic){
@@ -152,15 +161,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=nx-1;gy<=upgy;gy++){
                 //Wrapping only y over
                 for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                    *((double *) PyArray_GETPTR2(field,gx,gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
                 //y over, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx-(nx-1)+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
                 //y over, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy-(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx+(nx-1)+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
             }
             //Wrapping y under
@@ -168,15 +177,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=lowgy;gy<=0;gy++){
                 //Only y under
                 for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                    *((double *) PyArray_GETPTR2(field,gx,gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
                 //y under, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx-(nx-1)+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
                 //y under, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy+(nx-1)))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx+(nx-1)+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
             }
             //Finally wrap only x
@@ -184,23 +193,23 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++){
                 //x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx-(nx-1),gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx-(nx-1)+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
                 //x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *((double *) PyArray_GETPTR2(field,gx+(nx-1),gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    *(field+nx*gx+(nx-1)+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
                 }
             }
         }
     }
     //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
-	return Py_BuildValue("i",nval);
+	return Py_BuildValue("O",pyfield);
 }
 
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
-   "    Arguments: nbins, pos, vel, mass, u, nh0, ne, h, axis array, xx, yy, zz"
+   "    Arguments: pos, radii, value, weights, periodic=T/F, nx"
    "    "},
   {NULL, NULL, 0, NULL},
 };
