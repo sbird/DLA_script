@@ -244,7 +244,7 @@ class HaloHI:
         for dim in np.arange(3):
             jpos = sub_pos[dim]
             jjpos = ipos[:,dim]
-            indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius) | (abs(jjpos-jpos+box) < grid_radius) | (abs(jjpos-jpos-box) < grid_radius)"))
+            indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius+ismooth) | (abs(jjpos-jpos+box) < grid_radius+ismooth) | (abs(jjpos-jpos-box) < grid_radius+ismooth)"))
 
             if np.size(indj) == 0:
                 return
@@ -257,10 +257,10 @@ class HaloHI:
 
             jjpos = ipos[:,dim]
             # BC 1:
-            ind_bc1 = np.where(ne.evaluate("(abs(jjpos-jpos+box) < grid_radius)"))
+            ind_bc1 = np.where(ne.evaluate("(abs(jjpos-jpos+box) < grid_radius+ismooth)"))
             ipos[ind_bc1,dim] = ipos[ind_bc1,dim] + box
             # BC 2:
-            ind_bc2 = np.where(ne.evaluate("(abs(jjpos-jpos-box) < grid_radius)"))
+            ind_bc2 = np.where(ne.evaluate("(abs(jjpos-jpos-box) < grid_radius+ismooth)"))
             ipos[ind_bc2,dim] = ipos[ind_bc2,dim] - box
 
             #if np.size(ind_bc1)>0 or np.size(ind_bc2)>0:
