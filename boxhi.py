@@ -25,9 +25,9 @@ class BoxHI(HaloHI):
         else:
             savefile_s = savefile
         self.nhalo = 1
-        HaloHI.__init__(self,snap_dir,snapnum,minpart=-1,reload_file=reload_file,savefile=savefile_s,gas=gas)
+        HaloHI.__init__(self,snap_dir,snapnum,minpart=400,reload_file=reload_file,savefile=savefile_s,gas=gas)
         #global grid
-        self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
+        self.sub_cofm=np.array([self.box/2., self.box/2.,self.box/2.])
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):

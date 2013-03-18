@@ -124,7 +124,7 @@ class HaloHI:
             target_mass = self.box**3 * rhom / self.npart[0]
             min_mass = target_mass * self.minpart
             #Get halo catalog
-            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass)
+            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass,2)
             try:
                 self.nhalo
             except AttributeError:

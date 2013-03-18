@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Split off module to load halo catalogues and export a list of mass and positions"""
 
 import numpy as np
@@ -16,8 +17,8 @@ def is_masked(halo,sub_mass,sub_cofm, sub_radii):
     #If there is a larger halo nearby, mask this halo
     return np.size(np.where(sub_mass[near] > sub_mass[halo])) == 0
 
-def find_wanted_halos(num, base, min_mass):
-    """When handed a halo catalogue, remove from it the halos that are close to other, larger halos.
+def find_wanted_halos(num, base, min_mass, dist=1):
+    """When handed a halo catalogue, remove from it the halos that are within dist virial radii of other, larger halos.
     Select halos via their M_200 mass, defined in terms of the critical density.
     Arguments:
         num - snapnumber
@@ -27,7 +28,7 @@ def find_wanted_halos(num, base, min_mass):
         ind - list of halo indices used
         sub_mass - halo masses in M_sun /h
         sub_cofm - halo positions
-        sub_radii - R_Crit200 for halo radii"""
+        sub_radii - dist*R_Crit200 for halo radii"""
     try:
         subs=readsubf.subfind_catalog(base,num,masstab=True,long_ids=True)
         #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
@@ -53,8 +54,8 @@ def find_wanted_halos(num, base, min_mass):
         #r200 in kpc/h (comoving).
         sub_radii = np.array(subs.Group_R_Crit200[ind])
         del subs
-    # We might have the halo catalog stored in the new format, which is HDF5.
 
+    sub_radii*=dist
     #For each halo
     ind2=np.where([is_masked(ii,sub_mass,sub_cofm,sub_radii) for ii in xrange(0,np.size(sub_mass))])
     ind=(np.ravel(ind)[ind2],)
