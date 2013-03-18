@@ -30,7 +30,7 @@ class BoxHI(HaloHI):
         self.sub_pos=np.array([self.box/2., self.box/2.,self.box/2.])
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irhoH0,sub_nHI_grid,weights=None):
+    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -39,22 +39,18 @@ class BoxHI(HaloHI):
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
-        #Linear dimension of each cell in physical cm:
-        #               kpc/h                   1 cm/kpc
-        epsilon=self.box/(self.ngrid[0])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
         #coords in grid units
         coords=fieldize.convert(ipos,self.ngrid[0],self.box)
         #NH0
-        smooth = ismooth
-        #Convert smoothing lengths to grid coordinates.
-        smooth*=(self.ngrid[ii]/self.box)
+        # Convert each particle's density to column density by multiplying by the smoothing length once (in physical cm)!
+        cellspkpc=(self.ngrid[ii]/self.box)
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*self.box/self.ngrid[0]," kpc/h ",np.mean(smooth), "grid cells"
+            avgsmth=np.mean(ismooth)
+            print ii," Av. smoothing length is ",avgsmth," kpc/h ",avgsmth*cellspkpc, "grid cells min: ",np.min(ismooth)*cellspkpc
             self.once=False
-        #Epsilon is in physical cm/cell.
-        #physical atoms cm^-3  -> physical atoms cm^-2 /cell
-        rhoH0=irhoH0*epsilon
+        #Convert smoothing lengths to grid coordinates.
+        ismooth*=cellspkpc
 
-        fieldize.sph_str(coords,rhoH0,sub_nHI_grid[0],smooth,weights=weights, periodic=True)
+        fieldize.sph_str(coords,mHI,sub_nHI_grid[0],ismooth,weights=weights, periodic=True)
         return
 

@@ -27,8 +27,7 @@ class ColdGas:
         bar = ff["PartType0"]
         nH = self.gas.get_code_rhoH(bar)
         nH0_code = self.gas.code_neutral_fraction(bar)
-        nH0_rah = self.gas.get_reproc_rhoHI(bar)/nH
-        #nH0_yaj = self.yaj.get_reproc_rhoHI(bar)/nH
+        nH0_rah = self.gas.get_reproc_HI(bar)
         bin_edges = 10**np.arange(-6,3,0.5)
 
         (cen,nH0_code_bin) = self.binned_nH(bin_edges, nH,nH0_code)
@@ -62,7 +61,7 @@ class ColdGas:
         """Compute Omega_gas, the sum of the hydrogen mass, divided by the critical density.
         """
         mass = 0.
-        kpchincm = 3.085678e21/self.hubble/(1+self.redshift)
+        kpchincm = 1./(1+self.redshift)
         protonmass=1.66053886e-24
         for files in np.arange(0,500):
             try:
@@ -74,9 +73,11 @@ class ColdGas:
 
             pvol = 4./3.*math.pi*(hsml.get_smooth_length(bar)*kpchincm)**3
             #Total mass of H in g
-            mass += np.sum(nH*pvol)*protonmass
+            ind = np.where(nH < 0.1)
+            mass += np.sum(nH[ind]*pvol[ind])*protonmass
+            #mass += np.sum(nH*pvol)*protonmass
         #Total volume of the box in comoving cm^3
-        volume = (self.box*3.085678e21/self.hubble)**3
+        volume = (self.box)**3
         #Total mass of HI * m_p / r_c
         omega_g=mass/volume/self.rho_crit()
         return omega_g

@@ -65,6 +65,9 @@ class HaloHI:
         #Internal gadget length unit: 1 kpc/h in cm/h
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
+        self.protonmass=1.66053886e-24
+        #This could be loaded from the GFM.
+        self.hy_mass=0.76
         #Name of savefile
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
@@ -191,33 +194,38 @@ class HaloHI:
         star=cold_gas.RahmatiRT(self.redshift, self.hubble)
         self.once=True
         #Now grid the HI for each halo
-        for fnum in xrange(0,500):
-            try:
-                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
-            except IOError:
-                break
-            print "Starting file ",fnum
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff)
+            print "Starting file ",ff
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"])
-            #Returns neutral density in atoms/cm^3 (physical)
-            if gas:
-                irhoH0 = star.get_code_rhoH(bar)
-            else:
-                irhoH0 = star.get_reproc_rhoHI(bar)
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            if not gas:
+                mass *= star.get_reproc_HI(bar)
             smooth = hsml.get_smooth_length(bar)
-            [self.sub_gridize_single_file(ii,ipos,smooth,irhoH0,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
             #Explicitly delete some things.
             del ipos
-            del irhoH0
+            del mass
             del smooth
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_nHI_grid[ii]*=(massg/epsilon**2)
+            self.sub_nHI_grid[ii]+=0.1
         [np.log10(grid,grid) for grid in self.sub_nHI_grid]
-        #Deal with zeros
-        for grid in self.sub_nHI_grid:
-            grid[np.where(np.isinf(grid))]=0
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,irhoH0,sub_nHI_grid,weights=None):
+    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.
             Arguments:
@@ -226,11 +234,6 @@ class HaloHI:
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
-
-        # Linear dimension of each cell in cm: sub_radii is in comoving kpc, and thus so is epsilon
-        # (for easy comparison with positions)
-        #               kpc/h                   1 cm/kpc
-        epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
         grid_radius = self.sub_radii[ii]
@@ -250,8 +253,7 @@ class HaloHI:
 
             # Update smooth and rho arrays as well:
             ismooth = ismooth[indj]
-            if irhoH0 != None:
-                irhoH0 = irhoH0[indj]
+            mHI = mHI[indj]
 
             jjpos = ipos[:,dim]
             # BC 1:
@@ -270,16 +272,15 @@ class HaloHI:
         #coords in grid units
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
-        smooth = ismooth
+        cellspkpc=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         #Convert smoothing lengths to grid coordinates.
-        smooth*=(self.ngrid[ii]/(2*self.sub_radii[ii]))
+        ismooth*=cellspkpc
         if self.once:
-            print ii," Av. smoothing length is ",np.mean(smooth)*2*self.sub_radii[ii]/self.ngrid[ii]," kpc/h ",np.mean(smooth), "grid cells min: ",np.min(smooth)
+            avgsmth=np.mean(ismooth)
+            print ii," Av. smoothing length is ",avgsmth/cellspkpc," kpc/h ",avgsmth, "grid cells min: ",np.min(ismooth)
             self.once=False
-        # Convert the integrated direction from comoving to physical
-        if irhoH0 != None:
-            irhoH0*=epsilon/(1+self.redshift)
-            fieldize.sph_str(coords,irhoH0,sub_nHI_grid[ii],smooth,weights=weights)
+        #interpolate the density
+        fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights)
         return
 
     def get_sigma_DLA_halo(self,halo,DLA_cut,DLA_upper_cut=42.):
@@ -499,13 +500,12 @@ class HaloHI:
         """
         #Average column density of HI in atoms cm^-2 (physical)
         if thresh > 0:
-            HImass = np.array([np.mean(10**grid[np.where(grid > thresh)]) for grid in self.sub_nHI_grid])
+            HImass = np.array([np.sum(10**grid[np.where(grid > thresh)])/np.size(grid) for grid in self.sub_nHI_grid])
             HImass = np.mean(HImass)
         else:
             HImass = np.mean(10**self.sub_nHI_grid)
-        protonmass=1.66053886e-24
         #Avg. Column density of HI in g cm^-2 (comoving)
-        HImass = protonmass * HImass/(1+self.redshift)**2
+        HImass = self.protonmass * HImass/(1+self.redshift)**2
         #Length of column in comoving cm
         length = (self.box*self.UnitLength_in_cm/self.hubble)
         #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
