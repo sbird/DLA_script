@@ -437,7 +437,7 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
             weights - Weights to divide each contribution by.
     """
     # Some error handling.
-    if not check_input(pos,field):
+    if np.size(pos)==0:
         return field
 
     dim=np.shape(field)
