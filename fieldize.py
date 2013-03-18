@@ -447,9 +447,9 @@ def sph_str(pos,value,field,radii,weights=None,periodic=False):
         weights = np.array([0.])
     #Cast some array types
     if pos.dtype != np.float32:
-       pos = np.array(pos, dtype=np.float32)
+        pos = np.array(pos, dtype=np.float32)
     if radii.dtype != np.float32:
-       radii = np.array(radii, dtype=np.float32)
+        radii = np.array(radii, dtype=np.float32)
     if value.dtype != np.float32:
         value = np.array(value, dtype=np.float32)
     field += _SPH_Fieldize(pos, radii, value, weights,periodic,dim[0])

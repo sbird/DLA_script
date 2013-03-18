@@ -159,24 +159,14 @@ class PrettyHalo(halohi.HaloHI):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
         stacking several halo profiles together."""
         Rbins=np.linspace(minR,maxR,20)
-        try:
-            aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
-            #If we didn't load the HI grid this time
-        except AttributeError:
-            pass
-        #Gas profiles
-        try:
-            agRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
-        except AttributeError:
-            pass
+        aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
         plt.xlabel(r"R (kpc h$^{-1}$)")
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23., grid=None,color=acol):
+    def plot_column_density(self,minN=17,maxN=23.,color=acol):
         """Plots the column density distribution function. """
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)

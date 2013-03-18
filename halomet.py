@@ -3,13 +3,13 @@
    column density functions, cross-sections, etc.
 
 Classes:
-    TotalHaloHI - Finds the average HI fraction in a halo
-    HaloHI - Creates a grid around the halo center with the HI fraction calculated at each grid cell
+    HaloMet - Creates a grid around the halo center with the metal density fraction calculated at each grid cell
 """
 import numpy as np
 import hdfsim
 import os.path as path
 import hsml
+import h5py
 
 import halohi as hi
 
@@ -25,38 +25,39 @@ class HaloMet(hi.HaloHI):
             savefile_s = savefile
         hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,savefile=savefile_s)
 
-    def set_nHI_grid(self):
-        """Function finds the metal density around each halo rather than the HI density"""
+    def set_nHI_grid(self, gas=False):
+        """Set up the grid around each halo where the HI is calculated.
+        """
         self.once=True
         nelem = self.species.index(self.elem)
         #Now grid the HI for each halo
-        for fnum in xrange(0,500):
-            try:
-                f=hdfsim.get_file(self.snapnum,self.snap_dir,fnum)
-            except IOError:
-                break
-            print "Starting file ",fnum
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff)
+            print "Starting file ",ff
             bar=f["PartType0"]
-            ipos=np.array(bar["Coordinates"],dtype=np.float64)
-            #Returns neutral density in atoms/cm^3 (comoving)
-            smooth = hsml.get_smooth_length(bar)
-            # gas density in g/cm^3 (comoving)
-            irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
             #Density in this species
-            irho*=np.array(bar["GFM_Metals"][:,nelem],dtype=np.float64)
-            protonmass=1.66053886e-24
-            # gas density in amu /cm^3 (comoving)
-            irho/=protonmass
+            mass*=np.array(bar["GFM_Metals"][:,nelem],dtype=np.float64)
+            smooth = hsml.get_smooth_length(bar)
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
-            #Perform the grid interpolation
-            [self.sub_gridize_single_file(ii,ipos,smooth,irho,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             #Explicitly delete some things.
             del ipos
-            del irho
+            del mass
             del smooth
-        [np.log1p(grid,grid) for grid in self.sub_nHI_grid]
-        #No /= in list comprehensions...  :|
-        for i in xrange(0,self.nhalo):
-            self.sub_nHI_grid[i]/=np.log(10)
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_nHI_grid[ii]*=(massg/epsilon**2)
+            self.sub_nHI_grid[ii]+=0.1
+        [np.log10(grid,grid) for grid in self.sub_nHI_grid]
         return
-
