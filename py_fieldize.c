@@ -51,6 +51,25 @@ int check_type(PyArrayObject * arr, int npy_typename)
   return !PyArray_EquivTypes(PyArray_DESCR(arr), PyArray_DescrFromType(npy_typename));
 }
 
+#ifndef NO_KAHAN
+/*Evaluate one iteration of Kahan Summation: sum is the current value of the field,
+ *comp the compensation array, input the value to add this time.*/
+inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
+{
+  const int off = nx*xoff+yoff;
+  const double yy = input - *(comp+off);
+  const double temp = *(sum+off)+yy;     //Alas, sum is big, y small, so low-order digits of y are lost.
+  *(comp+off) = (temp - *(sum+off)) -yy; //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+  *(sum+off) = temp;               //Algebraically, c should always be zero. Beware eagerly optimising compilers!
+}
+
+#else
+
+inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
+{
+  *(sum+nx*xoff+yoff)+=input;
+}
+#endif
 
 //  int    3*nval arr  nval arr  nval arr   nx*nx arr  int     nval arr  (or 0)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
@@ -80,7 +99,9 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     PyArrayObject * pyfield = (PyArrayObject *) PyArray_SimpleNew(2, size, NPY_DOUBLE);
     PyArray_FILLWBYTE(pyfield, 0);
     double * field = (double *) PyArray_DATA(pyfield);
-    if( !field ){
+    //Copy of field array to store compensated bits for Kahan summation
+    double * comp = (double *) calloc(nx*nx,sizeof(double));
+    if( !comp || !field ){
       PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for field arrays.\n");
       return NULL;
     }
@@ -107,7 +128,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-                *(field+nx*lowgx+lowgy)+=val/weight;
+                KahanSum(field, comp, val/weight, lowgx,lowgy,nx);
                 continue;
         }
         /*Array for storing cell weights*/
@@ -152,7 +173,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         #pragma omp parallel for
         for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++)
             for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                *(field+nx*gx+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy,nx);
             }
         //Deal with cells that have wrapped around the edges of the grid
         if (periodic){
@@ -161,15 +182,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=nx-1;gy<=upgy;gy++){
                 //Wrapping only y over
                 for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                    *(field+nx*gx+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1),nx);
                 }
                 //y over, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *(field+nx*gx-(nx-1)+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1),nx);
                 }
                 //y over, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *(field+nx*gx+(nx-1)+gy-(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1),nx);
                 }
             }
             //Wrapping y under
@@ -177,15 +198,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=lowgy;gy<=0;gy++){
                 //Only y under
                 for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
-                    *(field+nx*gx+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1),nx);
                 }
                 //y under, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *(field+nx*gx-(nx-1)+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1),nx);
                 }
                 //y under, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *(field+nx*gx+(nx-1)+gy+(nx-1))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1),nx);
                 }
             }
             //Finally wrap only x
@@ -193,15 +214,16 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
             for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++){
                 //x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    *(field+nx*gx-(nx-1)+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy,nx);
                 }
                 //x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    *(field+nx*gx+(nx-1)+gy)+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy,nx);
                 }
             }
         }
     }
+    free(comp);
     //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
 	return Py_BuildValue("O",pyfield);
 }
