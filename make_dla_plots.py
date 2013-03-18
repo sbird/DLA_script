@@ -7,14 +7,12 @@ matplotlib.use('PDF')
 import matplotlib.pyplot as plt
 import os.path as path
 import dla_plots as dp
-import dla_total_plots
 import dla_data
 import numpy as np
 from save_figure import save_figure
 import sys
 
-#Argument: 1 => totalHI plots
-#          2 => pretty density plots
+#Argument: 2 => pretty density plots
 #          3 => sigma_DLA plots
 #          4 => Column density plots
 #          5 => dNdz and halo function
@@ -36,25 +34,6 @@ snaps=[
 ]
 
 nosmall=0
-#Plots with all the halo particles
-if len(sys.argv) > 1 and int(sys.argv[1]) == 1:
-    for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
-        outdir=path.join(base,"plots")
-        print "Saving total plots for snapshot ",snapnum," to ",outdir
-        #Fig 9
-        tot=dla_total_plots.TotalHIPlots(base,snapnum,minpart)
-#         plt.figure()
-#         tot.plot_totalHI()
-#         save_figure(path.join(outdir,"total_HI_"+str(snapnum)))
-
-#         plt.clf()
-#         tot.plot_MHI()
-#         save_figure(path.join(outdir,"MHI_vs_Mgas"+str(snapnum)))
-#         plt.clf()
-#
-        tot.plot_gas()
-        save_figure(path.join(outdir,"halo_vs_gas_"+str(snapnum)))
-        plt.clf()
 
 def print_stuff(string):
     """Routine to print the parameters of the fit in a format that can be inserted into python"""

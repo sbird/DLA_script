@@ -8,6 +8,7 @@ import os.path as path
 import cold_gas
 import hsml
 from halohi import HaloHI
+import matplotlib.pyplot as plt
 
 
 class VelocityHI(HaloHI):
@@ -68,4 +69,19 @@ class VelocityHI(HaloHI):
             self.sub_nHI_grid[i][ind] = 0
             self.sub_gas_grid[i][ind] = 0
         return
+
+
+    def radial_log(self,x,y,cut=1e25):
+        """If we have x and y st. x+iy = r e^iθ, find x' and y' s.t. x'+iy' = log(r) e^iθ"""
+        r = np.sqrt(x**2+y**2)
+        ind = np.where(r > cut)
+        sc=np.ones(np.shape(r))
+        sc[ind] = cut/r[ind]
+        return (x*sc, y*sc)
+
+    def plot_velocity_map(self,num=0,scale=1e32,cut=1e25):
+        """Plot the velocity map around a halo"""
+        (x,y) = self.radial_log(self.sub_nHI_grid[num],self.sub_gas_grid[num],cut=cut)
+        r = np.sqrt(x**2+y**2)
+        plt.quiver(x,y,r,scale=scale,scale_units='xy',)
 
