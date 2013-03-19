@@ -58,6 +58,22 @@ class HaloHI:
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
+        self.set_units()
+        try:
+            if reload_file:
+                raise KeyError("reloading")
+            #First try to load from a file
+            self.load_savefile(savefile)
+        except (IOError,KeyError):
+            self.load_header()
+            self.load_halos(minpart)
+            #Otherwise regenerate from the raw data
+            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            self.set_nHI_grid(gas)
+        return
+
+    def set_units(self):
+        """Set up the unit system"""
         #Internal gadget mass unit: 1e10 M_sun/h in g/h
         self.UnitMass_in_g=1.989e43
         #1 M_sun in g
@@ -68,78 +84,79 @@ class HaloHI:
         self.protonmass=1.66053886e-24
         #This could be loaded from the GFM.
         self.hy_mass=0.76
+        #For printing
+        self.once=False
+
+    def load_header(self):
+        """Load the header and halo data from a snapshot set"""
+        #Simulation parameters
+        f=hdfsim.get_file(self.snapnum,self.snap_dir,0)
+        self.redshift=f["Header"].attrs["Redshift"]
+        self.hubble=f["Header"].attrs["HubbleParam"]
+        self.box=f["Header"].attrs["BoxSize"]
+        self.npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
+        self.omegam=f["Header"].attrs["Omega0"]
+        self.omegal=f["Header"].attrs["OmegaLambda"]
+        f.close()
+
+    def load_halos(self,minpart):
+        """Load the halo catalogue"""
+        #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
+        rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
+        #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
+        target_mass = self.box**3 * rhom / self.npart[0]
+        min_mass = target_mass * minpart
+        #Get halo catalog
+        (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(self.snapnum, self.snap_dir, min_mass,2)
+        try:
+            self.nhalo
+        except AttributeError:
+            self.nhalo=np.size(self.ind)
+        if self.nhalo == 1:
+            self.sub_radii=np.array([self.box/2.])
+        #Set ngrid to be the gravitational softening length if not already set
+        try:
+            self.ngrid
+        except AttributeError:
+            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
+
+        print "Found ",self.nhalo," halos with > ",minpart,"particles"
+
+
+    def load_savefile(self,savefile=None):
+        """Load data from a file"""
         #Name of savefile
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
         else:
             self.savefile=savefile
-        #For printing
-        self.once=False
+        f=h5py.File(self.savefile,'r')
+        grid_file=f["HaloData"]
+        #if  not (grid_file.attrs["minpart"] == self.minpart):
+        #    raise KeyError("File not for this structure")
+        #Otherwise...
+        self.redshift=grid_file.attrs["redshift"]
+        self.omegam=grid_file.attrs["omegam"]
+        self.omegal=grid_file.attrs["omegal"]
+        self.hubble=grid_file.attrs["hubble"]
+        self.box=grid_file.attrs["box"]
+        self.npart=grid_file.attrs["npart"]
+        self.ngrid = np.array(grid_file["ngrid"])
+        self.sub_mass = np.array(grid_file["sub_mass"])
+        self.sub_cofm=np.array(grid_file["sub_cofm"])
+        self.sub_radii=np.array(grid_file["sub_radii"])
+        self.ind=np.array(grid_file["halo_ind"])
+        #If nhalo has been preset by a child class, do not set it.
         try:
-            if reload_file:
-                raise KeyError("reloading")
-            #First try to load from a file
-            f=h5py.File(self.savefile,'r')
-            grid_file=f["HaloData"]
-            if  not (grid_file.attrs["minpart"] == self.minpart):
-                raise KeyError("File not for this structure")
-            #Otherwise...
-            self.redshift=grid_file.attrs["redshift"]
-            self.omegam=grid_file.attrs["omegam"]
-            self.omegal=grid_file.attrs["omegal"]
-            self.hubble=grid_file.attrs["hubble"]
-            self.box=grid_file.attrs["box"]
-            self.npart=grid_file.attrs["npart"]
-            self.ngrid = np.array(grid_file["ngrid"])
-            self.sub_mass = np.array(grid_file["sub_mass"])
-            self.sub_cofm=np.array(grid_file["sub_cofm"])
-            self.sub_radii=np.array(grid_file["sub_radii"])
-#             self.sub_gas_mass=np.array(grid_file["sub_gas_mass"])
-            self.ind=np.array(grid_file["halo_ind"])
-            #If nhalo has been preset by a child class, do not set it.
-            try:
-                self.nhalo
-            except AttributeError:
-                self.nhalo=np.size(self.ind)
-            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            grp = f["GridHIData"]
-            [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
-            f.close()
-            del grid_file
-            del f
-        except (IOError,KeyError):
-            #Otherwise regenerate from the raw data
-            #Simulation parameters
-            f=hdfsim.get_file(snapnum,self.snap_dir,0)
-            self.redshift=f["Header"].attrs["Redshift"]
-            self.hubble=f["Header"].attrs["HubbleParam"]
-            self.box=f["Header"].attrs["BoxSize"]
-            self.npart=f["Header"].attrs["NumPart_Total"]+2**32*f["Header"].attrs["NumPart_Total_HighWord"]
-            self.omegam=f["Header"].attrs["Omega0"]
-            self.omegal=f["Header"].attrs["OmegaLambda"]
-            f.close()
-            #This is rho_c in units of h^-1 1e10 M_sun (kpc/h)^-3
-            rhom = 2.78e+11* self.omegam / 1e10 / (1e3**3)
-            #Mass of an SPH particle, in units of 1e10 M_sun, x omega_m/ omega_b.
-            target_mass = self.box**3 * rhom / self.npart[0]
-            min_mass = target_mass * self.minpart
-            #Get halo catalog
-            (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(snapnum, self.snap_dir, min_mass,2)
-            try:
-                self.nhalo
-            except AttributeError:
-                self.nhalo=np.size(self.ind)
-            if self.nhalo == 1:
-                self.sub_radii=np.array([self.box/2.])
-            #Set ngrid to be the gravitational softening length if not already set
-            try:
-                self.ngrid
-            except AttributeError:
-                self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])
-            print "Found ",self.nhalo," halos with > ",minpart,"particles"
-            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.set_nHI_grid(gas)
-        return
+            self.nhalo
+        except AttributeError:
+            self.nhalo=np.size(self.ind)
+        self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        grp = f["GridHIData"]
+        [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
+        f.close()
+        del grid_file
+        del f
 
     def save_file(self):
         """
@@ -173,14 +190,14 @@ class HaloHI:
         """Delete big arrays"""
         try:
             del self.sub_nHI_grid
+            del self.sub_mass
+            del self.sub_cofm
+            del self.sub_radii
+            del self.ngrid
+            del self.ind
         except AttributeError:
             pass
-        del self.sub_mass
-#         del self.sub_gas_mass
-        del self.sub_cofm
-        del self.sub_radii
-        del self.ngrid
-        del self.ind
+
 
     def get_H2_frac(self,nHI):
         """Get the molecular fraction for neutral gas"""
@@ -222,7 +239,7 @@ class HaloHI:
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_nHI_grid[ii]*=(massg/epsilon**2)
             self.sub_nHI_grid[ii]+=0.1
-        [np.log10(grid,grid) for grid in self.sub_nHI_grid]
+            np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
