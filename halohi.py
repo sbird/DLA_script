@@ -190,11 +190,6 @@ class HaloHI:
         """Delete big arrays"""
         try:
             del self.sub_nHI_grid
-            del self.sub_mass
-            del self.sub_cofm
-            del self.sub_radii
-            del self.ngrid
-            del self.ind
         except AttributeError:
             pass
 
@@ -508,26 +503,6 @@ class HaloHI:
         grav=6.672e-8
         rho_crit=3*h100**2/(8*math.pi*grav)
         return rho_crit
-
-    def omega_DLA(self, thresh=20.3):
-        """Compute Omega_DLA, the sum of the mass in DLAs, divided by the critical density.
-            Ω_DLA = m_p * avg. column density / (1+z)^2 / length of column / rho_c
-            Note: If we want the neutral gas density rather than the neutral hydrogen density, divide by 0.76,
-            the hydrogen mass fraction.
-        """
-        #Average column density of HI in atoms cm^-2 (physical)
-        if thresh > 0:
-            HImass = np.array([np.sum(10**grid[np.where(grid > thresh)])/np.size(grid) for grid in self.sub_nHI_grid])
-            HImass = np.mean(HImass)
-        else:
-            HImass = np.mean(10**self.sub_nHI_grid)
-        #Avg. Column density of HI in g cm^-2 (comoving)
-        HImass = self.protonmass * HImass/(1+self.redshift)**2
-        #Length of column in comoving cm
-        length = (self.box*self.UnitLength_in_cm/self.hubble)
-        #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
-        omega_DLA=HImass/length/self.rho_crit()
-        return omega_DLA
 
     def get_dndm(self,minM,maxM):
         """Get the halo mass function from the simulations,
