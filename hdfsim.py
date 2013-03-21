@@ -7,10 +7,10 @@ import numpy as np
 def get_file(num, base, file_num=0):
     """Get a file descriptor from a simulation directory,
     snapshot number and optionally file number.
-    Input: 
+    Input:
         num - snapshot number
         base - simulation directory
-        file_num - fie number in the snapshot"""
+        file_num - file number in the snapshot"""
     snap=str(num).rjust(3,'0')
     fname=base+"/snapdir_"+snap+"/snap_"+snap
     try:
@@ -22,7 +22,21 @@ def get_file(num, base, file_num=0):
         else:
             raise IOError
     return f
-    
+
+def get_all_files(num, base):
+    """Gets a list of all files in this snapshot, by opening them in turn."""
+    ff = get_file(num, base)
+    files = [ff.filename,]
+    ff.close()
+    for i in xrange(1,3000):
+        try:
+            ff = get_file(num,base,i)
+            files.append(ff.filename)
+            ff.close()
+        except IOError:
+            break
+    return files
+
 
 def get_baryon_array(name,num, base, file_num=0,dtype=np.float64):
     """Get a baryon array by name from a simulation directory.

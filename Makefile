@@ -26,14 +26,19 @@ else
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif
-.PHONY: all
+.PHONY: all clean
 
-all: _fieldize_priv.so
+all: _fieldize_priv.so _power_priv.so
 
-clean:
-	rm py_fieldize.o _fieldize_priv.so
+clean: _fieldize_priv.so _power_priv.so
+	rm *.o $^
 
-py_fieldize.o: py_fieldize.c
+%.o: %.c
 	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
-_fieldize_priv.so: py_fieldize.o
-	$(LINK) -shared $^ -o $@
+
+_%_priv.so: py_%.o
+	$(LINK) $(LFLAGS) -shared $^ -o $@
+
+_power_priv.so: py_power.o
+	$(LINK) $(LFLAGS) -lfftw3 -lfftw3_threads -shared $^ -o $@
+

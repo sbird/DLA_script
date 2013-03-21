@@ -1,4 +1,4 @@
-# vim: set fileencoding=utf-8
+# -*- coding: utf-8 -*-
 """
 This is a module for making plots like those in Tescari & Viel, based on the data gathered in the Halohi module
 Figures implemented:
@@ -8,6 +8,7 @@ Possible but not implemented:
         """
 
 import halohi
+import boxhi
 import numpy as np
 import os.path as path
 import math
@@ -61,6 +62,7 @@ gadget_halo_p = {
           }
 
 def tab_to_latex():
+    """Convert above table to latex format"""
     i = 4
     for snap in (90, 141, 191):
         print str(i),"  & Arepo ",
@@ -90,6 +92,7 @@ def pr_num(num,rnd=2):
 
 
 def tight_layout_wrapper():
+    """Wrap tight_layout for matplotlib backends like ps which don't have it"""
     try:
         plt.tight_layout()
     except AttributeError:
@@ -126,7 +129,7 @@ class PrettyHalo(halohi.HaloHI):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_nHI_grid[num],"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],r"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
 
     def plot_pretty_cut_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
         """
@@ -152,54 +155,20 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_pretty_cut_gas_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
-        """
-        Plots a pretty (high-resolution) picture of the grid around a halo.
-        """
-        cut_grid=np.array(self.sub_gas_grid[num])
-        ind=np.where(cut_grid < cut_LLS)
-        cut_grid[ind]=10
-        ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
-        cut_grid[ind2]=17.
-        ind3=np.where(cut_grid > cut_DLA)
-        cut_grid[ind3]=20.3
-        maxdist = self.sub_radii[num]
-        plt.imshow(cut_grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=20.3, cmap=spb_jet2)
-        plt.xlabel(r"y (kpc h$^{-1}$)")
-        plt.xlabel(r"z (kpc h$^{-1}$)")
-        tight_layout_wrapper()
-        plt.show()
-
-    def plot_pretty_gas_halo(self,num=0):
-        """
-        Plots a pretty (high-resolution) picture of the grid around a halo.
-        """
-        self.plot_pretty_something(num,self.sub_gas_grid[num],"log$_{10}$ N$_{H}$ (cm$^{-2}$)")
-
     def plot_radial_profile(self,minM=3e11,maxM=1e12,minR=0,maxR=20.):
         """Plots the radial density of neutral hydrogen (and possibly gas) for a given halo,
         stacking several halo profiles together."""
         Rbins=np.linspace(minR,maxR,20)
-        try:
-            aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
-            #If we didn't load the HI grid this time
-        except AttributeError:
-            pass
-        #Gas profiles
-        try:
-            agRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1],True) for i in xrange(0,np.size(Rbins)-1)]
-            plt.plot(Rbins[0:-1],agRprof,color="brown", ls=astyle,label="Gas")
-        except AttributeError:
-            pass
+        aRprof=[self.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1]) for i in xrange(0,np.size(Rbins)-1)]
+        plt.plot(Rbins[0:-1],aRprof,color=acol, ls=astyle,label="HI")
         plt.xlabel(r"R (kpc h$^{-1}$)")
         plt.ylabel(r"Density $N_{HI}$ (kpc$^{-1}$)")
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23., grid=None,color=acol):
+    def plot_column_density(self,minN=17,maxN=23.,color=acol):
         """Plots the column density distribution function. """
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1, grids=grid)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
@@ -253,15 +222,15 @@ class PrettyHalo(halohi.HaloHI):
         ax=plt.gca()
         ax.set_yscale('log')
         ax.set_xscale('log')
-# 	ax.tick_params(labelsize=30)
+#       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.redshift,1)+"$")
         if DLA_cut == 17.:
-       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
+            ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)")
             plt.title(r"LLS cross-section at $z="+pr_num(self.redshift,1)+"$")
-        plt.xlim(self.minplot,self.maxplot)
+        #plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
             plt.ylim(ymin=10)
         else:
@@ -283,108 +252,12 @@ class PrettyHalo(halohi.HaloHI):
 
 
 
-class PrettyBox(halohi.BoxHI,PrettyHalo):
+class PrettyBox(boxhi.BoxHI,PrettyHalo):
     """
     As above but for the whole box grid
     """
-    def __init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None):
-        halohi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=False,skip_grid=None,savefile=None)
-
-
-class PrettyTotalHI(halohi.TotalHaloHI):
-    """Derived class for plotting total nHI frac and total nHI mass
-    against halo mass"""
-    def plot_totalHI(self,color="black",label=""):
-        """Make the plot of total neutral hydrogen density in a halo:
-            Figure 9 of Tescari & Viel 2009"""
-        #Plot.
-        plt.loglog(self.mass,self.nHI,'o',color=color,label=label)
-        #Axes
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel("HI frac")
-        plt.xlim(1e9,5e12)
-
-    def plot_MHI(self,color="black",label=""):
-        """Total M_HI vs M_halo"""
-        #Plot.
-        plt.loglog(self.mass,self.MHI,'o',color=color)
-        #Make a best-fit curve.
-        ind=np.where(self.MHI > 0.)
-        logmass=np.log10(self.mass[ind])-12
-        loggas=np.log10(self.MHI[ind])
-        ind2=np.where(logmass > -2)
-        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
-        mass_bins=np.logspace(np.log10(np.min(self.mass)),np.log10(np.max(self.mass)),num=100)
-        fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
-        plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
-        #Axes
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"Mass$_{HI}$ ($M_\odot$ h$^{-1}$)")
-        plt.xlim(1e9,5e12)
-
-    def plot_gas(self,color="black",label=""):
-        """Total M_gas vs M_halo"""
-        #Plot.
-        plt.loglog(self.mass,self.Mgas,'o',color=color)
-        #Make a best-fit curve.
-        ind=np.where(self.Mgas > 0.)
-        logmass=np.log10(self.mass[ind])-12
-        loggas=np.log10(self.Mgas[ind])
-        ind2=np.where(logmass > -2)
-        (alpha,beta)=scipy.polyfit(logmass[ind2],loggas[ind2],1)
-        mass_bins=np.logspace(np.log10(np.min(self.mass)),np.log10(np.max(self.mass)),num=100)
-        fit= 10**(alpha*(np.log10(mass_bins)-12)+beta)
-        plt.loglog(mass_bins,fit, color=color,label=label+r"$\alpha$="+str(np.round(alpha,2))+r" $\beta$ = "+str(np.round(beta,2)))
-        #Axes
-        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        plt.ylabel(r"Mass$_{gas}$ ($M_\odot$ h$^{-1}$)")
-        plt.xlim(1e9,5e12)
-
-
-class TotalHIPlots:
-    """Class for plotting functions from PrettyHaloHI"""
-    def __init__(self,base,snapnum,minpart=400):
-        #Get paths
-        gdir=path.join(base,"Gadget")
-        adir=path.join(base,"Arepo_ENERGY")
-        #Load data
-        self.atHI=PrettyTotalHI(adir,snapnum,minpart)
-        self.atHI.save_file()
-        self.gtHI=PrettyTotalHI(gdir,snapnum,minpart)
-        self.gtHI.save_file()
-
-    def plot_totalHI(self):
-        """Make the plot of total neutral hydrogen density in a halo:
-            Figure 9 of Tescari & Viel 2009"""
-        #Plot.
-        self.gtHI.plot_totalHI(color=gcol,label="Gadget")
-        self.atHI.plot_totalHI(color=acol,label="Arepo")
-        #Axes
-        plt.legend(loc=4)
-        tight_layout_wrapper()
-        plt.show()
-
-    def plot_MHI(self):
-        """Make the plot of total neutral hydrogen mass in a halo:
-            Figure 9 of Tescari & Viel 2009"""
-        #Plot.
-        self.gtHI.plot_MHI(color=gcol,label="Gadget")
-        self.atHI.plot_MHI(color=acol,label="Arepo")
-        #Axes
-        plt.legend(loc=0)
-        tight_layout_wrapper()
-        plt.show()
-
-    def plot_gas(self):
-        """Plot total gas mass in a halo"""
-        #Plot.
-        self.gtHI.plot_gas(color=gcol,label="Gadget")
-        self.atHI.plot_gas(color=acol,label="Arepo")
-        #Axes
-        plt.legend(loc=0)
-        tight_layout_wrapper()
-        plt.show()
-
+    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
+        boxhi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=reload_file,savefile=savefile)
 
 
 class HaloHIPlots:
@@ -393,14 +266,14 @@ class HaloHIPlots:
     Tescari and Viel which are derived from the grid of HI density around the halos.
     These are figs 10-13
     """
-    def __init__(self,base,snapnum,minpart=400,minplot=1e9, maxplot=2e12,reload_file=False,skip_grid=None):
+    def __init__(self,base,snapnum,minpart=400,minplot=1e9, maxplot=2e12,reload_file=False):
         #Get paths
         self.gdir=path.join(base,"Gadget")
         self.adir=path.join(base,"Arepo_ENERGY")
         #Get data
-        self.ahalo=PrettyHalo(self.adir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
+        self.ahalo=PrettyHalo(self.adir,snapnum,minpart,reload_file=reload_file)
 #         self.ahalo.save_file()
-        self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,reload_file=reload_file,skip_grid=skip_grid)
+        self.ghalo=PrettyHalo(self.gdir,snapnum,minpart,reload_file=reload_file)
 #         self.ghalo.save_file()
         self.minplot=minplot
         self.maxplot=maxplot
@@ -434,13 +307,13 @@ class HaloHIPlots:
         ax=plt.gca()
         ax.set_yscale('log')
         ax.set_xscale('log')
-# 	ax.tick_params(labelsize=30)
+#       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)",size=25)
         ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)",size=25)
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         if DLA_cut == 17.:
-       	    ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)",size=25)
+            ax.set_ylabel(r"$\sigma_\mathrm{LLS}$ (kpc$^2$)",size=25)
             plt.title(r"LLS cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         plt.xlim(self.minplot,self.maxplot)
         if DLA_cut < 19:
@@ -588,12 +461,12 @@ class HaloHIPlots:
         try:
             ind = np.where(np.logical_and(self.ahalo.sub_mass > minM, self.ahalo.sub_mass < maxM))
             gind = np.where(np.logical_and(self.ghalo.sub_mass > minM, self.ghalo.sub_mass < maxM))
-	    print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
+            print "No. of halos for ",minM," < M < ",maxM," Arepo: ",np.size(ind)," Gadget: ",np.size(gind)
             aRprof=[self.ahalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             gRprof=[self.ghalo.get_stacked_radial_profile(minM,maxM,Rbins[i],Rbins[i+1])/scale for i in xrange(0,np.size(Rbins)-1)]
             plt.semilogy(Rbinc,[aRprof[0],]+aRprof,color=acol, ls=astyle,label="Arepo HI",lw=4)
             plt.semilogy(Rbinc,[gRprof[0],]+gRprof,color=gcol, ls=gstyle,label="Gadget HI",lw=4)
-	    RR = np.linspace(minR,maxR,100)
+            RR = np.linspace(minR,maxR,100)
             plt.semilogy(RR,1e-5+2*math.pi*RR/(1+self.ahalo.redshift)*self.ahalo.UnitLength_in_cm*10**20.3/scale,color="black", ls="-.",label="DLA density",lw=4)
             maxx=np.max((aRprof[0],gRprof[0]))
             #If we didn't load the HI grid this time
@@ -618,8 +491,8 @@ class HaloHIPlots:
         DLAdens=2*math.pi*Rbins[-1]*self.ahalo.UnitLength_in_cm*10**20.3
         if maxx > 20*DLAdens:
             plt.ylim(1e-2,20*DLAdens)
-	else:
-	    plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
+        else:
+            plt.ylim(1e-2,5*np.floor(gRprof[0]/5)+5)
         plt.xlim(minR,maxR)
         tight_layout_wrapper()
         plt.show()
@@ -672,27 +545,6 @@ class HaloHIPlots:
         print "Gadget: "
         print self.ghalo.snapnum," : ",gp,","
 
-
-class PrettyVelocity(halohi.VelocityHI):
-    """
-    Make a velocity plot
-    """
-    def __init__(self,snap_dir,snapnum,minpart,reload_file=False,skip_grid=None,savefile=None):
-        halohi.VelocityHI.__init__(self,snap_dir,snapnum,minpart,reload_file=reload_file,skip_grid=None,savefile=savefile)
-
-    def radial_log(self,x,y,cut=1e25):
-        """If we have x and y st. x+iy = r e^iθ, find x' and y' s.t. x'+iy' = log(r) e^iθ"""
-        r = np.sqrt(x**2+y**2)
-        ind = np.where(r > cut)
-        sc=np.ones(np.shape(r))
-        sc[ind] = cut/r[ind]
-        return (x*sc, y*sc)
-
-    def plot_velocity_map(self,num=0,scale=1e32,cut=1e25):
-        """Plot the velocity map around a halo"""
-        (x,y) = self.radial_log(self.sub_nHI_grid[num],self.sub_gas_grid[num],cut=cut)
-        r = np.sqrt(x**2+y**2)
-        plt.quiver(x,y,r,scale=scale,scale_units='xy',)
 
 
 

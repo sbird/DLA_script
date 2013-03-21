@@ -1,9 +1,13 @@
-"""Module for finding the neutral hydrogen in a halo, applying the correction for cold clouds
-explained in Nagamine et al 2004.
+# -*- coding: utf-8 -*-
+"""Module for finding the neutral hydrogen in a halo. Each class has a function get_reproc_rhoHI, which returns
+the neutral hydrogen density in *physical* atoms / cm^3
     Contains:
         StarFormation - Partially implements the star formation model of Springel & Hernquist 2003.
+        YajimaRT - implements a fit to the rt formula of Yajima 2011.
+        RahmatiRT - implements a fit to the rt formula of Rahmati 2012.
+                  get_code_rhoHI returns the rhoHI density as given by Arepo
     Method:
-        get_reproc_HI - Gets a corrected neutral hydrogen density including the fraction of gas in cold clouds
+        get_reproc_HI - Gets a corrected neutral hydrogen density
 """
 
 import numpy as np
@@ -187,12 +191,28 @@ class StarFormation:
         #Now in atoms /cm^3
         return nH0
 
+class YajimaRT:
+    """Neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
+    This is just neutral over a certain density."""
+    def __init__(self, redshift, hubble=0.71):
+        self.redshift = redshift
+        self.hubble=hubble
+        #Internal gadget mass unit: 1e10 M_sun/h in g/h
+        self.UnitMass_in_g=1.989e43
+        #Internal gadget length unit: 1 kpc/h in cm/h
+        self.UnitLength_in_cm=3.085678e21
+        #Internal velocity unit : 1 km/s in cm/s
+        self.UnitVelocity_in_cm_per_s=1e5
+        #proton mass in g
+        self.protonmass=1.66053886e-24
+        self.hy_mass = 0.76 # Hydrogen massfrac
+
     def get_yajima_rhoHI(self,bar):
         """Get a neutral hydrogen density with a self-shielding correction as suggested by Yajima Nagamine 2012 (1112.5691)
         This is just neutral over a certain density."""
-        inH0=np.array(bar["NeutralHydrogenAbundance"],dtype=np.float64)
+        inH0=np.array(bar["NeutralHydrogenAbundance"])
         #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        irho=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
+        irho=np.array(bar["Density"])*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2*(self.hy_mass/self.protonmass)
         #Slightly less sharp cutoff power law fit to data
         r2 = 10**-2.3437
         r1 = 10**-1.81844
@@ -205,7 +225,7 @@ class StarFormation:
         #Calculate rho_HI
         nH0=irho*inH0
         #Now in atoms /cm^3
-        return nH0
+        return nH0*(1+self.redshift)**3
 
     def get_reproc_rhoHI(self, bar):
         """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
@@ -237,7 +257,7 @@ class RahmatiRT:
         self.UnitVelocity_in_cm_per_s=1e5
         #proton mass in g
         self.protonmass=1.66053886e-24
-        self.hy_mass = 0.76 # Hydrogen massfrac
+        #self.hy_mass = 0.76 # Hydrogen massfrac
         self.gamma=5./3
         #Boltzmann constant (cgs)
         self.boltzmann=1.38066e-16
@@ -269,7 +289,7 @@ class RahmatiRT:
         return 6.73e-3 * (self.gray_opac / 2.49e-18)**(-2./3)*(T4)**0.17*(G12)**(2./3)*(self.f_bar/0.17)**(-1./3)
 
     def recomb_rate(self, temp):
-        """The reconbination rate from Rahmati eq A3, also Hui Gnedin 1997.
+        """The recombination rate from Rahmati eq A3, also Hui Gnedin 1997.
         Takes temperature in K, returns rate in cm^3 / s"""
         lamb = 315614/temp
         return 1.269e-13*lamb**1.503 / (1+(lamb/0.522)**0.47)**1.923
@@ -284,22 +304,56 @@ class RahmatiRT:
 
         return (B - np.sqrt(B**2-4*A*alpha_A))/(2*A)
 
-    def get_reproc_rhoHI(self, bar):
-        """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
-        #Convert density to hydrogen atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
-        nH=np.array(bar["Density"],dtype=np.float64)*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass/self.hy_mass)
-
-        ienergy=np.array(bar["InternalEnergy"],dtype=np.float64)
+    def get_temp(self,nH, bar):
+        """Get the temperature in Kelvin"""
+        #Internal energy units are 10^-10 erg/g
+        ienergy=np.array(bar["InternalEnergy"])*1e10
         #Calculate temperature from internal energy and electron abundance
-        nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
-        mu = 1.0 / ((self.hy_mass * (0.75 + nelec)) + 0.25)
+        nelec=np.array(bar['ElectronAbundance'])
+        #hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
+        hy_mass = 0.76
+        mu = 1.0 / ((hy_mass * (0.75 + nelec)) + 0.25)
+        #So for T in K, boltzmann in erg/K, internal energy has units of erg/g
         temp = (self.gamma-1) *  mu * self.protonmass / self.boltzmann * ienergy
         #Set the temperature of particles with densities of nH > 0.1 cm^-3 to 10^4 K.
         ind = np.where(nH > 0.1)
         temp[ind] = 1e4
+        return temp
 
-        nH0 = self.neutral_fraction(nH, temp) * nH
+    def get_rahmati_HI(self, bar):
+        """Get a neutral hydrogen density using the fitting formula of Rahmati 2012"""
+        #Convert density to atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3
+        nH=self.get_code_rhoH(bar)
+        temp = self.get_temp(nH, bar)
+        nH0 = self.neutral_fraction(nH, temp)
+        return nH0
 
+    def get_code_rhoH(self,bar):
+        """Convert hydrogen density to physical atoms /cm^3: internal gadget density unit is h^2 (1e10 M_sun) / kpc^3"""
+        nH = np.array(bar["Density"])*(self.UnitMass_in_g/self.UnitLength_in_cm**3)*self.hubble**2/(self.protonmass)
+        #Hydrogen mass fraction
+        #hy_mass = np.array(bar["GFM_Metals"][:,0],dtype=np.float32)
+        hy_mass = 0.76
+        #Now in hydrogen atoms / cm^3
+        nH*=hy_mass
+        #Convert to physical
+        nH*=(1+self.redshift)**3
+        return nH
+
+    def code_neutral_fraction(self, bar):
+        """Get the neutral fraction from the code"""
+        return np.array(bar["NeutralHydrogenAbundance"])
+
+    def get_reproc_HI(self, bar):
+        """Get a neutral hydrogen *fraction* using values given by Arepo
+        which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on.
+        Above the star formation density use the Rahmati fitting formula directly,
+        as Arepo reports values for the eEOS. """
+        nH=self.get_code_rhoH(bar)
+        ind = np.where(nH > 0.1)
+        nH0 = self.code_neutral_fraction(bar)
+        #Above star-formation threshold, gas is at 10^4K
+        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)
         return nH0
 
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module calculates the halo mass functions and is mainly taken from yt.
 Three classes:
         halo_mass_function: Calculates dn/dm, and dn /dln sigma
@@ -72,7 +73,7 @@ class HaloMassFunction:
         return A*( np.power(sigma, -1.0*a) + b)*np.exp(-1.0*c / sigma / sigma )
 
     def tinker(self, sigma):
-        """Tinker et al. 2008, eqn 3, \Delta=300 # \Delta=200"""
+        """Tinker et al. 2008, eqn 3, Delta=300 # Delta=200"""
         A = 0.2 #0.186
         a = 1.52 #1.47
         b = 2.25 #2.57

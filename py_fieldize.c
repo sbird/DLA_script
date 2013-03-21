@@ -9,6 +9,9 @@
  * rr is the smoothing length, r0 is the distance of the cell from the center*/
 double compute_sph_cell_weight(double rr, double r0)
 {
+    if(r0 > rr){
+        return 0;
+    }
     double total=0;
     double h2 = rr*rr;
     //Do the z integration with the trapezium rule.
@@ -42,22 +45,73 @@ double compute_sph_cell_weight(double rr, double r0)
     return total;
 }
 
+/*Check whether the passed array has type typename. Returns 1 if it doesn't, 0 if it does.*/
+int check_type(PyArrayObject * arr, int npy_typename)
+{
+  return !PyArray_EquivTypes(PyArray_DESCR(arr), PyArray_DescrFromType(npy_typename));
+}
+
+#ifndef NO_KAHAN
+/*Evaluate one iteration of Kahan Summation: sum is the current value of the field,
+ *comp the compensation array, input the value to add this time.*/
+inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
+{
+  const int off = nx*xoff+yoff;
+  const double yy = input - *(comp+off);
+  const double temp = *(sum+off)+yy;     //Alas, sum is big, y small, so low-order digits of y are lost.
+  *(comp+off) = (temp - *(sum+off)) -yy; //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
+  *(sum+off) = temp;               //Algebraically, c should always be zero. Beware eagerly optimising compilers!
+}
+
+#else
+
+inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
+{
+  *(sum+nx*xoff+yoff)+=input;
+}
+#endif
+
 //  int    3*nval arr  nval arr  nval arr   nx*nx arr  int     nval arr  (or 0)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
 PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 {
-    PyArrayObject *pos, *radii, *value, *field, *weights;
-    if(!PyArg_ParseTuple(args, "O!O!O!O!O!",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &field, &PyArray_Type, &weights) )
+    PyArrayObject *pos, *radii, *value, *weights;
+    int periodic, nx;
+    if(!PyArg_ParseTuple(args, "O!O!O!O!ii",&PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &weights,&periodic, &nx) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, radii, value, weights periodic=False, nx\n");
         return NULL;
+    }
+    if(check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(weights, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: pos, radii and value need float32, weights float64.\n");
+          return NULL;
+    }
     const npy_intp nval = PyArray_DIM(radii,0);
-    const npy_intp nx = PyArray_DIM(field,0);
+    if(nval != PyArray_DIM(value,0) || nval != PyArray_DIM(pos,0))
+    {
+      PyErr_SetString(PyExc_ValueError, "pos, radii and value should have the same length.\n");
+      return NULL;
+    }
+//     int totlow=0, tothigh=0;
+    //Field for the output.
+    npy_intp size[2]={nx,nx};
+    PyArrayObject * pyfield = (PyArrayObject *) PyArray_SimpleNew(2, size, NPY_DOUBLE);
+    PyArray_FILLWBYTE(pyfield, 0);
+    double * field = (double *) PyArray_DATA(pyfield);
+    //Copy of field array to store compensated bits for Kahan summation
+    double * comp = (double *) calloc(nx*nx,sizeof(double));
+    if( !comp || !field ){
+      PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for field arrays.\n");
+      return NULL;
+    }
     for(int p=0;p<nval;p++){
         //Temp variables
-        double pp[2];
-        pp[0]= *(double *)PyArray_GETPTR2(pos,p,1);
-        pp[1]= *(double *)PyArray_GETPTR2(pos,p,2);
-        double rr= *((double *)PyArray_GETPTR1(radii,p));
-        double val= *((double *)PyArray_GETPTR1(value,p));
+        float pp[2];
+        pp[0]= *(float *)PyArray_GETPTR2(pos,p,1);
+        pp[1]= *(float *)PyArray_GETPTR2(pos,p,2);
+        float rr= *((float *)PyArray_GETPTR1(radii,p));
+        float val= *((float *)PyArray_GETPTR1(value,p));
         double weight = 1;
         if (PyArray_DIM(weights,0) == nval){
             weight= *((double *)PyArray_GETPTR1(weights,p));
@@ -74,17 +128,18 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-                *((double *) PyArray_GETPTR2(field,lowgx,lowgy))+=val/weight;
+                KahanSum(field, comp, val/weight, lowgx,lowgy,nx);
                 continue;
         }
         /*Array for storing cell weights*/
         double sph_w[upgy-lowgy+1][upgx-lowgx+1];
+
         /*Total of cell weights*/
         double total=0;
         /* First compute the cell weights.
          * Subsample the cells if the smoothing length is O(1 cell).
          * This is more accurate, and also avoids edge cases where the particle can rest just between a cell.*/
-        int nsub=2*((int)(1./rr))+1;
+        int nsub=2*((int)(3./rr))+1;
         double subs[nsub];
         /*Spread subsamples evenly across cell*/
         for(int i=0; i < nsub; i++)
@@ -92,41 +147,91 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
         #pragma omp parallel for reduction(+:total)
         for(int gy=lowgy;gy<=upgy;gy++)
             for(int gx=lowgx;gx<=upgx;gx++){
+                sph_w[gy-lowgy][gx-lowgx]=0;
                 for(int iy=0; iy< nsub; iy++)
                 for(int ix=0; ix< nsub; ix++){
                     double xx = gx-pp[0]+subs[ix];
                     double yy = gy-pp[1]+subs[iy];
                     double r0 = sqrt(xx*xx+yy*yy);
-                    if(r0 > rr){
-                        sph_w[gy-lowgy][gx-lowgx]=0;
-                        continue;
-                    }
-                    sph_w[gy-lowgy][gx-lowgx]=compute_sph_cell_weight(rr,r0);
-                    total+=sph_w[gy-lowgy][gx-lowgx];
+                    sph_w[gy-lowgy][gx-lowgx]+=compute_sph_cell_weight(rr,r0)/nsub/nsub;
+                }
+                total+=sph_w[gy-lowgy][gx-lowgx];
+            }
+//         if(total > 1.05)
+//           tothigh++;
+//         if(total< 0.5)
+//           totlow++;
+        if(total == 0){
+            char err[500];
+            snprintf(err,500,"Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
+            PyErr_SetString(PyExc_ValueError, err);
+            return NULL;
+        }
+        /* Some cells will be only partially in the array: only partially add them.
+         * Then add the right fraction to the total array*/
+
+        #pragma omp parallel for
+        for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++)
+            for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy,nx);
+            }
+        //Deal with cells that have wrapped around the edges of the grid
+        if (periodic){
+            //Wrapping y over
+            #pragma omp parallel for
+            for(int gy=nx-1;gy<=upgy;gy++){
+                //Wrapping only y over
+                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1),nx);
+                }
+                //y over, x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1),nx);
+                }
+                //y over, x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1),nx);
                 }
             }
-        if(total == 0){
-            printf("Massless particle! rr=%g gy=%d gx=%d nsub = %d pp= %g %g \n",rr,upgy-lowgy,upgx-lowgx, nsub,-pp[0]+lowgx,-pp[1]+lowgy);
-            exit(1);
-        }
-        //Some cells will be only partially in the array: only partially add them.
-        upgx = MIN(upgx,nx-1);
-        upgy = MIN(upgy,nx-1);
-        lowgy = MAX(lowgy, 0);
-        lowgx = MAX(lowgx, 0);
-        /*Then add the right fraction to the total array*/
-        for(int gy=lowgy;gy<=upgy;gy++)
-            for(int gx=lowgx;gx<=upgx;gx++){
-                *((double *) PyArray_GETPTR2(field,gx,gy))+=val*sph_w[gy-lowgy][gx-lowgx]/total/weight;
+            //Wrapping y under
+            #pragma omp parallel for
+            for(int gy=lowgy;gy<=0;gy++){
+                //Only y under
+                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1),nx);
+                }
+                //y under, x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1),nx);
+                }
+                //y under, x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1),nx);
+                }
             }
+            //Finally wrap only x
+            #pragma omp parallel for
+            for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++){
+                //x over
+                for(int gx=nx-1;gx<=upgx;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy,nx);
+                }
+                //x under
+                for(int gx=lowgx;gx<=0;gx++){
+                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy,nx);
+                }
+            }
+        }
     }
-	return Py_BuildValue("i",nval);
+    free(comp);
+    //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
+	return Py_BuildValue("O",pyfield);
 }
 
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
-   "    Arguments: nbins, pos, vel, mass, u, nh0, ne, h, axis array, xx, yy, zz"
+   "    Arguments: pos, radii, value, weights, periodic=T/F, nx"
    "    "},
   {NULL, NULL, 0, NULL},
 };

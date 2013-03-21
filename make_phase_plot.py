@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Script for making Lyman-alpha forest temperature-density plots using the phase_plot module"""
 
 import matplotlib
@@ -6,7 +7,6 @@ from mpl_toolkits.axes_grid1 import AxesGrid
 
 import phase_plot
 import matplotlib.pyplot as plt
-import numpy as np
 outdir="/home/spb/scratch/ComparisonProject/"
 bar_label="Mass ($10^{6} M_\odot$ h$^{-1}$)"
 ### 256**3 particles

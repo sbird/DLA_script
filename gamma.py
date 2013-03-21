@@ -66,9 +66,15 @@ def read_gamma(num,base):
     sxx = 0
     sxy = 0
     met = 0
+    carb = 0
+    oxy = 0
     totmass=0
     totigmmass=0
     totmet = 0
+    sxxm = 0
+    sxym = 0
+    sxm = 0
+    sym = 0
 
     for i in np.arange(0,500) :
         ffname=fname+"."+str(i)+".hdf5"
@@ -91,6 +97,7 @@ def read_gamma(num,base):
         rho=np.array(bar['Density'],dtype=np.float64)
         nelec=np.array(bar['ElectronAbundance'],dtype=np.float64)
         metalic = np.array(bar['GFM_Metallicity'],dtype=np.float64)
+        metals = np.array(bar['GFM_Metals'],dtype=np.float64)
         mass = np.array(bar['Masses'], dtype=np.float64)
         #nH0=np.array(bar['NeutralHydrogenAbundance'])
         f.close()
@@ -148,21 +155,27 @@ def read_gamma(num,base):
         #print
         #
 
-        ind2 = np.where((overden > -5.0) * (overden <  0) *(templog< 5))
+        ind2 = np.where((overden > 0) * (overden <  1.5) )
         tempfit = templog[ind2]
         overdenfit = overden[ind2]
 
         N += np.size(ind2)
         #print, "Number of fitting points for equation of state", N
 
+        indm = np.where(metals < 1e-10)
+        metals[indm] = 1e-10
         sx += np.sum(overdenfit)
         sy += np.sum(tempfit)
         sxx += np.sum(overdenfit*overdenfit)
         sxy += np.sum(overdenfit*tempfit)
         met += np.sum(mass[ind2]*metalic[ind2])
+        carb += np.sum(mass[ind2]*metals[ind2,2])
+        oxy += np.sum(mass[ind2]*metals[ind2,4])
         totmet += np.sum(mass*metalic)
         totmass += np.sum(mass)
         totigmmass += np.sum(mass[ind2])
+        sym += np.sum(np.log10(metals[ind2,2]))
+        sxym += np.sum(overdenfit*np.log10(metals[ind2,2]))
 
 
     # log T = log(T_0) + (gamma-1) log(rho/rho_0)
@@ -170,8 +183,10 @@ def read_gamma(num,base):
     delta = (N*sxx)-(sx*sx)
     a = ((sxx*sy) - (sx*sxy))/delta
     b = ((N*sxy) - (sx*sy))/delta
+    amet = ((sxx*sym) - (sx*sxym))/delta
+    bmet = ((N*sxym) - (sx*sym))/delta
 
-    print num,": gamma", b+1.0,"  log(T0)", a,"  T0 (K)", (10.0)**a, "Metallicity: ", met/totigmmass,totmet/totmass
+    print num,": gamma", b+1.0,"  log(T0)", a,"  T0 (K)", (10.0)**a, "Metallicity: ", met/totigmmass,totmet/totmass, "[C/H,O/H]: ",carb/totigmmass, oxy/totigmmass,"(a_Z, b_Z): ",10**amet, bmet
     raise Exception
     return (redshift,10.0**a, b+1)
 

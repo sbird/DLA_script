@@ -1,6 +1,6 @@
 *.pyc
 .*.swp
 .*.swo
-_fieldize_priv.so
+_*_priv.so
 *.o
 tags
