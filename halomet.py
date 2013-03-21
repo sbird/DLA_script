@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # vim: set fileencoding=utf-8
 """Module for creating the DLA hydrogen density plots. Can find integrated HI grids around halos (or across the whole box).
    column density functions, cross-sections, etc.
@@ -35,7 +36,7 @@ class HaloMet(hi.HaloHI):
         #Larger numbers seem to be towards the beginning
         files.reverse()
         for ff in files:
-            f = h5py.File(ff)
+            f = h5py.File(ff,"r")
             print "Starting file ",ff
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"])
