@@ -27,6 +27,7 @@ class BoxHI(HaloHI):
             self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
             self.savefile = savefile
+        self.sub_mass = 10.**12*np.ones(nslice)
         self.nhalo = nslice
         try:
             if reload_file:
@@ -85,6 +86,17 @@ class BoxHI(HaloHI):
 
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
         return
+
+    def absorption_distance(self):
+        """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
+        in dimensionless units, accounting for slicing the box."""
+        #h * 100 km/s/Mpc in h/s
+        h100=3.2407789e-18
+        # in cm/s
+        light=2.9979e10
+        #Units: h/s   s/cm                        kpc/h      cm/kpc
+        return h100/light*(1+self.redshift)**2*(self.box/self.nhalo)*self.UnitLength_in_cm
+
 
     def omega_DLA(self, thresh=20.3):
         """Compute Omega_DLA, the sum of the mass in DLAs, divided by the critical density.

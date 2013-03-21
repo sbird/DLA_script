@@ -256,8 +256,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     """
     As above but for the whole box grid
     """
-    def __init__(self,snap_dir,snapnum,reload_file=False,savefile=None):
-        boxhi.BoxHI.__init__(self,snap_dir,snapnum,reload_file=reload_file,savefile=savefile)
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
+        boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
 
 
 class HaloHIPlots:
