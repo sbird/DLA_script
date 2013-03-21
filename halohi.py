@@ -59,11 +59,16 @@ class HaloHI:
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.set_units()
+        if savefile == None:
+            self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
+        else:
+            self.savefile=savefile
+
         try:
             if reload_file:
                 raise KeyError("reloading")
             #First try to load from a file
-            self.load_savefile(savefile)
+            self.load_savefile(self.savefile)
         except (IOError,KeyError):
             self.load_header()
             self.load_halos(minpart)
@@ -126,11 +131,7 @@ class HaloHI:
     def load_savefile(self,savefile=None):
         """Load data from a file"""
         #Name of savefile
-        if savefile == None:
-            self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
-        else:
-            self.savefile=savefile
-        f=h5py.File(self.savefile,'r')
+        f=h5py.File(savefile,'r')
         grid_file=f["HaloData"]
         #if  not (grid_file.attrs["minpart"] == self.minpart):
         #    raise KeyError("File not for this structure")
@@ -142,10 +143,14 @@ class HaloHI:
         self.box=grid_file.attrs["box"]
         self.npart=grid_file.attrs["npart"]
         self.ngrid = np.array(grid_file["ngrid"])
-        self.sub_mass = np.array(grid_file["sub_mass"])
+        try:
+            self.sub_mass = np.array(grid_file["sub_mass"])
+            self.ind=np.array(grid_file["halo_ind"])
+        except KeyError:
+            pass
         self.sub_cofm=np.array(grid_file["sub_cofm"])
         self.sub_radii=np.array(grid_file["sub_radii"])
-        self.ind=np.array(grid_file["halo_ind"])
+
         #If nhalo has been preset by a child class, do not set it.
         try:
             self.nhalo
@@ -165,7 +170,7 @@ class HaloHI:
         """
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
-        grp.attrs["minpart"]=self.minpart
+
         grp.attrs["redshift"]=self.redshift
         grp.attrs["hubble"]=self.hubble
         grp.attrs["box"]=self.box
@@ -173,11 +178,14 @@ class HaloHI:
         grp.attrs["omegam"]=self.omegam
         grp.attrs["omegal"]=self.omegal
         grp.create_dataset("ngrid",data=self.ngrid)
-        grp.create_dataset('sub_mass',data=self.sub_mass)
-#         grp.create_dataset('sub_gas_mass',data=self.sub_gas_mass)
         grp.create_dataset('sub_cofm',data=self.sub_cofm)
         grp.create_dataset('sub_radii',data=self.sub_radii)
-        grp.create_dataset('halo_ind',data=self.ind)
+        try:
+            grp.attrs["minpart"]=self.minpart
+            grp.create_dataset('sub_mass',data=self.sub_mass)
+            grp.create_dataset('halo_ind',data=self.ind)
+        except AttributeError:
+            pass
         grp_grid = f.create_group("GridHIData")
         for i in xrange(0,self.nhalo):
             try:

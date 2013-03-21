@@ -24,15 +24,15 @@ class BoxHI(HaloHI):
         self.snap_dir=snap_dir
         self.set_units()
         if savefile==None:
-            savefile_s=path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
+            self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
         else:
-            savefile_s = savefile
+            self.savefile = savefile
         self.nhalo = nslice
         try:
             if reload_file:
                 raise KeyError("reloading")
             #First try to load from a file
-            self.load_savefile(savefile_s)
+            self.load_savefile(self.savefile)
         except (IOError,KeyError):
             #Otherwise regenerate from the raw data
             self.load_header()
