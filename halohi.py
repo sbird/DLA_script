@@ -214,7 +214,7 @@ class HaloHI:
         #Larger numbers seem to be towards the beginning
         files.reverse()
         for ff in files:
-            f = h5py.File(ff)
+            f = h5py.File(ff,"r")
             print "Starting file ",ff
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"])
