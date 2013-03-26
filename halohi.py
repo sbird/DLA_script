@@ -442,7 +442,7 @@ class HaloHI:
         #Units: h/s   s/cm                        kpc/h      cm/kpc
         return h100/light*(1+self.redshift)**2*self.box*self.UnitLength_in_cm
 
-    def column_density_function(self,dlogN=0.2, minN=16, maxN=25., maxM=13,minM=9):
+    def column_density_function(self,dlogN=0.2, minN=17, maxN=23., maxM=13,minM=9):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval
