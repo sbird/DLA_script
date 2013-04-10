@@ -183,21 +183,21 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density_breakdown(self,minN=17,maxN=23.):
+    def plot_column_density_breakdown(self,minN=17,maxN=23., color="black"):
         """Plots the column density distribution function, broken down into halos. """
         (aNHI,tot_af_N)=self.column_density_function(0.4,minN-1,maxN+1)
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11)
-        plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls="-",label="Big",lw=4)
+        plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="-",label="Big",lw=4)
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
-        plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls="--",label="Middle",lw=4)
+        plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="--",label="Middle",lw=4)
         try:
             (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
-            plt.loglog(aNHI,af_N/tot_af_N,color=acol, ls=":",label="Small",lw=4)
+            plt.loglog(aNHI,af_N/tot_af_N,color=color, ls=":",label="Small",lw=4)
         except IndexError:
             pass
         ax=plt.gca()
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
-        ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{GADGET} (N) $",size=25)
+        ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{tot} (N) $",size=25)
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-2,2)
         tight_layout_wrapper()
