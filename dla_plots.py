@@ -14,6 +14,7 @@ import os.path as path
 import math
 import matplotlib.pyplot as plt
 import matplotlib.colors
+from cubehelix import cubehelix, cubehelix_r
 
 gcol="blue"
 acol="red"
@@ -258,6 +259,34 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     """
     def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
+
+import halomet
+
+class PrettyMetal(halomet.HaloMet,PrettyHalo):
+    """
+    As above but for the whole box grid
+    """
+    def __init__(self,snap_dir,snapnum,elem, ion,reload_file=False,savefile=None):
+        halomet.HaloMet.__init__(self,snap_dir,snapnum,elem, ion, reload_file=reload_file,savefile=savefile)
+
+    def plot_pretty_halo(self,num=0):
+        """
+        Plots a pretty (high-resolution) picture of the grid around a halo.
+        Helper for the other functions.
+        """
+        #Plot a figure
+
+        maxdist = self.sub_radii[num]
+        plt.imshow(self.sub_nHI_grid[num],origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=13,cmap=cubehelix_r)
+        bar=plt.colorbar()#use_gridspec=True)
+        bar.set_label(r"log$_{10}$ N$_\mathrm{Si}$ (amu/cm$^{-2}$)")
+        if maxdist > 300:
+            plt.xticks((-300,-150,0,150,300))
+            plt.yticks((-300,-150,0,150,300))
+        plt.xlabel(r"y (kpc h$^{-1}$)")
+        plt.ylabel(r"z (kpc h$^{-1}$)")
+        tight_layout_wrapper()
+        plt.show()
 
 
 class HaloHIPlots:
