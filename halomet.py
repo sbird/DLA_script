@@ -19,7 +19,7 @@ import fieldize
 class HaloMet(hi.HaloHI):
     """Class to find the integrated metal density around a halo.
     Inherits from HaloMet, and finds grids of metal density in amu / cm^3."""
-    def __init__(self,snap_dir,snapnum,elem,ion,minpart=400,reload_file=False,savefile=None, cloudy_dir="/home/spb/codes/ArepoCoolingTables/tmp_spb/" ):
+    def __init__(self,snap_dir,snapnum,elem,ion,minpart=400,reload_file=False,savefile=None):
         self.elem=elem
         self.ion=ion
         self.species = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Mg', 'Si', 'Fe']
@@ -41,7 +41,7 @@ class HaloMet(hi.HaloHI):
             self.load_header()
             self.load_halos(minpart)
             #Generate cloudy tables
-            self.cloudy_table = convert_cloudy.CloudyTable(cloudy_dir, self.redshift)
+            self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
             # Conversion factors from internal units
             rscale = self.UnitLength_in_cm/(1+self.redshift)/self.hubble    # convert length to cm
             mscale = self.UnitMass_in_g/self.hubble   # convert mass to g
@@ -136,7 +136,7 @@ class HaloMet(hi.HaloHI):
         if np.size(ipos) == 0:
             return
         mass_frac *= self.cloudy_table.ion(self.elem, self.ion, mass, den)
- 
+
         #coords in grid units
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
         #NH0
