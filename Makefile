@@ -28,17 +28,13 @@ else
 endif
 .PHONY: all clean
 
-all: _fieldize_priv.so _power_priv.so
+all: _fieldize_priv.so
 
-clean: _fieldize_priv.so _power_priv.so
+clean: _fieldize_priv.so
 	rm *.o $^
 
 %.o: %.c
 	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
 
-_%_priv.so: py_%.o
+_fieldize_priv.so: py_fieldize.o SPH_fieldize.o
 	$(LINK) $(LFLAGS) -shared $^ -o $@
-
-_power_priv.so: py_power.o
-	$(LINK) $(LFLAGS) -lfftw3 -lfftw3_threads -shared $^ -o $@
-
