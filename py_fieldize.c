@@ -225,7 +225,9 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     }
     free(comp);
     //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
-	return Py_BuildValue("O",pyfield);
+    PyObject * for_return = Py_BuildValue("O",pyfield);
+    Py_DECREF(pyfield);
+    return for_return;
 }
 
 static PyMethodDef __fieldize[] = {
