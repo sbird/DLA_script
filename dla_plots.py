@@ -260,6 +260,16 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
 
+    def plot_covering_fraction(self):
+        dla_cross = self.find_cross_section()
+        plt.loglog(self.real_sub_mass, dla_cross)
+
+        ind = np.where(dla_cross > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.sub_mass[ind]),np.log10(dla_cross[ind]),bins=(30,30))
+        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+
 import halomet
 
 class PrettyMetal(halomet.HaloMet,PrettyHalo):

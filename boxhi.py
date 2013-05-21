@@ -5,6 +5,7 @@ import numpy as np
 import os.path as path
 import fieldize
 import numexpr as ne
+import halocat
 from halohi import HaloHI
 
 
@@ -117,3 +118,30 @@ class BoxHI(HaloHI):
         #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
         omega_DLA=HImass/length/self.rho_crit()
         return omega_DLA
+
+    def find_cross_section(self, thresh=20.3):
+        """Find the number of DLA cells nearest to each halo"""
+        try:
+            self.real_sub_mass
+        except AttributeError:
+            self.load_halo()
+        dla_cross = np.zeros(np.size(self.real_sub_mass))
+        for nn in xrange(self.nhalo):
+            for yy in xrange(self.ngrid):
+                for zz in xrange(self.ngrid):
+                    if self.sub_nHI_grid[nn][yy,zz] < 20.3:
+                        continue
+                    cel_pos = [(nn+0.5)*(self.box/self.nhalo), yy*(self.box/self.ngrid), zz*(self.box/self.ngrid)]
+                    dd = np.sqrt(np.sum((self.sub_cofm - cel_pos)**2,axis=1))
+                    nearest_halo = int(np.where(dd == np.min(dd))[0][0])
+                    dla_cross[nearest_halo] += 1
+        #Convert from grid cells to kpc/h^2
+        dla_cross*=(self.box/self.ngrid)**2
+        return dla_cross
+
+    def load_halo(self):
+        """Load a halo catalogue"""
+        try:
+            (ind, self.real_sub_mass, self.real_sub_cofm, self.real_sub_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, 0)
+        except IOError:
+            pass
