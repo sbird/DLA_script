@@ -107,6 +107,12 @@ class BoxHI(HaloHI):
             Note: If we want the neutral gas density rather than the neutral hydrogen density, divide by 0.76,
             the hydrogen mass fraction.
         """
+        #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
+        omega_DLA=self._rho_DLA(thresh)/self.rho_crit()
+        return omega_DLA
+
+    def _rho_DLA(self, thresh=20.3):
+        """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
         #Average column density of HI in atoms cm^-2 (physical)
         if thresh > 0:
             HImass = np.array([np.sum(10**grid[np.where(grid > thresh)])/np.size(grid) for grid in self.sub_nHI_grid])
@@ -117,9 +123,18 @@ class BoxHI(HaloHI):
         HImass = self.protonmass * HImass/(1+self.redshift)**2
         #Length of column in comoving cm
         length = (self.box*self.UnitLength_in_cm/self.hubble/self.nhalo)
-        #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
-        omega_DLA=HImass/length/self.rho_crit()
-        return omega_DLA
+        #Avg density in g/cm^3 (comoving)
+        return HImass/length
+
+    def rho_DLA(self, thresh=20.3):
+        """Compute rho_DLA, the sum of the mass in DLAs. This is almost the same as the total mass in HI.
+           Units are 10^8 M_sun / Mpc^3 (physical), like 0811.2003
+        """
+        #Avg density in g/cm^3 (comoving) / a^3 = physical
+        rho_DLA = self._rho_DLA(thresh)*(1.+self.redshift)**3
+        # 1 g/cm^3 (physical) in 1e8 M_sun/Mpc^3
+        conv = 1e8 * self.SolarMass_in_g / (1e3 * self.UnitLength_in_cm)**3
+        return rho_DLA / conv
 
     def line_density(self, thresh=20.3):
         """Compute the line density, the total cells in DLAs divided by the total area, multiplied by d L / dX

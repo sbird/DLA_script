@@ -20,7 +20,6 @@ def plot_cddf_a_halo(sim, snap, color="red"):
     halo = "Cosmo"+str(sim)+"_V6"
     ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
     ahalo.plot_column_density(color=color)
-    print halo,str(snap)," : ",ahalo.line_density()
     del ahalo
 
 def plot_covering_frac(sim, snap, color="red"):
@@ -29,6 +28,34 @@ def plot_covering_frac(sim, snap, color="red"):
     ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
     ahalo.plot_sigma_DLA()
     del ahalo
+
+def plot_rho_HI(sim):
+    """Plot rho_HI across redshift"""
+    halo = "Cosmo"+str(sim)+"_V6_512"
+    ss = {4:54, 3:60, 2:68}
+    for zz in (4,3,2):
+        ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
+        plt.plot(zz,ahalo.rho_DLA(),'o')
+        del ahalo
+    dla_data.rhohi()
+    save_figure(path.join(outdir,"cosmo"+str(sim)+"_rhohi"))
+    plt.clf()
+
+def plot_dndx(sim):
+    """Plot dndx (cross-section) across redshift"""
+    halo = "Cosmo"+str(sim)+"_V6_512"
+    ss = {4:54, 3:60, 2:68}
+    for zz in (4,3,2):
+        ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
+        plt.plot(zz,ahalo.line_density(),'o')
+        del ahalo
+    dla_data.dndx()
+    save_figure(path.join(outdir,"cosmo"+str(sim)+"_dndx"))
+    plt.clf()
+
+
+plot_dndx(0)
+plot_rho_HI(0)
 
 colors=["red", "blue", "orange", "purple"]
 

@@ -131,7 +131,10 @@ class HaloHI:
     def load_savefile(self,savefile=None):
         """Load data from a file"""
         #Name of savefile
-        f=h5py.File(savefile,'r')
+        try:
+            f=h5py.File(savefile,'r')
+        except IOError:
+            raise IOError("Could not open "+savefile)
         grid_file=f["HaloData"]
         #if  not (grid_file.attrs["minpart"] == self.minpart):
         #    raise KeyError("File not for this structure")
