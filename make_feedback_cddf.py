@@ -16,17 +16,29 @@ base="/home/spb/scratch/Cosmo/"
 outdir = base + "plots/"
 
 def plot_cddf_a_halo(sim, snap, color="red"):
-   """Load a simulation and plot its cddf"""
-   halo = "Cosmo"+str(sim)+"_V6"
-   ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
-   ahalo.plot_column_density(color=color)
-   del ahalo
+    """Load a simulation and plot its cddf"""
+    halo = "Cosmo"+str(sim)+"_V6"
+    ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
+    ahalo.plot_column_density(color=color)
+    print halo,str(snap)," : ",ahalo.line_density()
+    del ahalo
+
+def plot_covering_frac(sim, snap, color="red"):
+    """Load a simulation and plot its cddf"""
+    halo = "Cosmo"+str(sim)+"_V6_512"
+    ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
+    ahalo.plot_sigma_DLA()
+    del ahalo
 
 colors=["red", "blue", "orange", "purple"]
 
+#plot_covering_frac(0,60)
+#save_figure(path.join(outdir, "cosmo0_covering_z3"))
+#plt.clf()
+
 #Make a plot of the column density functions.
 for ss in (3,2,1,0):
-   plot_cddf_a_halo(ss, 60, color=colors[ss])
+    plot_cddf_a_halo(ss, 60, color=colors[ss])
 
 dla_data.column_density_data()
 
@@ -36,7 +48,7 @@ plt.clf()
 #A plot of the redshift evolution
 zz = [54,60,68]
 for ii in (0,1,2):
-   plot_cddf_a_halo(0, zz[ii], color=colors[ii])
+    plot_cddf_a_halo(0, zz[ii], color=colors[ii])
 
 dla_data.column_density_data()
 plt.title("Column density function at z=4-2")
@@ -45,15 +57,15 @@ plt.clf()
 
 
 def plot_rel_cddf(sim1, sim2, snap, color="black"):
-   """Load and make a plot of the difference between two simulations"""
-   halo1 = "Cosmo"+str(sim1)+"_V6"
-   halo2 = "Cosmo"+str(sim2)+"_V6"
-   ahalo1 = dp.PrettyBox(base+halo1, snap, nslice=10)
-   cddf1 = ahalo1.column_density_function(0.2,16,24)
-   del ahalo1
-   ahalo2 = dp.PrettyBox(base+halo2, snap, nslice=10)
-   cddf2 = ahalo2.column_density_function(0.2,16,24)
-   plt.semilogx(cddf1[0], cddf2[1]/cddf1[1], color=color)
+    """Load and make a plot of the difference between two simulations"""
+    halo1 = "Cosmo"+str(sim1)+"_V6"
+    halo2 = "Cosmo"+str(sim2)+"_V6"
+    ahalo1 = dp.PrettyBox(base+halo1, snap, nslice=10)
+    cddf1 = ahalo1.column_density_function(0.2,16,24)
+    del ahalo1
+    ahalo2 = dp.PrettyBox(base+halo2, snap, nslice=10)
+    cddf2 = ahalo2.column_density_function(0.2,16,24)
+    plt.semilogx(cddf1[0], cddf2[1]/cddf1[1], color=color)
 
 plot_rel_cddf(1,0,60)
 plot_rel_cddf(2,0,60, color="grey")
@@ -62,11 +74,11 @@ save_figure(path.join(outdir,"cosmo_rel_cddf_z3"))
 plt.clf()
 
 def plot_cddf_breakdown(sim, snap, color="red"):
-     """Load a simulation and plot its cddf"""
-     halo = "Cosmo"+str(sim)+"_V6"
-     ahalo = dp.PrettyHalo(base+halo, snap)
-     ahalo.plot_column_density_breakdown(color=color)
-     del ahalo
+    """Load a simulation and plot its cddf"""
+    halo = "Cosmo"+str(sim)+"_V6"
+    ahalo = dp.PrettyHalo(base+halo, snap)
+    ahalo.plot_column_density_breakdown(color=color)
+    del ahalo
 
 plot_cddf_breakdown(0, 60)
 
@@ -92,6 +104,12 @@ plot_metal_halo(0,60,15)
 plt.xlim(-305,305)
 plt.ylim(-305, 305)
 save_figure(path.join(outdir,"cosmo0_metal_halo_z3"))
+plt.clf()
+
+plot_metal_halo(3,60,15)
+plt.xlim(-305,305)
+plt.ylim(-305, 305)
+save_figure(path.join(outdir,"cosmo3_metal_halo_z3"))
 plt.clf()
 
 plot_halo(0,60,15)

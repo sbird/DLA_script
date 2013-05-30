@@ -170,16 +170,16 @@ class PrettyHalo(halohi.HaloHI):
     def plot_column_density(self,minN=17,maxN=23.,color=acol):
         """Plots the column density distribution function. """
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)
+        plt.loglog(aNHI,aNHI*af_N,color=color, ls=astyle, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$")
+        ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(1e-26,1e-18)
+        plt.ylim(1e-4,1)
 #         plt.legend(loc=0)
         tight_layout_wrapper()
         plt.show()
@@ -260,15 +260,42 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
 
-    def plot_covering_fraction(self):
-        dla_cross = self.find_cross_section()
-        plt.loglog(self.real_sub_mass, dla_cross)
-
-        ind = np.where(dla_cross > 0)
-        (hist,xedges, yedges)=np.histogram2d(np.log10(self.sub_mass[ind]),np.log10(dla_cross[ind]),bins=(30,30))
+    def plot_sigma_DLA(self):
+        """Plot sigma_DLA"""
+        try:
+            self.sigDLA
+        except AttributeError:
+            self.load_halo()
+            self.sigDLA=self.find_cross_section()
+        self.plot_sigma_DLA_median()
+        ind = np.where(self.sigDLA > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
         plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        plt.yscale('log')
+        plt.xscale('log')
+
+    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot the median and scatter of sigma_DLA against mass."""
+        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=7)
+        abin_mass = np.empty(np.size(mass)-1)
+        abin_mass = halohi.calc_binned_median(mass,self.real_sub_mass, self.real_sub_mass)
+        (amed,aloq,aupq)=self.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
+        #To avoid zeros
+        aloq-=1e-2
+        #Plot median sigma DLA
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
+
+    def get_sigma_DLA_binned(self,mass,DLA_cut=20.3,DLA_upper_cut=42.,sigma=95):
+        """Get the median and scatter of sigma_DLA against mass."""
+        aind = np.where(self.sigDLA > 0)
+        #plt.loglog(self.real_sub_mass[aind], self.sigDLA[aind],'x')
+        amed=halohi.calc_binned_median(mass, self.real_sub_mass[aind], self.sigDLA[aind])
+        aupq=halohi.calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],sigma)-amed
+        #Addition to avoid zeros
+        aloq=amed - halohi.calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
+        return (amed, aloq, aupq)
 
 import halomet
 

@@ -43,7 +43,9 @@ class BoxHI(HaloHI):
             self.sub_cofm[:,0]=(np.arange(0,nslice)+0.5)/(1.*nslice)*self.box
             self.sub_radii=self.box/2.*np.ones(nslice)
             #Grid size double softening length
-            self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
+            #self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
+            #Grid size constant
+            self.ngrid=5120*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid(gas)
         return
@@ -119,6 +121,15 @@ class BoxHI(HaloHI):
         omega_DLA=HImass/length/self.rho_crit()
         return omega_DLA
 
+    def line_density(self, thresh=20.3):
+        """Compute the line density, the total cells in DLAs divided by the total area, multiplied by d L / dX
+        """
+        #P(hitting a DLA at random)
+        DLAs = 1.*np.sum(np.array([np.sum(grid > thresh) for grid in self.sub_nHI_grid]))
+        size = 1.*np.sum(np.array([np.size(grid) for grid in self.sub_nHI_grid]))
+        pDLA = DLAs/size/self.absorption_distance()
+        return pDLA
+
     def find_cross_section(self, thresh=20.3):
         """Find the number of DLA cells nearest to each halo"""
         try:
@@ -126,17 +137,21 @@ class BoxHI(HaloHI):
         except AttributeError:
             self.load_halo()
         dla_cross = np.zeros(np.size(self.real_sub_mass))
+        celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
-            for yy in xrange(self.ngrid):
-                for zz in xrange(self.ngrid):
+            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
+            print "max = ",np.max(dla_cross)
+            for yy in xrange(int(self.ngrid[0])):
+                for zz in xrange(int(self.ngrid[0])):
                     if self.sub_nHI_grid[nn][yy,zz] < 20.3:
                         continue
-                    cel_pos = [(nn+0.5)*(self.box/self.nhalo), yy*(self.box/self.ngrid), zz*(self.box/self.ngrid)]
-                    dd = np.sqrt(np.sum((self.sub_cofm - cel_pos)**2,axis=1))
-                    nearest_halo = int(np.where(dd == np.min(dd))[0][0])
+                    #Halos in this slice
+                    cel_pos = [yy*celsz, zz*celsz]
+                    dd = np.sqrt(np.sum((self.real_sub_cofm[:,1:] - cel_pos)**2,axis=1))
+                    nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
                     dla_cross[nearest_halo] += 1
         #Convert from grid cells to kpc/h^2
-        dla_cross*=(self.box/self.ngrid)**2
+        dla_cross*=celsz**2
         return dla_cross
 
     def load_halo(self):

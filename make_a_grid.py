@@ -16,7 +16,7 @@ snapnum=sys.argv[2]
 # 124,
 #]
 
-base="/home/spb/data/finals/FINAL_E_NC/output"
+base="/home/spb/data/Cosmo/Cosmo0_V6/L25n512"
 # ahalo=halohi.HaloHI(base,snapnum,minpart,reload_file=True)
-ahalo=boxhi.BoxHI(base,snapnum, reload_file=True)
+ahalo=boxhi.BoxHI(base,snapnum, reload_file=True, nslice=10)
 ahalo.save_file()
