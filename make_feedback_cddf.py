@@ -64,14 +64,14 @@ for i in (0,2,3):
     plot_dndx(i,colors[i])
 plot_dndx(0,colors[1], True)
 dla_data.dndx()
-save_figure(path.join(outdir,"cosmo"+str(sim)+"_dndx"))
+save_figure(path.join(outdir,"cosmo_dndx"))
 plt.clf()
 
 for i in (0,2,3):
     plot_rho_HI(i,colors[i])
 plot_rho_HI(0,colors[1], True)
 dla_data.rhohi()
-save_figure(path.join(outdir,"cosmo"+str(sim)+"_rhohi"))
+save_figure(path.join(outdir,"cosmo_rhohi"))
 plt.clf()
 
 #plot_covering_frac(0,60)

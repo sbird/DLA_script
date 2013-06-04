@@ -191,6 +191,16 @@ class HaloHI:
                 grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
             except AttributeError:
                 pass
+        try:
+            self.sub_star_grid
+            grp_grid = f.create_group("GridStarData")
+            for i in xrange(0,self.nhalo):
+                try:
+                    grp_grid.create_dataset(str(i),data=self.sub_star_grid[i])
+                except AttributeError:
+                    pass
+        except AttributeError:
+            pass
         f.close()
 
     def __del__(self):
@@ -202,10 +212,19 @@ class HaloHI:
 
 
     def get_H2_frac(self,nHI):
-        """Get the molecular fraction for neutral gas"""
+        """Get the molecular fraction for neutral gas from the ISM pressure"""
         fH2 = 1./(1+(0.1/nHI)**(0.92*5./3.)*35**0.92)
         fH2[np.where(nHI < 0.1)] = 0
         return fH2
+
+    def rmol(sg,ss):
+        """Molecular fraction Sigma_H2 / Sigma_HI ala Blitz & Rosolowsky, direct from the stellar surface
+        density. Assumes a stellar disc scale height of 0.3 kpc."""
+        return (1./59*(sg/1.33e20)*(ss/1.33e20)**0.5)**0.92
+
+    def h2frac(sg, ss):
+        """Sigma_H2 / Total gas sigma"""
+        return 1./(1+rmol(sg,ss))
 
     def set_nHI_grid(self, gas=False):
         """Set up the grid around each halo where the HI is calculated.

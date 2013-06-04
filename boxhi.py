@@ -7,6 +7,8 @@ import fieldize
 import numexpr as ne
 import halocat
 from halohi import HaloHI
+import hdfsim
+import h5py
 
 
 
@@ -48,6 +50,9 @@ class BoxHI(HaloHI):
             self.ngrid=5120*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid(gas)
+            #Account for molecular fraction
+            self.set_stellar_grid()
+            self.sub_nHI_grid*=(1.-self.h2frac(self.sub_star_grid, self.sub_nHI_grid))
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
@@ -88,6 +93,41 @@ class BoxHI(HaloHI):
         ismooth*=cellspkpc
 
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
+        return
+
+    def set_stellar_grid(self):
+        """Set up a grid around each halo containing the stellar column density
+        """
+        self.sub_star_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.once=True
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType4"]
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            smooth = np.array(bar["SubfindHsml"])
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_star_grid) for ii in xrange(0,self.nhalo)]
+            f.close()
+            #Explicitly delete some things.
+            del ipos
+            del mass
+            del smooth
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_star_grid[ii]*=(massg/epsilon**2)
+            self.sub_star_grid[ii]+=0.1
+            np.log10(self.sub_star_grid[ii],self.sub_star_grid[ii])
         return
 
     def absorption_distance(self):
@@ -158,7 +198,7 @@ class BoxHI(HaloHI):
             print "max = ",np.max(dla_cross)
             for yy in xrange(int(self.ngrid[0])):
                 for zz in xrange(int(self.ngrid[0])):
-                    if self.sub_nHI_grid[nn][yy,zz] < 20.3:
+                    if self.sub_nHI_grid[nn][yy,zz] < thresh:
                         continue
                     #Halos in this slice
                     cel_pos = [yy*celsz, zz*celsz]
