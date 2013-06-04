@@ -14,6 +14,7 @@ import hsml
 import h5py
 import numexpr as ne
 import halohi as hi
+import boxhi as bi
 import fieldize
 
 class HaloMet(hi.HaloHI):
@@ -149,5 +150,41 @@ class HaloMet(hi.HaloHI):
             self.once=False
         #interpolate the density
         fieldize.sph_str(coords,mass*mass_frac,sub_nHI_grid[ii],ismooth,weights=weights)
+        return
+
+class BoxMet(bi.BoxHI):
+    """Class to find the integrated metal density in a box grid.
+    Inherits from BoxHI"""
+    def set_nHI_grid(self, gas=False):
+        """Set up the grid around each halo where the HI is calculated.
+        """
+        self.once=True
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            mass *= np.array(bar["GFM_Metallicity"])
+            smooth = hsml.get_smooth_length(bar)
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            f.close()
+            #Explicitly delete some things.
+            del ipos
+            del mass
+            del smooth
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_nHI_grid[ii]*=(massg/epsilon**2)
+            self.sub_nHI_grid[ii]+=0.1
+            np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
 
