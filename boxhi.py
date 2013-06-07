@@ -52,7 +52,8 @@ class BoxHI(HaloHI):
             self.set_nHI_grid(gas)
             #Account for molecular fraction
             self.set_stellar_grid()
-            self.sub_nHI_grid*=(1.-self.h2frac(self.sub_star_grid, self.sub_nHI_grid))
+            #+ because we are in log space
+            self.sub_nHI_grid+=np.log10(1.-self.h2frac(self.sub_star_grid, self.sub_nHI_grid))
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):

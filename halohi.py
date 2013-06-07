@@ -222,9 +222,16 @@ class HaloHI:
         density. Assumes a stellar disc scale height of 0.3 kpc."""
         return (1./59*(sg/1.33e20)*(ss/1.33e20)**0.5)**0.92
 
+    def logrmol(self,sg,ss):
+        """Molecular fraction Sigma_H2 / Sigma_HI ala Blitz & Rosolowsky, direct from the stellar surface
+           density. Assumes a stellar disc scale height of 0.3 kpc. Operates on the log of the gas and stellar densities.
+        """
+        fac = np.log10(1.33e20)
+        return 10**(0.92/2.*(sg+ss) - 0.92*fac - np.log10(59.))
+
     def h2frac(self,sg, ss):
         """Sigma_H2 / Total gas sigma"""
-        return 1./(1+self.rmol(sg,ss))
+        return 1./(1+self.logrmol(sg,ss))
 
     def set_nHI_grid(self, gas=False):
         """Set up the grid around each halo where the HI is calculated.
