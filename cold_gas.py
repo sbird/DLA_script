@@ -349,11 +349,16 @@ class RahmatiRT:
         which are based on Rahmati 2012 if UVB_SELF_SHIELDING is on.
         Above the star formation density use the Rahmati fitting formula directly,
         as Arepo reports values for the eEOS. """
+        nH0 = self.code_neutral_fraction(bar)
         nH=self.get_code_rhoH(bar)
         ind = np.where(nH > 0.1)
-        nH0 = self.code_neutral_fraction(bar)
         #Above star-formation threshold, gas is at 10^4K
-        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)
+        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)*(1-self.get_H2_frac(nH[ind]))
         return nH0
 
+    def get_H2_frac(self,nHI):
+        """Get the molecular fraction for neutral gas from the ISM pressure:
+           only meaningful when nH > 0.1, ie, star forming."""
+        fH2 = 1./(1+(0.1/nHI)**(0.92*5./3.)*35**0.92)
+        return fH2
 

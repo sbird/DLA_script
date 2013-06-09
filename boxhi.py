@@ -51,9 +51,10 @@ class BoxHI(HaloHI):
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid(gas)
             #Account for molecular fraction
-            self.set_stellar_grid()
+            #This is done on the HI density now
+            #self.set_stellar_grid()
             #+ because we are in log space
-            self.sub_nHI_grid+=np.log10(1.-self.h2frac(self.sub_star_grid, self.sub_nHI_grid))
+            #self.sub_nHI_grid+=np.log10(1.-self.h2frac(10**self.sub_nHI_grid, self.sub_star_grid))
         return
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
@@ -119,16 +120,12 @@ class BoxHI(HaloHI):
             del ipos
             del mass
             del smooth
-        #Deal with zeros: 0.1 will not even register for things at 1e17.
-        #Also fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
             massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_star_grid[ii]*=(massg/epsilon**2)
-            self.sub_star_grid[ii]+=0.1
-            np.log10(self.sub_star_grid[ii],self.sub_star_grid[ii])
         return
 
     def absorption_distance(self):
