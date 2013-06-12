@@ -18,9 +18,11 @@ outdir = base + "plots/"
 def plot_cddf_a_halo(sim, snap, color="red", ff=False):
     """Load a simulation and plot its cddf"""
     halo = "Cosmo"+str(sim)+"_V6"
+    savefile = None
     if ff:
         halo+="_512"
-    ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
+        savefile = path.join(base+halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
+    ahalo = dp.PrettyBox(base+halo, snap, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color=color)
     del ahalo
 
@@ -29,7 +31,12 @@ def plot_covering_frac(sim, snap, color="red"):
     halo = "Cosmo"+str(sim)+"_V6_512"
     ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
     ahalo.plot_sigma_DLA()
+    save_figure(path.join(outdir, "cosmo"+str(sim)+"_covering_z"+str(snap)))
+    plt.clf()
+    ahalo.plot_halo_hist()
+    save_figure(path.join(outdir, "cosmo"+str(sim)+"_halohist_z"+str(snap)))
     del ahalo
+    plt.clf()
 
 def plot_rho_HI(sim, color="red", ff=False):
     """Plot rho_HI across redshift"""
@@ -74,9 +81,8 @@ dla_data.rhohi()
 save_figure(path.join(outdir,"cosmo_rhohi"))
 plt.clf()
 
-#plot_covering_frac(0,60)
-#save_figure(path.join(outdir, "cosmo0_covering_z3"))
-#plt.clf()
+for i in (0,2,3):
+    plot_covering_frac(i,60)
 
 #Make a plot of the column density functions.
 for ss in (3,2,0):
