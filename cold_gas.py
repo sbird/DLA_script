@@ -240,9 +240,10 @@ import scipy.interpolate.interpolate as intp
 
 class RahmatiRT:
     """Class implementing the neutral fraction ala Rahmati 2012"""
-    def __init__(self, redshift,hubble = 0.71, fbar=0.17):
+    def __init__(self, redshift,hubble = 0.71, fbar=0.17, molec = True):
         self.f_bar = fbar
         self.redshift = redshift
+        self.molec = molec
         #Interpolate for opacity and gamma_UVB
         gamma_inter = intp.interp1d(zz,gamma_UVB)
         gray_inter = intp.interp1d(zz,gray_opac)
@@ -353,7 +354,7 @@ class RahmatiRT:
         nH=self.get_code_rhoH(bar)
         ind = np.where(nH > 0.1)
         #Above star-formation threshold, gas is at 10^4K
-        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)*(1-self.get_H2_frac(nH[ind]))
+        nH0[ind] = self.neutral_fraction(nH[ind], 1e4)*(1-self.molec*self.get_H2_frac(nH[ind]))
         return nH0
 
     def get_H2_frac(self,nHI):
