@@ -27,7 +27,7 @@ class BoxHI(HaloHI):
         self.snap_dir=snap_dir
         self.set_units()
         if savefile==None:
-            self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid.hdf5")
+            self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid_H2.hdf5")
         else:
             self.savefile = savefile
         self.sub_mass = 10.**12*np.ones(nslice)

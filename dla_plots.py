@@ -276,7 +276,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=1e13,nbins=20):
+    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12,nbins=20):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
         try:
@@ -287,8 +287,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         ind = np.where(self.sigDLA > 0)
-        (hist,xedges)=np.histogram(self.real_sub_mass[ind],weights = self.sigDLA[ind],bins=massbins,density=True)
-        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
+        xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         plt.semilogx(xbins,hist)
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):

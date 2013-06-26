@@ -13,7 +13,7 @@ import os.path as path
 from save_figure import save_figure
 
 base="/home/spb/scratch/Cosmo/"
-outdir = base + "plots/"
+outdir = base + "plots/grid"
 
 def plot_cddf_a_halo(sim, snap, color="red", ff=False):
     """Load a simulation and plot its cddf"""
@@ -26,9 +26,25 @@ def plot_cddf_a_halo(sim, snap, color="red", ff=False):
     ahalo.plot_column_density(color=color)
     del ahalo
 
-def plot_covering_frac(sim, snap, color="red"):
+def plot_H2_effect(sim, snap, color="red"):
     """Load a simulation and plot its cddf"""
     halo = "Cosmo"+str(sim)+"_V6_512"
+    savefile = path.join(base+halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid.hdf5")
+    ahalo = dp.PrettyBox(base+halo, snap, nslice=10, savefile=savefile)
+    ahalo.plot_column_density(color="blue")
+    del ahalo
+    savefile = path.join(base+halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
+    ahalo = dp.PrettyBox(base+halo, snap, nslice=10, savefile=savefile)
+    ahalo.plot_column_density(color="red")
+    dla_data.column_density_data()
+    del ahalo
+    save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
+
+def plot_covering_frac(sim, snap, ff=False):
+    """Load a simulation and plot its cddf"""
+    halo = "Cosmo"+str(sim)+"_V6"
+    if ff:
+        halo+="_512"
     ahalo = dp.PrettyBox(base+halo, snap, nslice=10)
     ahalo.plot_sigma_DLA()
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_covering_z"+str(snap)))
@@ -49,7 +65,7 @@ def plot_rho_HI(sim, color="red", ff=False):
         ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
         rho_HI[zz]=ahalo.rho_DLA()
         del ahalo
-    plt.plot(rho_HI.keys(),rho_HI.values())
+    plt.plot(rho_HI.keys(),rho_HI.values(), color=color)
 
 def plot_dndx(sim, color="red", ff=False):
     """Plot dndx (cross-section) across redshift"""
@@ -62,48 +78,44 @@ def plot_dndx(sim, color="red", ff=False):
         ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
         dndx[zz]=ahalo.line_density()
         del ahalo
-    plt.plot(dndx.keys(),dndx.values())
+    plt.plot(dndx.keys(),dndx.values(), color=color)
 
-
+plot_H2_effect(0,60)
 colors=["red", "blue", "orange", "purple"]
 
 for i in (0,2,3):
-    plot_dndx(i,colors[i])
-plot_dndx(0,colors[1], True)
+    plot_dndx(i,colors[i], True)
 dla_data.dndx()
 save_figure(path.join(outdir,"cosmo_dndx"))
 plt.clf()
 
 for i in (0,2,3):
-    plot_rho_HI(i,colors[i])
-plot_rho_HI(0,colors[1], True)
+    plot_rho_HI(i,colors[i], True)
 dla_data.rhohi()
 save_figure(path.join(outdir,"cosmo_rhohi"))
 plt.clf()
 
-for i in (0,2,3):
-    plot_covering_frac(i,60)
-
 #Make a plot of the column density functions.
 for ss in (3,2,0):
-    plot_cddf_a_halo(ss, 60, color=colors[ss])
-plot_cddf_a_halo(0, 60, colors[1],True)
+    plot_cddf_a_halo(ss, 60, colors[ss], True)
 
 dla_data.column_density_data()
 
 save_figure(path.join(outdir,"cosmo_cddf_z3"))
 plt.clf()
 
-#A plot of the redshift evolution
+A plot of the redshift evolution
 zz = [54,60,68]
 for ii in (0,1,2):
-    plot_cddf_a_halo(0, zz[ii], color=colors[ii], ff=True)
+    plot_cddf_a_halo(2, zz[ii], color=colors[ii], ff=True)
 
 dla_data.column_density_data()
 plt.title("Column density function at z=4-2")
 save_figure(path.join(outdir,"cosmo0_cddf_zz"))
 plt.clf()
 
+# for i in (0,2,3):
+#     plot_covering_frac(i,60, True)
 
 def plot_rel_cddf(sim1, sim2, snap, color="black"):
     """Load and make a plot of the difference between two simulations"""
@@ -116,9 +128,19 @@ def plot_rel_cddf(sim1, sim2, snap, color="black"):
     cddf2 = ahalo2.column_density_function(0.2,16,24)
     plt.semilogx(cddf1[0], cddf2[1]/cddf1[1], color=color)
 
-plot_rel_cddf(1,0,60)
-plot_rel_cddf(2,0,60, color="grey")
+#Make a plot of the effect of AGN on the cddf.
+for ss in (2,0):
+    plot_cddf_a_halo(ss, 60, colors[ss], False)
+dla_data.column_density_data()
 
+save_figure(path.join(outdir,"cosmo_cddf_agn_z3"))
+plt.clf()
+
+# plot_rel_cddf(3,0,60)
+plot_rel_cddf(2,0,60)
+plot_rel_cddf(2,0,68, color="grey")
+plt.xlim(1e18, 1e22)
+plt.ylim(0.8,1)
 save_figure(path.join(outdir,"cosmo_rel_cddf_z3"))
 plt.clf()
 
