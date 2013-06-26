@@ -193,19 +193,33 @@ class BoxHI(HaloHI):
         celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
             ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
+            cells = np.where(self.sub_nHI_grid[nn] > thresh)
             print "max = ",np.max(dla_cross)
-            for yy in xrange(int(self.ngrid[0])):
-                for zz in xrange(int(self.ngrid[0])):
-                    if self.sub_nHI_grid[nn][yy,zz] < thresh:
-                        continue
-                    #Halos in this slice
-                    cel_pos = [yy*celsz, zz*celsz]
-                    dd = np.sqrt(np.sum((self.real_sub_cofm[:,1:] - cel_pos)**2,axis=1))
-                    nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
-                    dla_cross[nearest_halo] += 1
+            for ii in xrange(np.shape(cells)[1]):
+                #Halos in this slice
+                dd = (self.real_sub_cofm[:,1] - ii*cells[0][ii])**2+(self.real_sub_cofm[:,2] - ii*cells[1][ii])**2
+                nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
+                dla_cross[nearest_halo] += 1
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
         return dla_cross
+
+    def calc_halo_mass(self, thresh=17.):
+        """Find a field of the mass of the nearest halo for each pixel above a threshold."""
+        try:
+            self.real_sub_mass
+        except AttributeError:
+            self.load_halo()
+        self.halo_mass = np.zeros_like(self.sub_nHI_grid)
+        celsz = 1.*self.box/self.ngrid[0]
+        for nn in xrange(self.nhalo):
+            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
+            cells = np.where(self.sub_nHI_grid[nn] > thresh)
+            for ii in xrange(np.shape(cells)[1]):
+                #Halos in this slice
+                dd = (self.real_sub_cofm[:,1] - ii*cells[0][ii])**2+(self.real_sub_cofm[:,2] - ii*cells[1][ii])**2
+                nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
+                self.halo_mass[nn][cells[0][ii], cells[1][ii]] = self.real_sub_mass[nearest_halo]
 
     def load_halo(self):
         """Load a halo catalogue"""
@@ -213,3 +227,50 @@ class BoxHI(HaloHI):
             (ind, self.real_sub_mass, self.real_sub_cofm, self.real_sub_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, 0)
         except IOError:
             pass
+
+    def column_density_function(self,dlogN=0.2, minN=17, maxN=23., maxM=None,minM=None):
+        """
+        This computes the DLA column density function, which is the number
+        of absorbers per sight line with HI column densities in the interval
+        [NHI, NHI+dNHI] at the absorption distance X.
+        Absorption distance is simply a single simulation box.
+        A sightline is assumed to be equivalent to one grid cell.
+        That is, there is presumed to be only one halo in along the sightline
+        encountering a given halo.
+
+        So we have f(N) = d n_DLA/ dN dX
+        and n_DLA(N) = number of absorbers per sightline in this column density bin.
+                     1 sightline is defined to be one grid cell.
+                     So this is (cells in this bins) / (no. of cells)
+        ie, f(N) = n_DLA / ΔN / ΔX
+        Note f(N) has dimensions of cm^2, because N has units of cm^-2 and X is dimensionless.
+
+        Parameters:
+            dlogN - bin spacing
+            minN - minimum log N
+            maxN - maximum log N
+            maxM - maximum log M halo mass to consider
+            minM - minimum log M halo mass to consider
+
+        Returns:
+            (NHI, f_N_table) - N_HI (binned in log) and corresponding f(N)
+        """
+        grids = self.sub_nHI_grid
+        NHI_table = 10**np.arange(minN, maxN, dlogN)
+        center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
+        width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        #Grid size (in cm^2)
+        dX=self.absorption_distance()
+        tot_cells = self.nhalo*np.sum(self.ngrid**2)
+        if maxM != None:
+            try:
+                self.halo_mass
+            except AttributeError:
+                self.calc_halo_mass(minN)
+            ind = np.where((self.halo_mass < 10.**maxM)*(self.halo_mass > 10.**minM))
+            tot_f_N = np.histogram(np.ravel(grids[ind]),np.log10(NHI_table))[0]
+        else:
+            tot_f_N = np.histogram(np.ravel(grid),np.log10(NHI_table))[0]
+        tot_f_N=(tot_f_N)/(width*dX*tot_cells)
+        return (center, tot_f_N)
+
