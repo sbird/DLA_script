@@ -187,7 +187,7 @@ class PrettyHalo(halohi.HaloHI):
     def plot_column_density_breakdown(self,minN=17,maxN=23., color="black"):
         """Plots the column density distribution function, broken down into halos. """
         (aNHI,tot_af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11, maxM=14)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="-",label="Big",lw=4)
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="--",label="Middle",lw=4)

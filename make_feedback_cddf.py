@@ -54,33 +54,36 @@ def plot_covering_frac(sim, snap, ff=False):
     del ahalo
     plt.clf()
 
-def plot_rho_HI(sim, color="red", ff=False):
-    """Plot rho_HI across redshift"""
+def _plot_integrated(sim, line, color="red", ff=False):
+    """Helper function for dndx and rho_HI"""
     halo = "Cosmo"+str(sim)+"_V6"
     if ff:
         halo+="_512"
-    ss = {4:54, 3:60, 2:68}
-    rho_HI = {}
-    for zz in (4,3,2):
-        ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
-        rho_HI[zz]=ahalo.rho_DLA()
-        del ahalo
-    plt.plot(rho_HI.keys(),rho_HI.values(), color=color)
+    ss = {4:54, 3.5:57, 3:60, 2.5:64, 2:68}
+    dndx=[]
+    zzz = []
+    for zz in (4, 3.5, 3, 2.5,2):
+        try:
+            ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
+            if line:
+                dndx.append(ahalo.line_density())
+            else:
+                dndx.append(ahalo.rho_DLA())
+            zzz.append(zz)
+            del ahalo
+        except IOError:
+            pass
+    plt.plot(zzz,dndx, color=color)
+
+def plot_rho_HI(sim, color="red", ff=False):
+    """Plot rho_HI across redshift"""
+    return _plot_integrated(sim, False)
 
 def plot_dndx(sim, color="red", ff=False):
     """Plot dndx (cross-section) across redshift"""
-    halo = "Cosmo"+str(sim)+"_V6"
-    if ff:
-        halo+="_512"
-    ss = {4:54, 3:60, 2:68}
-    dndx={}
-    for zz in (4,3,2):
-        ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
-        dndx[zz]=ahalo.line_density()
-        del ahalo
-    plt.plot(dndx.keys(),dndx.values(), color=color)
+    return _plot_integrated(sim, True)
 
-plot_H2_effect(0,60)
+# plot_H2_effect(2,60)
 colors=["red", "blue", "orange", "purple"]
 
 for i in (0,2,3):
@@ -104,7 +107,14 @@ dla_data.column_density_data()
 save_figure(path.join(outdir,"cosmo_cddf_z3"))
 plt.clf()
 
-A plot of the redshift evolution
+#Make a plot of the column density function, broken down by halo mass.
+ahalo = dp.PrettyBox(base+"Cosmo2_V6_512", 60, nslice=10)
+ahalo.plot_column_density_breakdown()
+del ahalo
+save_figure(path.join(outdir,"cosmo2_cddf_break"))
+plt.clf()
+
+#A plot of the redshift evolution
 zz = [54,60,68]
 for ii in (0,1,2):
     plot_cddf_a_halo(2, zz[ii], color=colors[ii], ff=True)
