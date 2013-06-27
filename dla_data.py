@@ -89,13 +89,13 @@ def dndx(datadir="data"):
     """Plot the line densities for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
-    plt.errorbar(zcen, data[1:-1,2],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,3], fmt=".")
+    plt.errorbar(zcen, data[1:-1,2],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,3], fmt="s",color="black")
 
 def rhohi(datadir="data"):
     """Plot the total rho_HI density for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
-    plt.errorbar(zcen, data[1:-1,4],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt=".")
+    plt.errorbar(zcen, data[1:-1,4],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="s",color="black")
 
 # def prochaska_10_data():
 #     """Plot the six-power-law model of Prochaska 2010. A little too complicated."""
