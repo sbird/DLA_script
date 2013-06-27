@@ -211,7 +211,6 @@ class BoxHI(HaloHI):
         except AttributeError:
             self.load_halo()
         self.halo_mass = np.zeros_like(self.sub_nHI_grid)
-        celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
             ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
             cells = np.where(self.sub_nHI_grid[nn] > thresh)
@@ -261,7 +260,7 @@ class BoxHI(HaloHI):
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
-        tot_cells = self.nhalo*np.sum(self.ngrid**2)
+        tot_cells = np.sum(self.ngrid**2)  #No factor of nhalo because dX takes care of it
         if maxM != None:
             try:
                 self.halo_mass
@@ -270,7 +269,7 @@ class BoxHI(HaloHI):
             ind = np.where((self.halo_mass < 10.**maxM)*(self.halo_mass > 10.**minM))
             tot_f_N = np.histogram(np.ravel(grids[ind]),np.log10(NHI_table))[0]
         else:
-            tot_f_N = np.histogram(np.ravel(grid),np.log10(NHI_table))[0]
+            tot_f_N = np.histogram(np.ravel(grids),np.log10(NHI_table))[0]
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 
