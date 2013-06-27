@@ -111,7 +111,7 @@ def plot_all_rho():
     plt.clf()
 
 if __name__ == "__main__":
-    # plot_H2_effect(2,60)
+    plot_H2_effect(2,60)
     plot_all_rho()
     #Make a plot of the column density functions.
     for ss in (3,2,0):

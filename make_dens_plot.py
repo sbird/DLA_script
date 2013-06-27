@@ -42,6 +42,8 @@ def plot_SivsHI(mets=0.05):
         fracSi = tab.ion("Si",2,metSi,dens)
         plt.semilogx(dens, fracSi, color="green",ls=ls.pop())
 
+    plt.xlabel(r"$\rho_\mathrm{H}\; (\mathrm{amu}/\mathrm{cm}^3$)")
+    plt.ylabel(r"$\mathrm{m}_\mathrm{SiII} / \mathrm{m}_\mathrm{Si}$")
     plt.show()
     save_figure(path.join(outdir,"Si_fracs"))
 
