@@ -10,7 +10,7 @@ def column_density_data(datadir="data"):
 #     celine_data(datadir)
 #     peroux_data(datadir)
     omeara_data(datadir)
-    noterdaeme_data(datadir)
+    noterdaeme_12_data(datadir)
 #     prochaska_data(datadir)
 #     prochaska_05_data(datadir)
     prochaska_10_data(datadir)
@@ -63,6 +63,18 @@ def noterdaeme_data(datadir="data"):
     NHI = 10**data[:,0]
     plt.errorbar(NHI,10**data[:,1]*NHI,xerr=[lxer,uxer],yerr=[lyer*NHI,uyer*NHI], fmt='^',color='green',ms=10)
 
+def noterdaeme_12_data(datadir="data"):
+    """Plot the Noterdaeme 12 data (1210.1213) on the column density function at z=2-3.5
+    Format: x, y, xerr, yerr (in logspace)"""
+    data=np.loadtxt(path.join(datadir,"not_2012.dat"))
+    #Madness to put log errors into non-log
+    uxer=10**(data[:,2]+data[:,0])-10**data[:,0]
+    lxer=-10**(-data[:,2]+data[:,0])+10**data[:,0]
+    uyer=10**(data[:,3]+data[:,1])-10**data[:,1]
+    lyer=-10**(-data[:,3]+data[:,1])+10**data[:,1]
+    NHI = 10**data[:,0]
+    plt.errorbar(NHI,10**data[:,1]*NHI,xerr=[lxer,uxer],yerr=[lyer*NHI,uyer*NHI], fmt='^',color='green',ms=10)
+
 def prochaska_data(datadir="data"):
     """Plot the Prochaska and Wolfe 10 data on the column density function.
     Mean redshift is 3.05.
@@ -85,17 +97,33 @@ def prochaska_10_data(datadir="data"):
     ax.fill(10.**data[:,0],10.**(data[:,1]+data[:,0]),'grey')
 
 
-def dndx(datadir="data"):
+def dndx_pro(datadir="data"):
     """Plot the line densities for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
     plt.errorbar(zcen, data[1:-1,2],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,3], fmt="s",color="black")
 
-def rhohi(datadir="data"):
+def rhohi_pro(datadir="data"):
     """Plot the total rho_HI density for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
     plt.errorbar(zcen, data[1:-1,4],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="s",color="black")
+
+def omegahi_not():
+    """Omega_DLA from Noterdaeme 2012, 1210.1213"""
+    omega_dla = 1e-3*np.array([0.99, 0.87, 1.04, 1.1, 1.27])
+    omega_err = 1e-3*np.array([0.05,0.04, 0.05,0.08,0.13])
+    zz = [2.15,2.45,2.75,3.05,3.35]
+    plt.errorbar(zz, omega_dla,xerr=0.15, yerr=omega_err, fmt="s",color="black")
+
+def dndx_not():
+    """dNdX from Noterdaeme 2012, 1210.1213"""
+    #No error on dndz...use the systematic correction.
+    dndz = np.array([0.2,0.2,0.25,0.29,0.36])
+    dndz_err = np.array([0.01,0.01,0.04,0.07,0.12])
+    zz = [2.15,2.45,2.75,3.05,3.35]
+    dzdx = np.array([3690/11625.,4509/14841.,2867/9900.,1620/5834.,789/2883.])
+    plt.errorbar(zz,dndz*dzdx,yerr=dndz_err,xerr=0.15,fmt="s",color="black")
 
 # def prochaska_10_data():
 #     """Plot the six-power-law model of Prochaska 2010. A little too complicated."""
