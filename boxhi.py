@@ -9,7 +9,7 @@ import halocat
 from halohi import HaloHI
 import hdfsim
 import h5py
-
+from _fieldize_priv import _find_halo_kernel
 
 
 class BoxHI(HaloHI):
@@ -197,7 +197,7 @@ class BoxHI(HaloHI):
             print "max = ",np.max(dla_cross)
             for ii in xrange(np.shape(cells)[1]):
                 #Halos in this slice
-                dd = (self.real_sub_cofm[:,1] - ii*cells[0][ii])**2+(self.real_sub_cofm[:,2] - ii*cells[1][ii])**2
+                dd = (self.real_sub_cofm[:,1] - celsz*cells[0][ii])**2+(self.real_sub_cofm[:,2] - celsz*cells[1][ii])**2
                 nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
                 dla_cross[nearest_halo] += 1
         #Convert from grid cells to kpc/h^2
@@ -211,14 +211,11 @@ class BoxHI(HaloHI):
         except AttributeError:
             self.load_halo()
         self.halo_mass = np.zeros_like(self.sub_nHI_grid)
+        celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
             ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
             cells = np.where(self.sub_nHI_grid[nn] > thresh)
-            for ii in xrange(np.shape(cells)[1]):
-                #Halos in this slice
-                dd = (self.real_sub_cofm[:,1] - ii*cells[0][ii])**2+(self.real_sub_cofm[:,2] - ii*cells[1][ii])**2
-                nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
-                self.halo_mass[nn][cells[0][ii], cells[1][ii]] = self.real_sub_mass[nearest_halo]
+            _find_halo_kernel(self.real_sub_cofm[ind],self.real_sub_mass[ind],cells[0], cells[1],self.halo_mass[nn], celsz)
 
     def load_halo(self):
         """Load a halo catalogue"""

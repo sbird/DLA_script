@@ -56,10 +56,48 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     return for_return;
 }
 
+
+PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
+{
+    PyArrayObject *sub_cofm, *sub_mass, *xcells, *ycells, *halo_mass;
+    double celsz;
+    if(!PyArg_ParseTuple(args, "O!O!O!O!O!d",&PyArray_Type, &sub_cofm, &PyArray_Type, &sub_mass, &PyArray_Type, &xcells, &PyArray_Type, &ycells,&PyArray_Type, &halo_mass, &celsz) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use sub_cofm, sub_mass, xcells, ycells, halo_mass, celsz\n");
+        return NULL;
+    }
+
+    const npy_intp ncells = PyArray_DIM(xcells,0);
+    for (int i=0; i< ncells; i++)
+    {
+        const int64_t xcoord =  (*(int64_t *) PyArray_GETPTR1(xcells,i));
+        const int64_t ycoord =  (*(int64_t *) PyArray_GETPTR1(ycells,i));
+        double dd_min = pow(*(double *) PyArray_GETPTR2(sub_cofm,0,1) - celsz*xcoord,2)
+            + pow(*(double *) PyArray_GETPTR2(sub_cofm,0,2) - celsz*ycoord,2);
+        int nearest_halo=0;
+        for (int j=1; j < PyArray_DIM(sub_cofm,0); j++)
+        {
+            double dd = pow(*(double *) PyArray_GETPTR2(sub_cofm,j,1) - celsz*xcoord,2)
+                        + pow(*(double *) PyArray_GETPTR2(sub_cofm,j,2) - celsz*ycoord,2);
+            if (dd < dd_min){
+                dd_min = dd;
+                nearest_halo = j;
+            }
+        }
+        *(double *) PyArray_GETPTR2(halo_mass,xcoord,ycoord) = *(double *) PyArray_GETPTR1(sub_mass,nearest_halo);
+    }
+    int i = 0;
+    return Py_BuildValue("i",&i);
+}
+
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
    "    Arguments: pos, radii, value, weights, periodic=T/F, nx"
+   "    "},
+  {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
+   "Kernel for populating a field containing the mass of the nearest halo to each point"
+   "    Arguments: sub_cofm, sub_mass, xcells, ycells (output from np.where), halo_mass[nn], celsz"
    "    "},
   {NULL, NULL, 0, NULL},
 };
