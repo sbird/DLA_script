@@ -58,7 +58,7 @@ def plot_covering_frac(sim, snap, ff=True):
     del ahalo
     plt.clf()
 
-def plot_rhohi_dndx(sim, line, ff=True):
+def plot_rhohi_dndx(sim, ff=True):
     """Plot rho_HI and dndx across redshift"""
     halo = "Cosmo"+str(sim)+"_V6"
     if ff:
