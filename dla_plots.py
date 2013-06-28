@@ -177,7 +177,7 @@ class PrettyHalo(halohi.HaloHI):
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
         ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
-        plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
+#         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(5e-5,1)
 #         plt.legend(loc=0)

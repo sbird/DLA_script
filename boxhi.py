@@ -146,15 +146,15 @@ class BoxHI(HaloHI):
             the hydrogen mass fraction.
         """
         #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
-        omega_DLA=self._rho_DLA(thresh)/self.rho_crit()
+        omega_DLA=1000*self._rho_DLA(thresh)/self.rho_crit()
         return omega_DLA
 
     def _rho_DLA(self, thresh=20.3):
         """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
         #Average column density of HI in atoms cm^-2 (physical)
         if thresh > 0:
-            HImass = np.array([np.sum(10**grid[np.where(grid > thresh)])/np.size(grid) for grid in self.sub_nHI_grid])
-            HImass = np.mean(HImass)
+            grids=self.sub_nHI_grid
+            HImass = np.sum(10**grids[np.where(grids > thresh)])/np.size(grids)
         else:
             HImass = np.mean(10**self.sub_nHI_grid)
         #Avg. Column density of HI in g cm^-2 (comoving)
@@ -178,7 +178,7 @@ class BoxHI(HaloHI):
         """Compute the line density, the total cells in DLAs divided by the total area, multiplied by d L / dX. This is dN/dX = l_DLA(z)
         """
         #P(hitting a DLA at random)
-        DLAs = 1.*np.sum(np.array([np.sum(grid > thresh) for grid in self.sub_nHI_grid]))
+        DLAs = 1.*np.sum(self.sub_nHI_grid > thresh)
         size = 1.*np.sum(self.ngrid**2)
         pDLA = DLAs/size/self.absorption_distance()
         return pDLA
@@ -257,7 +257,7 @@ class BoxHI(HaloHI):
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         #Grid size (in cm^2)
         dX=self.absorption_distance()
-        tot_cells = np.sum(self.ngrid**2)  #No factor of nhalo because dX takes care of it
+        tot_cells = np.sum(self.ngrid**2)
         if maxM != None:
             try:
                 self.halo_mass
@@ -266,7 +266,8 @@ class BoxHI(HaloHI):
             ind = np.where((self.halo_mass < 10.**maxM)*(self.halo_mass > 10.**minM))
             tot_f_N = np.histogram(np.ravel(grids[ind]),np.log10(NHI_table))[0]
         else:
-            tot_f_N = np.histogram(np.ravel(grids),np.log10(NHI_table))[0]
+            ind = np.where(grids >= minN)
+            tot_f_N = np.histogram(np.ravel(grids[ind]),np.log10(NHI_table))[0]
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 

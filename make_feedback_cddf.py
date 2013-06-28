@@ -43,6 +43,7 @@ def plot_H2_effect(sim, snap):
     dla_data.column_density_data()
     del ahalo
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
+    plt.clf()
 
 def plot_covering_frac(sim, snap, ff=True):
     """Load a simulation and plot its cddf"""
@@ -111,7 +112,7 @@ def plot_all_rho():
     plt.clf()
 
 if __name__ == "__main__":
-    plot_H2_effect(2,60)
+#     plot_H2_effect(2,60)
     plot_all_rho()
     #Make a plot of the column density functions.
     for ss in (3,2,0):

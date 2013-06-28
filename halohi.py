@@ -155,7 +155,7 @@ class HaloHI:
         self.sub_cofm=np.array(grid_file["sub_cofm"])
         self.sub_radii=np.array(grid_file["sub_radii"])
 
-        self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.sub_nHI_grid=np.array([np.empty([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
         grp = f["GridHIData"]
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         f.close()

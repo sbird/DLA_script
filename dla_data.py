@@ -111,8 +111,8 @@ def rhohi_pro(datadir="data"):
 
 def omegahi_not():
     """Omega_DLA from Noterdaeme 2012, 1210.1213"""
-    omega_dla = 1e-3*np.array([0.99, 0.87, 1.04, 1.1, 1.27])
-    omega_err = 1e-3*np.array([0.05,0.04, 0.05,0.08,0.13])
+    omega_dla = np.array([0.99, 0.87, 1.04, 1.1, 1.27])
+    omega_err = np.array([0.05,0.04, 0.05,0.08,0.13])
     zz = [2.15,2.45,2.75,3.05,3.35]
     plt.errorbar(zz, omega_dla,xerr=0.15, yerr=omega_err, fmt="s",color="black")
 
