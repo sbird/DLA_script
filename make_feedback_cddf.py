@@ -71,7 +71,7 @@ def plot_rhohi_dndx(sim, line, ff=True):
         try:
             ahalo = dp.PrettyBox(base+halo, ss[zz], nslice=10)
             dndx.append(ahalo.line_density())
-            rhohi.append(ahalo.rho_DLA())
+            rhohi.append(ahalo.omega_DLA())
             zzz.append(zz)
             del ahalo
         except IOError:
@@ -99,14 +99,14 @@ def plot_all_rho():
     plt.figure(1)
     plt.xlabel("z")
     plt.ylabel(r"$\frac{dN}{dX}$")
-    dla_data.dndx()
+    dla_data.dndx_not()
     save_figure(path.join(outdir,"cosmo_dndx"))
     plt.clf()
 
     plt.figure(2)
     plt.xlabel("z")
-    plt.ylabel(r"$\rho_\mathrm{HI}$ ($10^8 M_\odot / \mathrm{Mpc}^3$)")
-    dla_data.rhohi()
+    plt.ylabel(r"$\Omega_\mathrm{DLA}$")
+    dla_data.omegahi_not()
     save_figure(path.join(outdir,"cosmo_rhohi"))
     plt.clf()
 
