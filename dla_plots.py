@@ -200,7 +200,7 @@ class PrettyHalo(halohi.HaloHI):
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
         ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{tot} (N) $",size=25)
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(1e-2,2)
+        plt.ylim(1e-2,1)
         tight_layout_wrapper()
         plt.show()
 

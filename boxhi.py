@@ -140,10 +140,11 @@ class BoxHI(HaloHI):
 
 
     def omega_DLA(self, thresh=20.3):
-        """Compute Omega_DLA, the sum of the mass in DLAs, divided by the critical density.
-            Ω_DLA = m_p * avg. column density / (1+z)^2 / length of column / rho_c
-            Note: If we want the neutral gas density rather than the neutral hydrogen density, divide by 0.76,
+        """Compute Omega_DLA, the sum of the neutral gas in DLAs, divided by the critical density.
+            Ω_DLA =  m_p * avg. column density / (1+z)^2 / length of column / rho_c / X_H
+            Note: If we want the neutral hydrogen density rather than the gas hydrogen density, multiply by 0.76,
             the hydrogen mass fraction.
+            The Noterdaeme results are GAS MASS
         """
         #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
         omega_DLA=1000*self._rho_DLA(thresh)/self.rho_crit()
@@ -183,6 +184,23 @@ class BoxHI(HaloHI):
         pDLA = DLAs/size/self.absorption_distance()
         return pDLA
 
+    def line_density2(self,thresh=20.3):
+        """Compute the line density the other way, by summing the cddf. This is dN/dX = l_DLA(z)"""
+        (center,  fN) = self.column_density_function(minN=thresh,maxN=24)
+        NHI_table = 10**np.arange(thresh, 24, 0.2)
+        width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        return np.sum(fN*width)
+
+    def omega_DLA2(self,thresh=20.3):
+        """Compute Omega_DLA the other way, by summing the cddf."""
+        (center,  fN) = self.column_density_function(minN=thresh,maxN=24)
+        #f_N* NHI is returned, in amu/cm^2/dX
+        NHI_table = 10**np.arange(thresh, 24, 0.2)
+        width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
+        dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
+        return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
+
+
     def find_cross_section(self, thresh=20.3):
         """Find the number of DLA cells nearest to each halo"""
         try:
@@ -212,8 +230,13 @@ class BoxHI(HaloHI):
             self.load_halo()
         self.halo_mass = np.zeros_like(self.sub_nHI_grid)
         celsz = 1.*self.box/self.ngrid[0]
+        #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
+        rhom = 2.78e+11* self.omegam / (1e3**3)
+        #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
+        target_mass = self.box**3 * rhom / self.npart[0]
+        min_mass = target_mass * 400
         for nn in xrange(self.nhalo):
-            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
+            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > min_mass))
             cells = np.where(self.sub_nHI_grid[nn] > thresh)
             _find_halo_kernel(self.real_sub_cofm[ind],self.real_sub_mass[ind],cells[0], cells[1],self.halo_mass[nn], celsz)
 

@@ -101,17 +101,29 @@ def dndx_pro(datadir="data"):
     """Plot the line densities for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
-    plt.errorbar(zcen, data[1:-1,2],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,3], fmt="s",color="black")
+    plt.errorbar(zcen, data[1:-1,2],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,3], fmt="o",color="orange")
 
-def rhohi_pro(datadir="data"):
+def omegahi_pro(datadir="data"):
     """Plot the total rho_HI density for DLAs from Prochaska & Wolfe 2009, 0811.2003"""
     data = np.loadtxt(path.join(datadir,"dndx.txt"))
     zcen = (data[1:-1,0]+data[1:-1,1])/2.
-    plt.errorbar(zcen, data[1:-1,4],xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="s",color="black")
+    rhohi = data[1:-1,4]
+    #This is rho_crit at z=0
+    rho_crit = 9.3125685124148235e-30
+    #This converts from 1e8 M_sun/Mpc^3 to g/cm^3
+    conv = 6.7699111782945424e-33
+    #A factor of 0.76 from HI mass to gas mass
+    #Note: this factor is 0.74, so that the Noterdaeme
+    #Omega_DLA is numerically similar to the rho_HI of Prochaska
+    omega_DLA = rhohi*conv/rho_crit*1000
+    plt.errorbar(zcen, rhohi,xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="o",color="orange")
 
 def omegahi_not():
     """Omega_DLA from Noterdaeme 2012, 1210.1213"""
-    omega_dla = np.array([0.99, 0.87, 1.04, 1.1, 1.27])
+    #He divides these measurements by 0.76,
+    #which he thinks gives him the neutral gas mass in DLAs, because all this hydrogen
+    #is neutral. However, some of the hydrogen is molecular, so the factor is daft.
+    omega_dla = np.array([0.99, 0.87, 1.04, 1.1, 1.27])*0.76
     omega_err = np.array([0.05,0.04, 0.05,0.08,0.13])
     zz = [2.15,2.45,2.75,3.05,3.35]
     plt.errorbar(zz, omega_dla,xerr=0.15, yerr=omega_err, fmt="s",color="black")
@@ -120,10 +132,10 @@ def dndx_not():
     """dNdX from Noterdaeme 2012, 1210.1213"""
     #No error on dndz...use the systematic correction.
     dndz = np.array([0.2,0.2,0.25,0.29,0.36])
-    dndz_err = np.array([0.01,0.01,0.04,0.07,0.12])
+    #No error bars quoted in the paper for dndz (?)
     zz = [2.15,2.45,2.75,3.05,3.35]
     dzdx = np.array([3690/11625.,4509/14841.,2867/9900.,1620/5834.,789/2883.])
-    plt.errorbar(zz,dndz*dzdx,yerr=dndz_err,xerr=0.15,fmt="s",color="black")
+    plt.errorbar(zz,dndz*dzdx,xerr=0.15,fmt="s",color="black")
 
 # def prochaska_10_data():
 #     """Plot the six-power-law model of Prochaska 2010. A little too complicated."""
