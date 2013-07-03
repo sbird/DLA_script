@@ -47,6 +47,16 @@ class HaloMet(hi.HaloHI):
             rscale = self.UnitLength_in_cm/(1+self.redshift)/self.hubble    # convert length to cm
             mscale = self.UnitMass_in_g/self.hubble   # convert mass to g
             self.dscale = mscale / rscale **3 # Convert density to g / cm^3
+            escale = 1.0e6           # convert energy/unit mass to J kg^-1
+            #convert U (J/kg) to T (K) : U = N k T / (γ - 1)
+            #T = U (γ-1) μ m_P / k_B
+            #where k_B is the Boltzmann constant
+            #γ is 5/3, the perfect gas constant
+            #m_P is the proton mass
+            #μ is 1 / (mean no. molecules per unit atomic weight) calculated in loop.
+            boltzmann = 1.3806504e-23
+            self.tscale = ((5./3.-1.0) * 1e-3*self.protonmass * escale ) / boltzmann
+
             #Otherwise regenerate from the raw data
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid()
@@ -106,6 +116,16 @@ class HaloMet(hi.HaloHI):
         den = np.array(bar["Density"])*self.dscale
         #In (hydrogen) atoms / cm^3
         den /= self.protonmass
+        #Mean molecular weight:
+        # \mu = 1 / molecules per unit atomic weight
+        #     = 1 / (X + Y /4 + E)
+        #     where E = Ne * X, and Y = (1-X).
+        #     Can neglect metals as they are heavy.
+        #     Leading contribution is from electrons, which is already included
+        #     [+ Z / (12->16)] from metal species
+        #     [+ Z/16*4 ] for OIV from electrons.
+        mu = 1.0/(0.76*(0.75+np.array(bar["ElectronAbundance"])) + 0.25)
+        temp = np.array(bar["InternalEnergy"])*self.tscale*mu
         #Gather all nearby cells, paying attention to periodic box conditions
         for dim in np.arange(3):
             jpos = sub_pos[dim]
@@ -136,7 +156,7 @@ class HaloMet(hi.HaloHI):
 
         if np.size(ipos) == 0:
             return
-        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, mass, den)
+        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, mass, den, temp)
 
         #coords in grid units
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
