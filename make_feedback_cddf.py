@@ -19,7 +19,7 @@ outdir = base + "plots/grid"
 colors={ 0:"red", 1:"orange",2:"blue", 3:"green"}
 lss= {0:"--",1:":",2:"-",3:"-."}
 
-def plot_cddf_a_halo(sim, snap, ff=True):
+def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
     halo = "Cosmo"+str(sim)+"_V6"
     savefile = None
@@ -27,7 +27,7 @@ def plot_cddf_a_halo(sim, snap, ff=True):
         halo+="_512"
         savefile = path.join(base+halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
     ahalo = dp.PrettyBox(base+halo, snap, nslice=10, savefile=savefile)
-    ahalo.plot_column_density(color=colors[sim], ls=lss[sim])
+    ahalo.plot_column_density(color=colors[sim], ls=lss[sim], moment=moment)
     del ahalo
 
 def plot_H2_effect(sim, snap):
@@ -155,15 +155,24 @@ def plot_breakdown():
     plt.clf()
 
 if __name__ == "__main__":
-    plot_H2_effect(2,60)
+#     plot_H2_effect(2,60)
     plot_all_rho()
     #Make a plot of the column density functions.
+#     for ss in (3,2,0):
+#         plot_cddf_a_halo(ss, 60)
+#
+#     dla_data.column_density_data()
+#
+#     save_figure(path.join(outdir,"cosmo_cddf_z3"))
+#     plt.clf()
+
+    #Plot first moment
     for ss in (3,2,0):
-        plot_cddf_a_halo(ss, 60)
+        plot_cddf_a_halo(ss, 60, moment=True)
 
-    dla_data.column_density_data()
+    dla_data.column_density_data(moment=True)
 
-    save_figure(path.join(outdir,"cosmo_cddf_z3"))
+    save_figure(path.join(outdir,"cosmo_cddf_z3_moment"))
     plt.clf()
 
     plot_breakdown()

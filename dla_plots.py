@@ -167,10 +167,12 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23.,color=acol, ls=astyle):
+    def plot_column_density(self,minN=17,maxN=23.,color=acol, ls=astyle,moment=False):
         """Plots the column density distribution function. """
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        plt.loglog(aNHI,aNHI*af_N,color=color, ls=ls, lw = 3)
+        if moment:
+            af_N*=aNHI
+        plt.loglog(aNHI,af_N,color=color, ls=ls, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
@@ -179,7 +181,9 @@ class PrettyHalo(halohi.HaloHI):
         ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
 #         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(5e-5,1)
+        plt.ylim(1e-27,1e-18)
+        if moment:
+            plt.ylim(5e-5,1)
 #         plt.legend(loc=0)
         tight_layout_wrapper()
         plt.show()
