@@ -125,7 +125,7 @@ def omegahi_pro(datadir="data"):
     #Note: this factor is 0.74, so that the Noterdaeme
     #Omega_DLA is numerically similar to the rho_HI of Prochaska
     omega_DLA = rhohi*conv/rho_crit*1000
-    plt.errorbar(zcen, rhohi,xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="o",color="orange")
+    plt.errorbar(zcen, omega_DLA,xerr=[zcen-data[1:-1,0], data[1:-1,1]-zcen], yerr=data[1:-1,5], fmt="o",color="orange")
 
 def omegahi_not():
     """Omega_DLA from Noterdaeme 2012, 1210.1213"""
