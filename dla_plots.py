@@ -280,20 +280,24 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12,nbins=20):
+    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12,nbins=20, color="blue"):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
+        rhom = 2.78e+11* self.omegam / (1e3**3)
+        #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
+        target_mass = self.box**3 * rhom / self.npart[0]
+        min_mass = target_mass * 50
         try:
             self.sigDLA
         except AttributeError:
             self.load_halo()
-            self.sigDLA=self.find_cross_section()
+            self.sigDLA=self.find_cross_section(min_mass = min_mass)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
-        massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
+        massbins = np.logspace(np.log10(min_mass), np.log10(Mmax), nbins+1)
         ind = np.where(self.sigDLA > 0)
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        plt.semilogx(xbins,hist)
+        plt.semilogx(xbins,hist, color=color)
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot the median and scatter of sigma_DLA against mass."""

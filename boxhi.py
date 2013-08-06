@@ -201,7 +201,7 @@ class BoxHI(HaloHI):
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
 
-    def find_cross_section(self, thresh=20.3):
+    def find_cross_section(self, thresh=20.3, min_mass=1e9):
         """Find the number of DLA cells nearest to each halo"""
         try:
             self.real_sub_mass
@@ -210,7 +210,7 @@ class BoxHI(HaloHI):
         dla_cross = np.zeros(np.size(self.real_sub_mass))
         celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
-            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > 1e9))
+            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > min_mass))
             cells = np.where(self.sub_nHI_grid[nn] > thresh)
             print "max = ",np.max(dla_cross)
             for ii in xrange(np.shape(cells)[1]):
