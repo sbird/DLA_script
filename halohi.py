@@ -150,6 +150,15 @@ class HaloHI:
             self.sub_mass = np.array(grid_file["sub_mass"])
             self.ind=np.array(grid_file["halo_ind"])
             self.nhalo=np.size(self.ind)
+            self.minpart = grid_file.attrs["minpart"]
+        except KeyError:
+            pass
+        try:
+            self.pDLA = grid_file.attrs["pDLA"]
+            self.Rho_DLA = grid_file.attrs["Rho_DLA"]
+            self.Omega_DLA = grid_file.attrs["Omega_DLA"]
+            self.cddf_bins = np.array(grid_file["cddf_bins"])
+            self.cddf_f_N = np.array(grid_file["cddf_f_N"])
         except KeyError:
             pass
         self.sub_cofm=np.array(grid_file["sub_cofm"])
@@ -185,22 +194,20 @@ class HaloHI:
             grp.create_dataset('halo_ind',data=self.ind)
         except AttributeError:
             pass
+        try:
+            grp.attrs["pDLA"]=self.pDLA
+            grp.attrs["Rho_DLA"]=self.Rho_DLA
+            grp.attrs["Omega_DLA"]=self.Omega_DLA
+            grp.create_dataset('cddf_bins',data=self.cddf_bins)
+            grp.create_dataset('cddf_f_N',data=self.cddf_f_N)
+        except AttributeError:
+            pass
         grp_grid = f.create_group("GridHIData")
         for i in xrange(0,self.nhalo):
             try:
                 grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
             except AttributeError:
                 pass
-        try:
-            self.sub_star_grid
-            grp_grid = f.create_group("GridStarData")
-            for i in xrange(0,self.nhalo):
-                try:
-                    grp_grid.create_dataset(str(i),data=self.sub_star_grid[i])
-                except AttributeError:
-                    pass
-        except AttributeError:
-            pass
         f.close()
 
     def __del__(self):
