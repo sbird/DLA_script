@@ -69,6 +69,7 @@ class HaloHI:
                 raise KeyError("reloading")
             #First try to load from a file
             self.load_savefile(self.savefile)
+            self.load_hi_grid()
         except (IOError,KeyError):
             self.load_header()
             self.load_halos(minpart)
@@ -164,12 +165,22 @@ class HaloHI:
         self.sub_cofm=np.array(grid_file["sub_cofm"])
         self.sub_radii=np.array(grid_file["sub_radii"])
 
+        f.close()
+        del grid_file
+        del f
+
+    def load_hi_grid(self):
+        """
+        Load the HI grid from the savefile
+        """
+        try:
+            f=h5py.File(self.savefile,'r')
+        except IOError:
+            raise IOError("Could not open "+self.savefile)
         self.sub_nHI_grid=np.array([np.empty([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
         grp = f["GridHIData"]
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         f.close()
-        del grid_file
-        del f
 
     def save_file(self):
         """
@@ -202,6 +213,10 @@ class HaloHI:
             grp.create_dataset('cddf_f_N',data=self.cddf_f_N)
         except AttributeError:
             pass
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
         grp_grid = f.create_group("GridHIData")
         for i in xrange(0,self.nhalo):
             try:

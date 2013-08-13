@@ -157,6 +157,10 @@ class BoxHI(HaloHI):
     def _rho_DLA(self, thresh=20.3):
         """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
         #Average column density of HI in atoms cm^-2 (physical)
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
         if thresh > 0:
             grids=self.sub_nHI_grid
             HImass = np.sum(10**grids[np.where(grids > thresh)])/np.size(grids)
@@ -219,6 +223,10 @@ class BoxHI(HaloHI):
             self.real_sub_mass
         except AttributeError:
             self.load_halo()
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
         dla_cross = np.zeros(np.size(self.real_sub_mass))
         celsz = 1.*self.box/self.ngrid[0]
         for nn in xrange(self.nhalo):
@@ -240,6 +248,10 @@ class BoxHI(HaloHI):
             self.real_sub_mass
         except AttributeError:
             self.load_halo()
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
         self.halo_mass = np.zeros_like(self.sub_nHI_grid)
         celsz = 1.*self.box/self.ngrid[0]
         #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
@@ -300,9 +312,13 @@ class BoxHI(HaloHI):
 
     def _calc_cddf(self,NHI_table, minN=17, maxM=None,minM=None):
         """Does the actual calculation for the CDDF function above"""
+        try:
+            grids = self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
+            grids = self.sub_nHI_grid
         center = np.array([(NHI_table[i]+NHI_table[i+1])/2. for i in range(0,np.size(NHI_table)-1)])
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
-        grids = self.sub_nHI_grid
         #Grid size (in cm^2)
         dX=self.absorption_distance()
         tot_cells = np.sum(self.ngrid**2)
