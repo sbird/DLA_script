@@ -271,7 +271,7 @@ class BoxHI(HaloHI):
         except IOError:
             pass
 
-    def column_density_function(self,dlogN=0.2, minN=17, maxN=23., maxM=None,minM=None):
+    def column_density_function(self,dlogN=0.4, minN=16, maxN=24., maxM=None,minM=None):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval
@@ -303,6 +303,8 @@ class BoxHI(HaloHI):
             try:
                 if np.size(NHI_table)-1 == np.size(self.cddf_bins):
                     return (self.cddf_bins, self.cddf_f_N)
+                else:
+                    raise AttributeError
             except AttributeError:
                 (self.cddf_bins, self.cddf_f_N)= self._calc_cddf(NHI_table, minN, maxM, minM)
                 return (self.cddf_bins, self.cddf_f_N)
