@@ -11,13 +11,14 @@ import dla_plots as dp
 import dla_data
 import os.path as path
 import myname
+import numpy as np
 from save_figure import save_figure
 
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange"}
-lss = {0:"--",1:":", 2:"-",3:"-.", 4:"-"}
+colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan"}
+lss = {0:"--",1:":", 2:"-",3:"-.", 4:"-", 5:"--"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -28,7 +29,7 @@ def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
 
 def plot_H2_effect(sim, snap):
     """Load a simulation and plot its cddf"""
-    halo = myname.get_name(sim, ff)
+    halo = myname.get_name(sim, True)
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid.hdf5")
     ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--")
@@ -41,16 +42,52 @@ def plot_H2_effect(sim, snap):
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
 
+def plot_UVB_effect():
+    """Load a simulation and plot its cddf"""
+    halo = myname.get_name(5, True)
+    savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI.hdf5")
+    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    ahalo.plot_column_density(color="blue", ls="--", moment=True)
+    del ahalo
+    savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI_doub_UVB.hdf5")
+    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    ahalo.plot_column_density(color="red",moment=True)
+    dla_data.column_density_data(moment=True)
+    del ahalo
+    save_figure(path.join(outdir, "cosmo5_UVB_3"))
+    plt.clf()
+
+def plot_grid_res():
+    """The effect of a finer grid"""
+    halo = myname.get_name(5, True)
+    savefile = path.join(halo,"snapdir_003/boxhi_grid_10240.hdf5")
+    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    ahalo.plot_column_density(color="blue", ls="--", moment=True)
+    del ahalo
+    ahalo = dp.PrettyBox(halo, 3, nslice=10)
+    ahalo.plot_column_density(color="red",moment=True)
+    dla_data.column_density_data(moment=True)
+    del ahalo
+    save_figure(path.join(outdir, "cosmo5_grid_3"))
+    plt.clf()
+
 def plot_covering_frac(sim, snap, ff=True):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, ff)
     ahalo = dp.PrettyBox(halo, snap, nslice=10)
     ahalo.plot_sigma_DLA()
+    del ahalo
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_covering_z"+str(snap)))
     plt.clf()
-    ahalo.plot_halo_hist()
-    save_figure(path.join(outdir, "cosmo"+str(sim)+"_halohist_z"+str(snap)))
-    del ahalo
+
+def plot_halohist(snap):
+    """Plot a histogram of nearby halos"""
+    for sim in xrange(5):
+        halo = myname.get_name(sim, True)
+        ahalo = dp.PrettyBox(halo, snap, nslice=10)
+        ahalo.plot_halo_hist(color=colors[sim])
+        del ahalo
+    save_figure(path.join(outdir, "cosmo_halohist_z"+str(snap)))
     plt.clf()
 
 def get_rhohi_dndx(sim, ff=True):
@@ -71,55 +108,31 @@ def get_rhohi_dndx(sim, ff=True):
             continue
     return (zzz, dndx, rhohi)
 
-def plot_rel_cddf(sim1, sim2, snap, color="black"):
+
+def plot_rel_cddf(snap):
     """Load and make a plot of the difference between two simulations"""
-    halo1 = myname.get_name(sim1, ff)
-    halo2 = myname.get_name(sim2, ff)
-    ahalo1 = dp.PrettyBox(halo1, snap, nslice=10)
-    cddf1 = ahalo1.column_density_function(0.2,16,24)
-    del ahalo1
-    ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
-    cddf2 = ahalo2.column_density_function(0.2,16,24)
-    plt.semilogx(cddf1[0], cddf2[1]/cddf1[1], color=color)
+    basen = myname.get_name(1)
+    base = dp.PrettyBox(basen, snap, nslice=10)
+    cddf_base = base.column_density_function()
+    for xx in (0,2,3,4,5):
+        halo2 = myname.get_name(xx)
+        ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
+        cddf = ahalo2.column_density_function()
+        plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[xx], ls=lss[xx])
+    plt.ylim(-0.25,0.5)
+    save_figure(path.join(outdir,"cosmo_rel_cddf_z3"))
+    plt.clf()
 
 def plot_all_rho():
     """Make the rho_HI plot with labels etc"""
     #Cosmo0
-    zzz={}
-    dndx={}
-    omega={}
-    zzz[0]= [4, 3, 2]
-    dndx[0]= [0.12982373590447616, 0.11318656438441635, 0.14167778407440484]
-    omega[0]= [1.1295349304295403, 1.0832253887624965, 1.4772732823119952]
-    #Cosmo1
-    zzz[1]= [4, 3, 2]
-    dndx[1]= [0.076274082906110152, 0.050977933084835461, 0.043776291837515323]
-    omega[1]= [0.68763319854249694, 0.49411308856267733, 0.42703152981413667]
-    #Cosmo2
-    zzz[2]= [4, 3.5, 3, 2.5, 2]
-    dndx[2]= [0.081675998741546157, 0.071281732587967661, 0.061506461643187245, 0.061143942748744885, 0.063275568]
-    omega[2]= [0.76470263480711975, 0.69383248829835542, 0.64764348287042328, 0.6917879571651826, 0.7428807770637]
-    #Cosmo3
-    zzz[3]= [4, 3, 2]
-    dndx[3]= [0.11528106522481622, 0.11797023730537365, 0.12545022290952848]
-    omega[3]= [1.7090510472291021, 1.8510973567379598, 1.9917860682826971]
-    #Cosmo4
-    zzz[4]= [4, 3, 2]
-    dndx[4]= [0.12485554993298456, 0.11632137558129531, 0.14296572069204525]
-    omega[4]= [1.1592268064398157, 1.2041971815381218, 1.6341245991834694]
-#     for i in (0,1,2,3,4):
-#         (zzz,dndx,rhohi) = get_rhohi_dndx(i)
-#         plt.figure(1)
-#         print "zzz=",zzz
-#         print "dndx=",dndx
-#         print "omega=",rhohi
-#         plt.plot(zzz,dndx, color=colors[i], ls=lss[i])
-#         plt.figure(2)
-#         plt.plot(zzz,rhohi, color=colors[i], ls=lss[i])
-#
+    for i in xrange(6):
+        (zzz,dndx,omegadla) = get_rhohi_dndx(i)
+        plt.figure(1)
+        plt.plot(zzz,dndx, color=colors[i], ls=lss[i])
+        plt.figure(2)
+        plt.plot(zzz,omegadla, color=colors[i], ls=lss[i])
     plt.figure(1)
-    for ss in xrange(0,5):
-        plt.plot(zzz[ss],dndx[ss], color=colors[ss], ls=lss[ss])
     plt.xlabel("z")
     plt.ylabel(r"$dN / dX$")
     dla_data.dndx_not()
@@ -128,8 +141,6 @@ def plot_all_rho():
     plt.clf()
 
     plt.figure(2)
-    for ss in xrange(0,5):
-        plt.plot(zzz[ss],omega[ss], color=colors[ss], ls=lss[ss])
     plt.xlabel("z")
     plt.ylabel(r"$10^3 \Omega_\mathrm{DLA}$")
     dla_data.omegahi_not()
@@ -150,18 +161,21 @@ def plot_breakdown():
 
 if __name__ == "__main__":
 #     plot_H2_effect(2,3)
+    plot_grid_res()
+    plot_rel_cddf(3)
+    plot_UVB_effect()
     plot_all_rho()
     #Make a plot of the column density functions.
-#     for ss in (3,2,0):
-#         plot_cddf_a_halo(ss, 3)
-#
-#     dla_data.column_density_data()
-#
-#     save_figure(path.join(outdir,"cosmo_cddf_z3"))
-#     plt.clf()
+    for ss in xrange(6):
+        plot_cddf_a_halo(ss, 3)
+
+    dla_data.column_density_data()
+
+    save_figure(path.join(outdir,"cosmo_cddf_z3"))
+    plt.clf()
 
     #Plot first moment
-    for ss in (4,3,2,1,0):
+    for ss in xrange(6):
         plot_cddf_a_halo(ss, 3, moment=True)
 
     dla_data.column_density_data(moment=True)
@@ -169,7 +183,7 @@ if __name__ == "__main__":
     save_figure(path.join(outdir,"cosmo_cddf_z3_moment"))
     plt.clf()
 
-    plot_breakdown()
+#     plot_breakdown()
     #A plot of the redshift evolution
     # zz = [1,3,5]
     # for ii in (0,1,2):
@@ -180,15 +194,14 @@ if __name__ == "__main__":
     # save_figure(path.join(outdir,"cosmo0_cddf_zz"))
     # plt.clf()
     #
-    # for i in (0,2,3):
-    #     plot_covering_frac(i,3, True)
+#     plot_halohist(3)
 
     #Make a plot of the effect of AGN on the cddf.
     for ss in (2,1):
-        plot_cddf_a_halo(ss, 3, moment=True)
-    dla_data.column_density_data()
+        plot_cddf_a_halo(ss, 5, moment=True)
+    dla_data.column_density_data(moment=True)
 
-    save_figure(path.join(outdir,"cosmo_cddf_agn_z3"))
+    save_figure(path.join(outdir,"cosmo_cddf_agn_z2"))
     plt.clf()
 
 # plot_rel_cddf(3,0,3)
