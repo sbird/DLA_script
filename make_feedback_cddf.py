@@ -48,12 +48,10 @@ def plot_UVB_effect():
     savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI.hdf5")
     ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
-    del ahalo
     savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI_doub_UVB.hdf5")
     ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color="red",moment=True)
     dla_data.column_density_data(moment=True)
-    del ahalo
     save_figure(path.join(outdir, "cosmo5_UVB_3"))
     plt.clf()
 
@@ -63,11 +61,11 @@ def plot_grid_res():
     savefile = path.join(halo,"snapdir_003/boxhi_grid_10240.hdf5")
     ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
-    del ahalo
-    ahalo = dp.PrettyBox(halo, 3, nslice=10)
-    ahalo.plot_column_density(color="red",moment=True)
+#     savefile = path.join(halo,"snapdir_003/boxhi_grid_16384.hdf5")
+    ahalo2 = dp.PrettyBox(halo, 3, nslice=10)
+
+    ahalo2.plot_column_density(color="red",moment=True, ls="-.")
     dla_data.column_density_data(moment=True)
-    del ahalo
     save_figure(path.join(outdir, "cosmo5_grid_3"))
     plt.clf()
 
@@ -161,7 +159,6 @@ def plot_breakdown():
 
 if __name__ == "__main__":
 #     plot_H2_effect(2,3)
-    plot_grid_res()
     plot_rel_cddf(3)
     plot_UVB_effect()
     plot_all_rho()
