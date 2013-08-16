@@ -57,6 +57,10 @@ class BoxHI(HaloHI):
             #self.sub_nHI_grid+=np.log10(1.-self.h2frac(10**self.sub_nHI_grid, self.sub_star_grid))
         return
 
+    def save_file(self, save_grid=False):
+        """Save the file, by default without the grid"""
+        HaloHI.save_file(save_grid)
+
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid
             that puts data arrays loaded from a particular file onto the grid.

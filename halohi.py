@@ -182,15 +182,16 @@ class HaloHI:
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         f.close()
 
-    def save_file(self):
+    def save_file(self, save_grid=True):
         """
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/halohi_grid.hdf5.
         """
-        try:
-            self.sub_nHI_grid
-        except AttributeError:
-            self.load_hi_grid()
+        if save_grid:
+            try:
+                self.sub_nHI_grid
+            except AttributeError:
+                self.load_hi_grid()
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
 
@@ -217,13 +218,14 @@ class HaloHI:
             grp.create_dataset('cddf_f_N',data=self.cddf_f_N)
         except AttributeError:
             pass
-        grp_grid = f.create_group("GridHIData")
-        for i in xrange(0,self.nhalo):
-            try:
-                grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
-            except AttributeError:
-                pass
-        f.close()
+        if save_grid:
+            grp_grid = f.create_group("GridHIData")
+            for i in xrange(0,self.nhalo):
+                try:
+                    grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
+                except AttributeError:
+                    pass
+            f.close()
 
     def __del__(self):
         """Delete big arrays"""
