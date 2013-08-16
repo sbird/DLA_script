@@ -47,7 +47,7 @@ class BoxHI(HaloHI):
             #Grid size double softening length
             #self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
             #Grid size constant
-            self.ngrid=5120*np.ones(self.nhalo)
+            self.ngrid=16384*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid(gas)
             #Account for molecular fraction
@@ -271,7 +271,7 @@ class BoxHI(HaloHI):
         except IOError:
             pass
 
-    def column_density_function(self,dlogN=0.4, minN=16, maxN=24., maxM=None,minM=None):
+    def column_density_function(self,dlogN=0.1, minN=16, maxN=24., maxM=None,minM=None):
         """
         This computes the DLA column density function, which is the number
         of absorbers per sight line with HI column densities in the interval

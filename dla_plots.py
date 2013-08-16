@@ -483,8 +483,8 @@ class HaloHIPlots:
 
     def plot_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.1,minN-1,maxN+1)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.1,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
         plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget",lw=6)
 #         (aNH2,af_NH2)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
