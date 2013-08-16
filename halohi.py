@@ -187,6 +187,10 @@ class HaloHI:
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/halohi_grid.hdf5.
         """
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
 
@@ -213,10 +217,6 @@ class HaloHI:
             grp.create_dataset('cddf_f_N',data=self.cddf_f_N)
         except AttributeError:
             pass
-        try:
-            self.sub_nHI_grid
-        except AttributeError:
-            self.load_hi_grid()
         grp_grid = f.create_group("GridHIData")
         for i in xrange(0,self.nhalo):
             try:
