@@ -171,8 +171,10 @@ class PrettyHalo(halohi.HaloHI):
         """Plots the column density distribution function. """
         (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
         if moment:
-            af_N*=aNHI
-        plt.loglog(aNHI,af_N,color=color, ls=ls, lw = 3)
+            paf_N = af_N*aNHI
+        else:
+            paf_N = af_N
+        plt.loglog(aNHI,paf_N,color=color, ls=ls, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
