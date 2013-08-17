@@ -169,7 +169,7 @@ class PrettyHalo(halohi.HaloHI):
 
     def plot_column_density(self,minN=17,maxN=23.,color=acol, ls=astyle,moment=False):
         """Plots the column density distribution function. """
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1)
         if moment:
             paf_N = af_N*aNHI
         else:
@@ -192,13 +192,13 @@ class PrettyHalo(halohi.HaloHI):
 
     def plot_column_density_breakdown(self,minN=17,maxN=23., color="black"):
         """Plots the column density distribution function, broken down into halos. """
-        (aNHI,tot_af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11, maxM=14)
+        (aNHI,tot_af_N)=self.column_density_function(0.1,minN-1,maxN+1)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=11, maxM=14)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="-",label="Big",lw=4)
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=10,maxM=11)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="--",label="Middle",lw=4)
         try:
-            (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+            (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=9,maxM=10)
             plt.loglog(aNHI,af_N/tot_af_N,color=color, ls=":",label="Small",lw=4)
         except IndexError:
             pass
