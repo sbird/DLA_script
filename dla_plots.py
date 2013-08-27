@@ -282,7 +282,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12,nbins=20, color="blue"):
+    def plot_halo_hist(self, Mmax=1e12,nbins=20, color="blue"):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
         rhom = 2.78e+11* self.omegam / (1e3**3)
@@ -591,7 +591,7 @@ class HaloHIPlots:
     def plot_rel_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
+        (_,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
 #         ax=plt.gca()

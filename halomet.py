@@ -156,7 +156,7 @@ class HaloMet(hi.HaloHI):
 
         if np.size(ipos) == 0:
             return
-        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, mass, den, temp)
+        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, den, temp)
 
         #coords in grid units
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])

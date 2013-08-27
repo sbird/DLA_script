@@ -91,13 +91,13 @@ def plot_halohist(snap):
 def get_rhohi_dndx(sim, ff=True):
     """Plot rho_HI and dndx across redshift"""
     halo = myname.get_name(sim, ff)
-    ss = {4:1, 3.5:2, 3:3, 2.5:4, 2:5}
+    snaps = {4:1, 3.5:2, 3:3, 2.5:4, 2:5}
     dndx=[]
     rhohi=[]
     zzz = []
     for zz in (4, 3, 2):
         try:
-            ahalo = dp.PrettyBox(halo, ss[zz], nslice=10)
+            ahalo = dp.PrettyBox(halo, snaps[zz], nslice=10)
             dndx.append(ahalo.line_density())
             rhohi.append(ahalo.omega_DLA())
             zzz.append(zz)

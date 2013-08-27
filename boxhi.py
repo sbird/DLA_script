@@ -206,7 +206,7 @@ class BoxHI(HaloHI):
 
     def line_density2(self,thresh=20.3):
         """Compute the line density the other way, by summing the cddf. This is dN/dX = l_DLA(z)"""
-        (center,  fN) = self.column_density_function(minN=thresh,maxN=24)
+        (_,  fN) = self.column_density_function(minN=thresh,maxN=24)
         NHI_table = 10**np.arange(thresh, 24, 0.2)
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         return np.sum(fN*width)
@@ -271,7 +271,7 @@ class BoxHI(HaloHI):
     def load_halo(self):
         """Load a halo catalogue"""
         try:
-            (ind, self.real_sub_mass, self.real_sub_cofm, self.real_sub_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, 0)
+            (_, self.real_sub_mass, self.real_sub_cofm, self.real_sub_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, 0)
         except IOError:
             pass
 
