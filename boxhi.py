@@ -59,7 +59,7 @@ class BoxHI(HaloHI):
 
     def save_file(self, save_grid=False, LLS_cut = 17., DLA_cut = 20.3):
         """Save the file, by default without the grid"""
-        HaloHI.save_file(save_grid)
+        HaloHI.save_file(self,save_grid)
         #Save a list of DLA positions instead
         f=h5py.File(self.savefile,'r+')
         ind = np.where(self.sub_NHI_grid > DLA_cut)
