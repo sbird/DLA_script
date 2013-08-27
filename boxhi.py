@@ -57,9 +57,18 @@ class BoxHI(HaloHI):
             #self.sub_nHI_grid+=np.log10(1.-self.h2frac(10**self.sub_nHI_grid, self.sub_star_grid))
         return
 
-    def save_file(self, save_grid=False):
+    def save_file(self, save_grid=False, LLS_cut = 17., DLA_cut = 20.3):
         """Save the file, by default without the grid"""
         HaloHI.save_file(save_grid)
+        #Save a list of DLA positions instead
+        f=h5py.File(self.savefile,'r+')
+        ind = np.where(self.sub_NHI_grid > DLA_cut)
+        ind_LLS = np.where((self.sub_NHI_grid > LLS_cut)*(self.sub_NHI_grid < DLA_cut))
+        grp = f.create_group("abslists")
+        grp.create_dataset("DLA",data=ind)
+        grp.create_dataset("LLS",data=ind_LLS)
+        f.close()
+
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid
