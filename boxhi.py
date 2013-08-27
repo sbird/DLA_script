@@ -62,8 +62,8 @@ class BoxHI(HaloHI):
         HaloHI.save_file(self,save_grid)
         #Save a list of DLA positions instead
         f=h5py.File(self.savefile,'r+')
-        ind = np.where(self.sub_NHI_grid > DLA_cut)
-        ind_LLS = np.where((self.sub_NHI_grid > LLS_cut)*(self.sub_NHI_grid < DLA_cut))
+        ind = np.where(self.sub_nHI_grid > DLA_cut)
+        ind_LLS = np.where((self.sub_nHI_grid > LLS_cut)*(self.sub_nHI_grid < DLA_cut))
         grp = f.create_group("abslists")
         grp.create_dataset("DLA",data=ind)
         grp.create_dataset("LLS",data=ind_LLS)
