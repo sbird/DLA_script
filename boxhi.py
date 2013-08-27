@@ -66,7 +66,9 @@ class BoxHI(HaloHI):
         ind_LLS = np.where((self.sub_nHI_grid > LLS_cut)*(self.sub_nHI_grid < DLA_cut))
         grp = f.create_group("abslists")
         grp.create_dataset("DLA",data=ind)
+        grp.create_dataset("DLA_val",data=self.sub_nHI_grid[ind])
         grp.create_dataset("LLS",data=ind_LLS)
+        grp.create_dataset("LLS_val",data=self.sub_nHI_grid[ind_LLS])
         f.close()
 
 
