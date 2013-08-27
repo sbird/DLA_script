@@ -173,10 +173,22 @@ class HaloMet(hi.HaloHI):
         return
 
 class BoxMet(bi.BoxHI):
-    """Class to find the integrated metal density in a box grid.
-    Inherits from BoxHI"""
-    def set_nHI_grid(self, gas=False):
-        """Set up the grid around each halo where the HI is calculated.
+    """
+    Class to find the mass-weighted metallicity for a box.
+    Inherits from BoxHI
+    """
+    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None):
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, True, savefile, True)
+        self.sub_ZZ_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.set_ZZ_grid()
+
+        #Find the metallicity
+        for ii in xrange(0, self.nhalo):
+            self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
+
+    def set_ZZ_grid(self):
+        """Set up the mass * metallicity grid for the box
+        Same as set_nHI_grid except mass is multiplied by GFM_Metallicity.
         """
         self.once=True
         #Now grid the HI for each halo
@@ -192,19 +204,32 @@ class BoxMet(bi.BoxHI):
             mass=np.array(bar["Masses"])
             mass *= np.array(bar["GFM_Metallicity"])
             smooth = hsml.get_smooth_length(bar)
-            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_ZZ_grid) for ii in xrange(0,self.nhalo)]
             f.close()
             #Explicitly delete some things.
             del ipos
             del mass
             del smooth
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
             massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
-            self.sub_nHI_grid[ii]*=(massg/epsilon**2)
-            self.sub_nHI_grid[ii]+=0.1
-            np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
+            self.sub_ZZ_grid[ii]*=(massg/epsilon**2)
+            self.sub_ZZ_grid[ii]+=0.1
+            np.log10(self.sub_ZZ_grid[ii],self.sub_ZZ_grid[ii])
         return
 
+    def save_file(self):
+        """This does something a little perverse: open up self.savefile
+        and save the metallicity values only for the indices found in the abslists group"""
+        f=h5py.File(self.savefile,'r+')
+        grp = f["abslists"]
+        dlaind = np.array(grp["DLA"])
+        llsind = np.array(grp["LLS"])
+        mgrp = f.create_group("Metallicities")
+        mgrp.create_dataset("DLA",data=self.sub_ZZ_grid[dlaind])
+        mgrp.create_dataset("LLS",data=self.sub_ZZ_grid[llsind])
+        f.close()
