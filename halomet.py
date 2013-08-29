@@ -227,8 +227,9 @@ class BoxMet(bi.BoxHI):
         and save the metallicity values only for the indices found in the abslists group"""
         f=h5py.File(self.savefile,'r+')
         grp = f["abslists"]
-        dlaind = np.array(grp["DLA"])
-        llsind = np.array(grp["LLS"])
+        #This is needed to make the dimensions right
+        dlaind = (grp["DLA"][0,:],grp["DLA"][1,:],grp["DLA"][2,:])
+        llsind = (grp["LLS"][0,:],grp["LLS"][1,:],grp["LLS"][2,:])
         mgrp = f.create_group("Metallicities")
         mgrp.create_dataset("DLA",data=self.sub_ZZ_grid[dlaind])
         mgrp.create_dataset("LLS",data=self.sub_ZZ_grid[llsind])
