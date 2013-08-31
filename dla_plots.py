@@ -322,6 +322,26 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         aloq=amed - halohi.calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
         return (amed, aloq, aupq)
 
+    def plot_dla_metallicity(self, nbins=40,color="blue"):
+        """Plot the distribution of DLA metallicities"""
+        self._plot_metallicity(True,nbins=nbins,color=color)
+
+    def plot_lls_metallicity(self, nbins=40,color="blue"):
+        """Plot the distribution of LLS metallicities"""
+        self._plot_metallicity(False,nbins=nbins,color=color)
+
+    def _plot_metallicity(self, dla,nbins=40,color="blue"):
+        """Plot the distribution of metallicities above"""
+        bins=np.logspace(-3,0,nbins)
+        mbin = np.array([(bins[i]+bins[i+1])/2. for i in range(0,np.size(bins)-1)])
+        if dla:
+            met = self.get_dla_metallicity()
+        else:
+            met = self.get_lls_metallicity()
+        #Abs. distance for entire spectrum
+        hist = np.histogram(met,np.log10(bins),density=True)[0]
+        plt.semilogx(mbin,hist,color=color)
+
 import halomet
 
 class PrettyMetal(halomet.HaloMet,PrettyHalo):

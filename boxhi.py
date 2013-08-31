@@ -352,3 +352,20 @@ class BoxHI(HaloHI):
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 
+    def get_dla_metallicity(self, solar=0.0133):
+        """Get the DLA metallicities from the save file, as [M/H]"""
+        try:
+            return self.dla_metallicity-np.log10(solar)
+        except AttributeError:
+            ff = h5py.File(self.savefile,"r")
+            self.dla_metallicity = np.array(ff["Metallicities"]["DLA"])
+            return self.dla_metallicity-np.log10(solar)
+
+    def get_lls_metallicity(self, solar=0.0133):
+        """Get the LLS metallicities from the save file, as [M/H]"""
+        try:
+            return self.lls_metallicity-np.log10(solar)
+        except AttributeError:
+            ff = h5py.File(self.savefile,"r")
+            self.lls_metallicity = np.array(ff["Metallicities"]["LLS"])
+            return self.lls_metallicity-np.log10(solar)
