@@ -202,7 +202,10 @@ class BoxMet(bi.BoxHI):
             ipos=np.array(bar["Coordinates"])
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])
-            mass *= np.array(bar["GFM_Metallicity"])
+            #Sometimes the metallicity is less than zero: fix that
+            met = np.array(bar["GFM_Metallicity"])
+            met[np.where(met <=0)] = 1e-50
+            mass *= met
             smooth = hsml.get_smooth_length(bar)
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_ZZ_grid) for ii in xrange(0,self.nhalo)]
             f.close()
