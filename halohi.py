@@ -261,6 +261,11 @@ class HaloHI:
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])
             if not gas:
+                #Hydrogen mass fraction
+                try:
+                    mass *= np.array(bar["GFM_Metals"][:,0])
+                except KeyError:
+                    mass *= 0.76
                 mass *= star.get_reproc_HI(bar)
             smooth = hsml.get_smooth_length(bar)
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
