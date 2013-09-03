@@ -28,11 +28,14 @@ def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     ahalo.plot_column_density(color=colors[sim], ls=lss[sim], moment=moment)
     del ahalo
 
-def plot_metal_halo(sim, snap, ff=True, moment=False):
+def plot_metal_halo(sim, snap, ff=True, lls=False):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, ff)
     ahalo = dp.PrettyBox(halo, snap, nslice=10)
-    ahalo.plot_dla_metallicity(color=colors[sim], ls=lss[sim])
+    if lls:
+        ahalo.plot_lls_metallicity(color=colors[sim], ls=lss[sim])
+    else:
+        ahalo.plot_dla_metallicity(color=colors[sim], ls=lss[sim])
     del ahalo
 
 def plot_H2_effect(sim, snap):
@@ -125,8 +128,8 @@ def plot_rel_cddf(snap):
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
         plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[xx], ls=lss[xx])
-    plt.ylim(-0.25,0.5)
-    save_figure(path.join(outdir,"cosmo_rel_cddf_z3"))
+    plt.ylim(-0.5,0.5)
+    save_figure(path.join(outdir,"cosmo_rel_cddf_z"+str(snap)))
     plt.clf()
 
 def plot_all_rho():
@@ -167,7 +170,6 @@ def plot_breakdown():
 
 if __name__ == "__main__":
     plot_H2_effect(5,3)
-    plot_rel_cddf(3)
     #plot_UVB_effect()
     plot_all_rho()
     #Make a plot of the column density functions.
@@ -190,6 +192,8 @@ if __name__ == "__main__":
         save_figure(path.join(outdir,"cosmo_cddf_z"+str(zz)+"_moment"))
         plt.clf()
 
+    for zz in (1,3,5):
+        plot_rel_cddf(zz)
 #     plot_breakdown()
 #     plot_halohist(3)
 
@@ -214,3 +218,13 @@ if __name__ == "__main__":
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()
 
+#     for zz in (1,3,5):
+#         zrange = {1:(7,3.5), 3:None, 5:(2.5,0)}
+#         for ss in xrange(6):
+#             plot_metal_halo(ss, zz,lls=True)
+#
+#         vel_data.plot_alpha_metal_data(zrange[zz])
+#
+#         save_figure(path.join(outdir,"cosmo_lls_metal_z"+str(zz)))
+#         plt.clf()
+#
