@@ -54,10 +54,11 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False, molec=True):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
+        self.molec = molec
         self.set_units()
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
@@ -247,7 +248,7 @@ class HaloHI:
     def set_nHI_grid(self, gas=False):
         """Set up the grid around each halo where the HI is calculated.
         """
-        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
         self.once=True
         #Now grid the HI for each halo
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)

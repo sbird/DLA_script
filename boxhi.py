@@ -22,9 +22,10 @@ class BoxHI(HaloHI):
         reload_file - Ignore saved files if true
         nslice - number of slices in the z direction to divide the box into.
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False):
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False, molec=True):
         self.snapnum=snapnum
         self.snap_dir=snap_dir
+        self.molec = molec
         self.set_units()
         if savefile==None:
             self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid_H2.hdf5")
