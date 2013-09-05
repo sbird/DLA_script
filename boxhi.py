@@ -11,7 +11,6 @@ import hdfsim
 import h5py
 from _fieldize_priv import _find_halo_kernel
 
-
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.
     Stores a big grid projecting the neutral hydrogen along the line of sight for the whole box.
@@ -233,59 +232,51 @@ class BoxHI(HaloHI):
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
 
-    def find_cross_section(self, thresh=20.3, min_mass=1e9):
-        """Find the number of DLA cells nearest to each halo"""
-        try:
-            self.real_sub_mass
-        except AttributeError:
-            self.load_halo()
-        try:
-            self.sub_nHI_grid
-        except AttributeError:
-            self.load_hi_grid()
-        dla_cross = np.zeros(np.size(self.real_sub_mass))
+    def find_cross_section(self, dla=True, minpart=0, vir_mult=1.):
+        """Find the number of DLA cells within dist virial radii of
+           each halo resolved with at least minpart particles.
+           If within the virial radius of multiple halos, use the most massive one."""
+        (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
+        dlaind = self._load_dla_index(dla)
+        dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
-        for nn in xrange(self.nhalo):
-            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > min_mass))
-            cells = np.where(self.sub_nHI_grid[nn] > thresh)
-            print "max = ",np.max(dla_cross)
-            for ii in xrange(np.shape(cells)[1]):
-                #Halos in this slice
-                dd = (self.real_sub_cofm[:,1] - celsz*cells[0][ii])**2+(self.real_sub_cofm[:,2] - celsz*cells[1][ii])**2
-                nearest_halo = int(np.where(dd == np.min(dd[ind]))[0][0])
-                dla_cross[nearest_halo] += 1
+        field_dla = 0
+        #Treat each slice separately
+        for ss in xrange(self.nhalo):
+            halo_ind = np.where(np.logical_and(halo_cofm[:,0] > ss*self.box/self.nhalo, halo_cofm[:,0] < (ss+1)*self.box/self.nhalo))
+            slab_ind = np.where(dlaind[0] == ss)
+            yslab = (dlaind[1][slab_ind]+0.5)*self.box*1./self.ngrid[0]
+            zslab = (dlaind[2][slab_ind]+0.5)*self.box*1./self.ngrid[0]
+            field_dla += _find_halo_kernel(self.box, halo_cofm[halo_ind,1:][0],halo_mass[halo_ind],vir_mult*halo_radii[halo_ind],yslab, zslab,dla_cross)
+            print "Done slab ",ss,"field_dla = ",field_dla
+
+        print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
-        return dla_cross
+        return (halo_mass, dla_cross)
 
-    def calc_halo_mass(self, thresh=17.):
-        """Find a field of the mass of the nearest halo for each pixel above a threshold."""
-        try:
-            self.real_sub_mass
-        except AttributeError:
-            self.load_halo()
-        try:
-            self.sub_nHI_grid
-        except AttributeError:
-            self.load_hi_grid()
-        self.halo_mass = np.zeros_like(self.sub_nHI_grid)
-        celsz = 1.*self.box/self.ngrid[0]
+    def _load_dla_index(self, dla=True):
+        """Load the positions of DLAs or LLS from savefile"""
+        #Load the DLA/LLS positions
+        f=h5py.File(self.savefile,'r+')
+        grp = f["abslists"]
+        #This is needed to make the dimensions right
+        if dla:
+            ind = (grp["DLA"][0,:],grp["DLA"][1,:],grp["DLA"][2,:])
+        else:
+            ind = (grp["LLS"][0,:],grp["LLS"][1,:],grp["LLS"][2,:])
+        f.close()
+        return ind
+
+    def _load_halo(self, minpart=400):
+        """Load a halo catalogue"""
         #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
         rhom = 2.78e+11* self.omegam / (1e3**3)
         #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
         target_mass = self.box**3 * rhom / self.npart[0]
-        min_mass = target_mass * 400
-        for nn in xrange(self.nhalo):
-            ind = np.where((self.real_sub_cofm[:,0] > nn*1.*self.box/self.nhalo)*(self.real_sub_cofm[:,0] < (nn+1)*1.*self.box/self.nhalo)*(self.real_sub_mass > min_mass))
-            cells = np.where(self.sub_nHI_grid[nn] > thresh)
-            _find_halo_kernel(self.real_sub_cofm[ind],self.real_sub_mass[ind],cells[0], cells[1],self.halo_mass[nn], celsz)
-
-    def load_halo(self):
-        """Load a halo catalogue"""
-        try:
-            (_, self.real_sub_mass, self.real_sub_cofm, self.real_sub_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, 0)
-        except IOError:
-            pass
+        min_mass = target_mass * minpart / 1e10
+        (_, halo_mass, halo_cofm, halo_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, min_mass)
+        return (halo_mass, halo_cofm, halo_radii)
 
     def column_density_function(self,dlogN=0.1, minN=16, maxN=24., maxM=None,minM=None):
         """
@@ -341,10 +332,7 @@ class BoxHI(HaloHI):
         dX=self.absorption_distance()
         tot_cells = np.sum(self.ngrid**2)
         if maxM != None:
-            try:
-                self.halo_mass
-            except AttributeError:
-                self.calc_halo_mass(minN)
+            raise NotImplementedError("Splitting by mass no longer works")
             ind = np.where((self.halo_mass < 10.**maxM)*(self.halo_mass > 10.**minM))
             tot_f_N = np.histogram(np.ravel(grids[ind]),np.log10(NHI_table))[0]
         else:
