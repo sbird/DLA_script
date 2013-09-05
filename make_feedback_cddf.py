@@ -44,13 +44,17 @@ def plot_H2_effect(sim, snap):
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_noH2.hdf5")
     ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--")
-    del ahalo
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
-    ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
-    ahalo.plot_column_density(color="red")
+    ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
+    ahalo2.plot_column_density(color="red")
     dla_data.column_density_data()
-    del ahalo
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
+    plt.clf()
+    cddf_base = ahalo.column_density_function()
+    cddf = ahalo2.column_density_function()
+    plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[sim], ls=lss[sim])
+    plt.ylim(-0.5,0.5)
+    save_figure(path.join(outdir, "cosmo_rel"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
 
 def plot_UVB_effect():
@@ -106,7 +110,7 @@ def get_rhohi_dndx(sim, ff=True):
     dndx=[]
     rhohi=[]
     zzz = []
-    for zz in (4, 3, 2):
+    for zz in (4, 3.5, 3, 2.5, 2):
         try:
             ahalo = dp.PrettyBox(halo, snaps[zz], nslice=10)
             dndx.append(ahalo.line_density())
@@ -116,6 +120,27 @@ def get_rhohi_dndx(sim, ff=True):
         except IOError:
             continue
     return (zzz, dndx, rhohi)
+
+def plot_rel_res(sim):
+    """Load and make a plot of the difference between two simulations"""
+    basel = myname.get_name(sim)
+    bases = myname.get_name(sim, box=10)
+    for snap in (1, 3, 5):
+        base = dp.PrettyBox(basel, snap, nslice=10)
+        cddf_base = base.column_density_function()
+        ahalo2 = dp.PrettyBox(bases, snap, nslice=10)
+        cddf = ahalo2.column_density_function()
+        plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[snap], ls=lss[snap])
+    savefile = path.join(basel,"snapdir_003","boxhi_grid_noH2.hdf5")
+    base = dp.PrettyBox(basel, 3, nslice=10,savefile=savefile)
+    cddf_base = base.column_density_function()
+    savefile = path.join(bases,"snapdir_003","boxhi_grid_noH2.hdf5")
+    ahalo2 = dp.PrettyBox(bases, 3, nslice=10,savefile=savefile)
+    cddf = ahalo2.column_density_function()
+    plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[0], ls=lss[0])
+    plt.ylim(-0.5,0.5)
+    save_figure(path.join(outdir,"cosmo_res_cddf_z"+str(snap)))
+    plt.clf()
 
 
 def plot_rel_cddf(snap):
@@ -170,6 +195,7 @@ def plot_breakdown():
 
 if __name__ == "__main__":
     plot_H2_effect(5,3)
+    plot_rel_res(5)
     #plot_UVB_effect()
     plot_all_rho()
     #Make a plot of the column density functions.
