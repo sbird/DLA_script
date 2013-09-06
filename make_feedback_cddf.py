@@ -70,6 +70,25 @@ def plot_UVB_effect():
     save_figure(path.join(outdir, "cosmo5_UVB_3"))
     plt.clf()
 
+def plot_cutoff():
+    """Plot effect with a cutoff self-shielding"""
+    halo = myname.get_name(0, True)
+    savefile = path.join(halo,"snapdir_003/boxhi_grid_cutoff_H2.hdf5")
+    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    cutoff0 = ahalo.column_density_function()
+    ahalo = dp.PrettyBox(halo, 3, nslice=10)
+    normal0 = ahalo.column_density_function()
+    halo = myname.get_name(1, True)
+    savefile = path.join(halo,"snapdir_003/boxhi_grid_cutoff_H2.hdf5")
+    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    cutoff1 = ahalo.column_density_function()
+    ahalo = dp.PrettyBox(halo, 3, nslice=10)
+    normal1 = ahalo.column_density_function()
+    plt.semilogx(cutoff0[0], np.log10(cutoff0[1]/cutoff1[1]), color="red", ls="-")
+    plt.semilogx(normal0[0], np.log10(normal0[1]/normal1[1]), color="blue", ls="--")
+    save_figure(path.join(outdir, "cosmo_rel_cutoff"))
+    plt.clf()
+
 def plot_grid_res():
     """The effect of a finer grid"""
     halo = myname.get_name(5, True)
@@ -95,12 +114,20 @@ def plot_covering_frac(sim, snap, ff=True):
 
 def plot_halohist(snap):
     """Plot a histogram of nearby halos"""
-    for sim in xrange(5):
+    for sim in xrange(6):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10)
+        plt.figure(1)
         ahalo.plot_halo_hist(color=colors[sim])
-        del ahalo
-    save_figure(path.join(outdir, "cosmo_halohist_z"+str(snap)))
+        plt.figure()
+        print "sim:",sim,"snap: ",snap
+        ahalo.plot_sigma_DLA()
+        plt.ylim(1,1e5)
+        plt.xlim(1e9,1e12)
+        save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaDLA_z"+str(snap)))
+        plt.clf()
+    plt.figure(1)
+    save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
     plt.clf()
 
 def get_rhohi_dndx(sim, ff=True):
@@ -110,12 +137,12 @@ def get_rhohi_dndx(sim, ff=True):
     dndx=[]
     rhohi=[]
     zzz = []
-    for zz in (4, 3.5, 3, 2.5, 2):
+    for zzzz in (4, 3.5, 3, 2.5, 2):
         try:
-            ahalo = dp.PrettyBox(halo, snaps[zz], nslice=10)
+            ahalo = dp.PrettyBox(halo, snaps[zzzz], nslice=10)
             dndx.append(ahalo.line_density())
             rhohi.append(ahalo.omega_DLA())
-            zzz.append(zz)
+            zzz.append(zzzz)
             del ahalo
         except IOError:
             continue
@@ -139,7 +166,7 @@ def plot_rel_res(sim):
     cddf = ahalo2.column_density_function()
     plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[0], ls=lss[0])
     plt.ylim(-0.5,0.5)
-    save_figure(path.join(outdir,"cosmo_res_cddf_z"+str(snap)))
+    save_figure(path.join(outdir,"cosmo_res_cddf_z"+str(sim)))
     plt.clf()
 
 
@@ -198,6 +225,7 @@ if __name__ == "__main__":
     plot_rel_res(5)
     #plot_UVB_effect()
     plot_all_rho()
+    plot_cutoff()
     #Make a plot of the column density functions.
     for ss in xrange(6):
         plot_cddf_a_halo(ss, 3)
@@ -220,8 +248,7 @@ if __name__ == "__main__":
 
     for zz in (1,3,5):
         plot_rel_cddf(zz)
-#     plot_breakdown()
-#     plot_halohist(3)
+#         plot_halohist(zz)
 
     #Make a plot of the effect of AGN on the cddf.
     for ss in (2,1):
