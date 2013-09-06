@@ -6,8 +6,9 @@ import os.path as path
 import fieldize
 import numexpr as ne
 import halocat
-from halohi import HaloHI
+from halohi import HaloHI,calc_binned_median,calc_binned_percentile
 import hdfsim
+from brokenpowerfit import powerfit
 import h5py
 from _fieldize_priv import _find_halo_kernel
 
@@ -388,3 +389,27 @@ class BoxHI(HaloHI):
             ff = h5py.File(self.savefile,"r")
             self.lls_metallicity = np.array(ff["Metallicities"]["LLS"])
             return self.lls_metallicity-np.log10(solar)
+
+    def get_sDLA_fit(self):
+        """Fit an broken power law profile based function to sigma_DLA as binned."""
+        minM = np.min(self.real_sub_mass)
+        maxM = np.max(self.real_sub_mass)
+        bins=30
+        mass=np.logspace(np.log10(minM),np.log10(maxM),num=bins)
+        bin_mass = np.array([(mass[i]+mass[i+1])/2. for i in xrange(0,np.size(mass)-1)])
+        (sDLA,loq,upq)=self.get_sigma_DLA_binned(mass,sigma=68)
+        ind = np.where((sDLA > 0)*(loq+upq > 0)*(bin_mass > 3e10))
+        err = (upq[ind]+loq[ind])/2.
+        #Arbitrary large values if err is zero
+        return powerfit(np.log10(bin_mass[ind]), np.log10(sDLA[ind]), np.log10(err), breakpoint=10)
+
+    def get_sigma_DLA_binned(self,mass,DLA_cut=20.3,DLA_upper_cut=42.,sigma=95):
+        """Get the median and scatter of sigma_DLA against mass."""
+        aind = np.where(self.sigDLA > 0)
+        #plt.loglog(self.real_sub_mass[aind], self.sigDLA[aind],'x')
+        amed=calc_binned_median(mass, self.real_sub_mass[aind], self.sigDLA[aind])
+        aupq=calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],sigma)-amed
+        #Addition to avoid zeros
+        aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
+        return (amed, aloq, aupq)
+

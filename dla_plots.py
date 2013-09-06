@@ -271,6 +271,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Load defaults from file
         self._get_sigma_DLA(minpart, dist)
         self.plot_sigma_DLA_median()
+        self.plot_sigma_DLA_model()
         print "field dlas:",self.field_dla
         ind = np.where(self.sigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
@@ -304,6 +305,16 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         else:
             (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
 
+    def plot_sigma_DLA_model(self):
+        """Plot my analytic model for the DLAs"""
+        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=100)
+        #Plot Analytic Fit
+        ap=self.get_sDLA_fit()
+        mdiff=np.log10(mass)-ap[0]
+        fit=(ap[2]*mdiff+ap[1])
+#         asfit=broken_fit(ap, np.log10(mass))
+        print "Fit: ",ap
+        plt.loglog(mass,10**fit,color="red",ls="-",lw=3)
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot the median and scatter of sigma_DLA against mass."""
@@ -315,16 +326,6 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         aloq-=1e-2
         #Plot median sigma DLA
         plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
-
-    def get_sigma_DLA_binned(self,mass,DLA_cut=20.3,DLA_upper_cut=42.,sigma=95):
-        """Get the median and scatter of sigma_DLA against mass."""
-        aind = np.where(self.sigDLA > 0)
-        #plt.loglog(self.real_sub_mass[aind], self.sigDLA[aind],'x')
-        amed=halohi.calc_binned_median(mass, self.real_sub_mass[aind], self.sigDLA[aind])
-        aupq=halohi.calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],sigma)-amed
-        #Addition to avoid zeros
-        aloq=amed - halohi.calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
-        return (amed, aloq, aupq)
 
     def plot_dla_metallicity(self, nbins=40,color="blue", ls="-"):
         """Plot the distribution of DLA metallicities"""
