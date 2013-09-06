@@ -231,6 +231,36 @@ class BoxHI(HaloHI):
         dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
+    def save_sigDLA(self):
+        """Generate and save sigma_DLA to the savefile"""
+        (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 1.)
+        f=h5py.File(self.savefile,'r+')
+        try:
+            mgrp = f.create_group("CrossSection")
+        except ValueError:
+            mgrp = f["CrossSection"]
+        try:
+            del mgrp["sub_mass"]
+            del mgrp["sigDLA"]
+        except KeyError:
+            pass
+        mgrp.attrs["field_dla"] = self.field_dla
+        mgrp.create_dataset("sub_mass",data=self.real_sub_mass)
+        mgrp.create_dataset("sigDLA",data=self.sigDLA)
+        f.close()
+
+    def load_sigDLA(self,savefile=None):
+        """Load sigma_DLA from a file"""
+        f=h5py.File(self.savefile,'r')
+        try:
+            mgrp = f["CrossSection"]
+        except KeyError:
+            f.close()
+            raise
+        self.real_sub_mass = np.array(mgrp["sub_mass"])
+        self.sigDLA = np.array(mgrp["sigDLA"])
+        self.field_dla = mgrp.attrs["field_dla"]
+        f.close()
 
     def find_cross_section(self, dla=True, minpart=0, vir_mult=1.):
         """Find the number of DLA cells within dist virial radii of
@@ -253,7 +283,7 @@ class BoxHI(HaloHI):
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
-        return (halo_mass, dla_cross)
+        return (halo_mass, dla_cross, 100.*field_dla/np.shape(dlaind)[1])
 
     def _load_dla_index(self, dla=True):
         """Load the positions of DLAs or LLS from savefile"""

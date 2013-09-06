@@ -268,11 +268,10 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def plot_sigma_DLA(self, minpart = 0, dist=1.):
         """Plot sigma_DLA"""
-        try:
-            self.sigDLA
-        except AttributeError:
-            (self.real_sub_mass, self.sigDLA) =self.find_cross_section(True, minpart, dist)
+        #Load defaults from file
+        self._get_sigma_DLA(minpart, dist)
         self.plot_sigma_DLA_median()
+        print "field dlas:",self.field_dla
         ind = np.where(self.sigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
@@ -284,16 +283,27 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     def plot_halo_hist(self, Mmin=1e9, Mmax=1e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
-        try:
-            self.sigDLA
-        except AttributeError:
-            (self.real_sub_mass, self.sigDLA)=self.find_cross_section(dla, minpart,dist)
+        self._get_sigma_DLA(minpart, dist)
         ind = np.where(self.sigDLA > 0)
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         plt.semilogx(xbins,hist, color=color)
+
+    def _get_sigma_DLA(self, minpart, dist):
+        """Helper for above to correctly populate sigDLA, from a savefile if possible"""
+        if minpart == 0 and dist == 1.:
+            try:
+                self.sigDLA
+            except AttributeError:
+                try:
+                    self.load_sigDLA()
+                except KeyError:
+                    self.save_sigDLA()
+        else:
+            (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
+
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
         """Plot the median and scatter of sigma_DLA against mass."""
