@@ -19,7 +19,7 @@ outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
 colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan"}
-lss = {0:"--",1:":", 2:"-",3:"-.", 4:"-", 5:"--"}
+lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -130,9 +130,9 @@ def plot_halohist(snap):
     save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
     plt.clf()
 
-def get_rhohi_dndx(sim, ff=True):
+def get_rhohi_dndx(sim, ff=True, box=25):
     """Plot rho_HI and dndx across redshift"""
-    halo = myname.get_name(sim, ff)
+    halo = myname.get_name(sim, ff, box)
     snaps = {4:1, 3.5:2, 3:3, 2.5:4, 2:5}
     dndx=[]
     rhohi=[]
@@ -152,12 +152,21 @@ def plot_rel_res(sim):
     """Load and make a plot of the difference between two simulations"""
     basel = myname.get_name(sim)
     bases = myname.get_name(sim, box=10)
+#     plt.figure(1)
     for snap in (1, 3, 5):
         base = dp.PrettyBox(basel, snap, nslice=10)
         cddf_base = base.column_density_function()
         ahalo2 = dp.PrettyBox(bases, snap, nslice=10)
         cddf = ahalo2.column_density_function()
         plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[snap], ls=lss[snap])
+        if snap == 3:
+            plt.figure(3)
+            base.plot_column_density(color=colors[sim], ls=lss[sim], moment=True)
+            ahalo2.plot_column_density(color="grey", ls=lss[sim], moment=True)
+            dla_data.column_density_data(moment=True)
+            save_figure(path.join(outdir,"cosmo_res_cddf_z3_abs"))
+            plt.clf()
+            plt.figure(1)
     savefile = path.join(basel,"snapdir_003","boxhi_grid_noH2.hdf5")
     base = dp.PrettyBox(basel, 3, nslice=10,savefile=savefile)
     cddf_base = base.column_density_function()
@@ -181,6 +190,7 @@ def plot_rel_cddf(snap):
         cddf = ahalo2.column_density_function()
         plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[xx], ls=lss[xx])
     plt.ylim(-0.5,0.5)
+    plt.xlim(1e17, 1e22)
     save_figure(path.join(outdir,"cosmo_rel_cddf_z"+str(snap)))
     plt.clf()
 
@@ -255,9 +265,19 @@ if __name__ == "__main__":
         plot_cddf_a_halo(ss, 5, moment=True)
     for ss in (0,4):
         plot_cddf_a_halo(ss, 5, moment=True)
-    dla_data.column_density_data(moment=True)
-
+    #dla_data.column_density_data(moment=True)
+    plt.xlim(1e17,3e22)
+    plt.ylim(1e-4,0.3)
     save_figure(path.join(outdir,"cosmo_cddf_agn_z2"))
+    plt.clf()
+
+    #Make a plot of the effect of modifying the minimum velocity
+    for ss in (0,1,5):
+        plot_cddf_a_halo(ss, 3, moment=True)
+    dla_data.column_density_data(moment=True)
+    plt.xlim(1e17,3e22)
+    plt.ylim(1e-4,0.3)
+    save_figure(path.join(outdir,"cosmo_cddf_minvel_z3"))
     plt.clf()
 
     #Metallicity
