@@ -33,12 +33,7 @@ class BoxHI(HaloHI):
             self.savefile = savefile
         self.sub_mass = 10.**12*np.ones(nslice)
         self.nhalo = nslice
-        try:
-            if reload_file:
-                raise KeyError("reloading")
-            #First try to load from a file
-            self.load_savefile(self.savefile)
-        except (IOError,KeyError):
+        if reload_file:
             #Otherwise regenerate from the raw data
             self.load_header()
             #global grid in slices
@@ -56,6 +51,9 @@ class BoxHI(HaloHI):
             #self.set_stellar_grid()
             #+ because we are in log space
             #self.sub_nHI_grid+=np.log10(1.-self.h2frac(10**self.sub_nHI_grid, self.sub_star_grid))
+        else:
+            #try to load from a file
+            self.load_savefile(self.savefile)
         return
 
     def save_file(self, save_grid=False, LLS_cut = 17., DLA_cut = 20.3):
