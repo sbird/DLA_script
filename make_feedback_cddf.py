@@ -287,7 +287,7 @@ if __name__ == "__main__":
             plot_metal_halo(ss, zz)
 
         vel_data.plot_alpha_metal_data(zrange[zz])
-
+        plt.xlim(-3,0)
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()
 
