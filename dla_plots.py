@@ -345,7 +345,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             met = self.get_lls_metallicity()
         #Abs. distance for entire spectrum
         hist = np.histogram(met,np.log10(bins),density=True)[0]
-        plt.semilogx(mbin,hist,color=color,ls=ls)
+        plt.plot(np.log10(mbin),hist,color=color,ls=ls)
 
 import halomet
 
