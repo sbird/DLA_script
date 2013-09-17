@@ -230,6 +230,33 @@ class BoxHI(HaloHI):
         dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
+
+    def save_sigLLS(self):
+        """Generate and save sigma_LLS to the savefile"""
+        (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, 0, 1.)
+        f=h5py.File(self.savefile,'r+')
+        mgrp = f["CrossSection"]
+        try:
+            del mgrp["sigLLS"]
+        except KeyError:
+            pass
+        mgrp.attrs["field_lls"] = self.field_lls
+        mgrp.create_dataset("sigLLS",data=self.sigLLS)
+        f.close()
+
+    def load_sigLLS(self):
+        """Load sigma_LLS from a file"""
+        f=h5py.File(self.savefile,'r')
+        try:
+            mgrp = f["CrossSection"]
+        except KeyError:
+            f.close()
+            raise
+        self.real_sub_mass = np.array(mgrp["sub_mass"])
+        self.sigLLS = np.array(mgrp["sigLLS"])
+        self.field_lls = mgrp.attrs["field_lls"]
+        f.close()
+
     def save_sigDLA(self):
         """Generate and save sigma_DLA to the savefile"""
         (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 1.)
@@ -248,7 +275,7 @@ class BoxHI(HaloHI):
         mgrp.create_dataset("sigDLA",data=self.sigDLA)
         f.close()
 
-    def load_sigDLA(self,savefile=None):
+    def load_sigDLA(self):
         """Load sigma_DLA from a file"""
         f=h5py.File(self.savefile,'r')
         try:
@@ -287,7 +314,7 @@ class BoxHI(HaloHI):
     def _load_dla_index(self, dla=True):
         """Load the positions of DLAs or LLS from savefile"""
         #Load the DLA/LLS positions
-        f=h5py.File(self.savefile,'r+')
+        f=h5py.File(self.savefile,'r')
         grp = f["abslists"]
         #This is needed to make the dimensions right
         if dla:

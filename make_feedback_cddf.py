@@ -112,22 +112,29 @@ def plot_covering_frac(sim, snap, ff=True):
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_covering_z"+str(snap)))
     plt.clf()
 
-def plot_halohist(snap):
+def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
     for sim in xrange(6):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10)
         plt.figure(1)
-        ahalo.plot_halo_hist(color=colors[sim])
+        ahalo.plot_halo_hist(dla=dla,color=colors[sim])
         plt.figure()
-        print "sim:",sim,"snap: ",snap
-        ahalo.plot_sigma_DLA()
+        if dla:
+            print "sim:",sim,"snap: ",snap
+            ahalo.plot_sigma_DLA()
         plt.ylim(1,1e5)
         plt.xlim(1e9,1e12)
-        save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaDLA_z"+str(snap)))
+        if dla:
+            save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaDLA_z"+str(snap)))
+        else:
+            save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaLLS_z"+str(snap)))
         plt.clf()
     plt.figure(1)
-    save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
+    if dla:
+        save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
+    else:
+        save_figure(path.join(outdir, "halos/cosmo_halohist_lls_z"+str(snap)))
     plt.clf()
 
 def get_rhohi_dndx(sim, ff=True, box=25):

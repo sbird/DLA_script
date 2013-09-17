@@ -281,14 +281,20 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
+    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
-        self._get_sigma_DLA(minpart, dist)
-        ind = np.where(self.sigDLA > 0)
+        if dla:
+            self._get_sigma_DLA(minpart, dist)
+            ind = np.where(self.sigDLA > 0)
+            sigs = self.sigDLA[ind]
+        else:
+            self._get_sigma_LLS(minpart, dist)
+            ind = np.where(self.sigLLS > 0)
+            sigs = self.sigLLS[ind]
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
-        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
+        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         plt.semilogx(xbins,hist, color=color)
 
@@ -304,6 +310,19 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
                     self.save_sigDLA()
         else:
             (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
+
+    def _get_sigma_LLS(self, minpart, dist):
+        """Helper for above to correctly populate sigLLS, from a savefile if possible"""
+        if minpart == 0 and dist == 1.:
+            try:
+                self.sigLLS
+            except AttributeError:
+                try:
+                    self.load_sigLLS()
+                except KeyError:
+                    self.save_sigLLS()
+        else:
+            (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, minpart, dist)
 
     def plot_sigma_DLA_model(self):
         """Plot my analytic model for the DLAs"""
