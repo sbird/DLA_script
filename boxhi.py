@@ -249,12 +249,12 @@ class BoxHI(HaloHI):
         f=h5py.File(self.savefile,'r')
         try:
             mgrp = f["CrossSection"]
+            self.real_sub_mass = np.array(mgrp["sub_mass"])
+            self.sigLLS = np.array(mgrp["sigLLS"])
+            self.field_lls = mgrp.attrs["field_lls"]
         except KeyError:
             f.close()
             raise
-        self.real_sub_mass = np.array(mgrp["sub_mass"])
-        self.sigLLS = np.array(mgrp["sigLLS"])
-        self.field_lls = mgrp.attrs["field_lls"]
         f.close()
 
     def save_sigDLA(self):
@@ -280,12 +280,12 @@ class BoxHI(HaloHI):
         f=h5py.File(self.savefile,'r')
         try:
             mgrp = f["CrossSection"]
+            self.real_sub_mass = np.array(mgrp["sub_mass"])
+            self.sigDLA = np.array(mgrp["sigDLA"])
+            self.field_dla = mgrp.attrs["field_dla"]
         except KeyError:
             f.close()
             raise
-        self.real_sub_mass = np.array(mgrp["sub_mass"])
-        self.sigDLA = np.array(mgrp["sigDLA"])
-        self.field_dla = mgrp.attrs["field_dla"]
         f.close()
 
     def find_cross_section(self, dla=True, minpart=0, vir_mult=1.):
