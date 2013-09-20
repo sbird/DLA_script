@@ -102,6 +102,8 @@ def plot_grid_res():
     dla_data.column_density_data(moment=True)
     save_figure(path.join(outdir, "cosmo5_grid_3"))
     plt.clf()
+    ahalo.plot_halo_hist(color=colors[sim])
+    ahalo2.plot_halo_hist(color=colors[sim])
 
 def plot_covering_frac(sim, snap, ff=True):
     """Load a simulation and plot its cddf"""
@@ -175,6 +177,11 @@ def plot_rel_res(sim):
             ahalo2.plot_column_density(color="grey", ls=lss[sim], moment=True)
             dla_data.column_density_data(moment=True)
             save_figure(path.join(outdir,"cosmo_res_cddf_z3_abs"))
+            plt.clf()
+            base.plot_halo_hist(Mmin=1e7,color=colors[sim])
+            ahalo2.plot_halo_hist(Mmin=1e7,color="grey")
+            plt.ylim(0,0.1)
+            save_figure(path.join(outdir,"cosmo_res_halohist"))
             plt.clf()
             plt.figure(1)
     savefile = path.join(basel,"snapdir_003","boxhi_grid_noH2.hdf5")
@@ -270,7 +277,8 @@ if __name__ == "__main__":
 
     for zz in (1,3,5):
         plot_rel_cddf(zz)
-#         plot_halohist(zz)
+        plot_halohist(zz)
+        plot_halohist(zz, False)
 
     #Make a plot of the effect of AGN on the cddf.
     for ss in (2,1):
