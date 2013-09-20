@@ -56,10 +56,74 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     return for_return;
 }
 
+
+PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
+{
+    PyArrayObject *sub_cofm, *sub_mass, *sub_radii, *xcoords, *ycoords, *dla_cross;
+    double box;
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_mass, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &dla_cross) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_mass, sub_radii, xcells, ycells, dla_cross\n");
+        return NULL;
+    }
+    if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_mass, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE) 
+            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double.\n");
+          return NULL;
+    }
+
+    const npy_intp ncells = PyArray_SIZE(xcoords);
+    long int field_dlas = 0;
+
+    #pragma omp parallel for
+    for (npy_intp i=0; i< ncells; i++)
+    {
+        const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
+        const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
+        int nearest_halo=-1;
+        for (int j=0; j < PyArray_DIM(sub_cofm,0); j++)
+        {
+            double xpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,0) - xcoord);
+            double ypos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,1) - ycoord);
+            //Periodic wrapping
+            if (xpos > box/2.)
+                xpos = box-xpos;
+            if (ypos > box/2.)
+                ypos = box-ypos;
+            //Distance
+            double dd = xpos*xpos+ ypos*ypos;
+            //Is it close?
+            if (dd < pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2)) {
+                //Is it a larger mass than the current halo?
+                if (nearest_halo < 0 || (*(double *) PyArray_GETPTR1(sub_mass,j) > *(double *) PyArray_GETPTR1(sub_mass,nearest_halo)) ) {
+                    nearest_halo = j;
+                }
+            }
+        }
+        if (nearest_halo >= 0){
+            #pragma omp critical (_dla_cross_)
+            {
+                *(double *) PyArray_GETPTR1(dla_cross,nearest_halo) += 1.;
+            }
+        }
+        else{
+            #pragma omp atomic
+            field_dlas++;
+        }
+    }
+
+    return Py_BuildValue("l",field_dlas);
+}
+
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
    "    Arguments: pos, radii, value, weights, periodic=T/F, nx"
+   "    "},
+  {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
+   "Kernel for populating a field containing the mass of the nearest halo to each point"
+   "    Arguments: sub_cofm, sub_mass, sub_radii, xcells, ycells (output from np.where), dla_cross[nn]"
    "    "},
   {NULL, NULL, 0, NULL},
 };

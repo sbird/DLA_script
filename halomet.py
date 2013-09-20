@@ -14,6 +14,7 @@ import hsml
 import h5py
 import numexpr as ne
 import halohi as hi
+import boxhi as bi
 import fieldize
 
 class HaloMet(hi.HaloHI):
@@ -46,6 +47,16 @@ class HaloMet(hi.HaloHI):
             rscale = self.UnitLength_in_cm/(1+self.redshift)/self.hubble    # convert length to cm
             mscale = self.UnitMass_in_g/self.hubble   # convert mass to g
             self.dscale = mscale / rscale **3 # Convert density to g / cm^3
+            escale = 1.0e6           # convert energy/unit mass to J kg^-1
+            #convert U (J/kg) to T (K) : U = N k T / (γ - 1)
+            #T = U (γ-1) μ m_P / k_B
+            #where k_B is the Boltzmann constant
+            #γ is 5/3, the perfect gas constant
+            #m_P is the proton mass
+            #μ is 1 / (mean no. molecules per unit atomic weight) calculated in loop.
+            boltzmann = 1.3806504e-23
+            self.tscale = ((5./3.-1.0) * 1e-3*self.protonmass * escale ) / boltzmann
+
             #Otherwise regenerate from the raw data
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             self.set_nHI_grid()
@@ -105,6 +116,16 @@ class HaloMet(hi.HaloHI):
         den = np.array(bar["Density"])*self.dscale
         #In (hydrogen) atoms / cm^3
         den /= self.protonmass
+        #Mean molecular weight:
+        # \mu = 1 / molecules per unit atomic weight
+        #     = 1 / (X + Y /4 + E)
+        #     where E = Ne * X, and Y = (1-X).
+        #     Can neglect metals as they are heavy.
+        #     Leading contribution is from electrons, which is already included
+        #     [+ Z / (12->16)] from metal species
+        #     [+ Z/16*4 ] for OIV from electrons.
+        mu = 1.0/(0.76*(0.75+np.array(bar["ElectronAbundance"])) + 0.25)
+        temp = np.array(bar["InternalEnergy"])*self.tscale*mu
         #Gather all nearby cells, paying attention to periodic box conditions
         for dim in np.arange(3):
             jpos = sub_pos[dim]
@@ -135,7 +156,7 @@ class HaloMet(hi.HaloHI):
 
         if np.size(ipos) == 0:
             return
-        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, mass, den)
+        mass_frac *= self.cloudy_table.ion(self.elem, self.ion, den, temp)
 
         #coords in grid units
         coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
@@ -151,3 +172,68 @@ class HaloMet(hi.HaloHI):
         fieldize.sph_str(coords,mass*mass_frac,sub_nHI_grid[ii],ismooth,weights=weights)
         return
 
+class BoxMet(bi.BoxHI):
+    """
+    Class to find the mass-weighted metallicity for a box.
+    Inherits from BoxHI
+    """
+    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None):
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, True, savefile, True)
+        self.sub_ZZ_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.set_ZZ_grid()
+
+        #Find the metallicity
+        for ii in xrange(0, self.nhalo):
+            self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
+
+    def set_ZZ_grid(self):
+        """Set up the mass * metallicity grid for the box
+        Same as set_nHI_grid except mass is multiplied by GFM_Metallicity.
+        """
+        self.once=True
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            #Sometimes the metallicity is less than zero: fix that
+            met = np.array(bar["GFM_Metallicity"])
+            met[np.where(met <=0)] = 1e-50
+            mass *= met
+            smooth = hsml.get_smooth_length(bar)
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_ZZ_grid) for ii in xrange(0,self.nhalo)]
+            f.close()
+            #Explicitly delete some things.
+            del ipos
+            del mass
+            del smooth
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_ZZ_grid[ii]*=(massg/epsilon**2)
+            self.sub_ZZ_grid[ii]+=0.1
+            np.log10(self.sub_ZZ_grid[ii],self.sub_ZZ_grid[ii])
+        return
+
+    def save_file(self):
+        """This does something a little perverse: open up self.savefile
+        and save the metallicity values only for the indices found in the abslists group"""
+        f=h5py.File(self.savefile,'r+')
+        grp = f["abslists"]
+        #This is needed to make the dimensions right
+        dlaind = (grp["DLA"][0,:],grp["DLA"][1,:],grp["DLA"][2,:])
+        llsind = (grp["LLS"][0,:],grp["LLS"][1,:],grp["LLS"][2,:])
+        mgrp = f.create_group("Metallicities")
+        mgrp.create_dataset("DLA",data=self.sub_ZZ_grid[dlaind])
+        mgrp.create_dataset("LLS",data=self.sub_ZZ_grid[llsind])
+        f.close()

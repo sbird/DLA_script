@@ -167,32 +167,38 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_column_density(self,minN=17,maxN=23.,color=acol):
+    def plot_column_density(self,minN=17,maxN=23.,color=acol, ls=astyle,moment=False):
         """Plots the column density distribution function. """
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        plt.loglog(aNHI,af_N,color=color, ls=astyle, lw = 3)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1)
+        if moment:
+            paf_N = af_N*aNHI
+        else:
+            paf_N = af_N
+        plt.loglog(aNHI,paf_N,color=color, ls=ls, lw = 3)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        ax.set_ylabel(r"$f(N) (\mathrm{cm}^2)$")
-        plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
+        ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
+#         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(1e-26,1e-18)
+        plt.ylim(1e-27,1e-18)
+        if moment:
+            plt.ylim(5e-5,1)
 #         plt.legend(loc=0)
         tight_layout_wrapper()
         plt.show()
 
     def plot_column_density_breakdown(self,minN=17,maxN=23., color="black"):
         """Plots the column density distribution function, broken down into halos. """
-        (aNHI,tot_af_N)=self.column_density_function(0.4,minN-1,maxN+1)
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=11)
+        (aNHI,tot_af_N)=self.column_density_function(0.1,minN-1,maxN+1)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=11, maxM=14)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="-",label="Big",lw=4)
-        (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=10,maxM=11)
+        (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=10,maxM=11)
         plt.loglog(aNHI,af_N/tot_af_N,color=color, ls="--",label="Middle",lw=4)
         try:
-            (aNHI,af_N)=self.column_density_function(0.4,minN-1,maxN+1,minM=9,maxM=10)
+            (aNHI,af_N)=self.column_density_function(0.1,minN-1,maxN+1,minM=9,maxM=10)
             plt.loglog(aNHI,af_N/tot_af_N,color=color, ls=":",label="Small",lw=4)
         except IndexError:
             pass
@@ -200,7 +206,7 @@ class PrettyHalo(halohi.HaloHI):
         ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$",size=25)
         ax.set_ylabel(r"$f_\mathrm{halo}(N) / f_\mathrm{tot} (N) $",size=25)
         plt.xlim(10**minN, 10**maxN)
-        plt.ylim(1e-2,2)
+        plt.ylim(1e-2,1)
         tight_layout_wrapper()
         plt.show()
 
@@ -260,15 +266,86 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
 
-    def plot_covering_fraction(self):
-        dla_cross = self.find_cross_section()
-        plt.loglog(self.real_sub_mass, dla_cross)
-
-        ind = np.where(dla_cross > 0)
-        (hist,xedges, yedges)=np.histogram2d(np.log10(self.sub_mass[ind]),np.log10(dla_cross[ind]),bins=(30,30))
+    def plot_sigma_DLA(self, minpart = 0, dist=1.):
+        """Plot sigma_DLA"""
+        #Load defaults from file
+        self._get_sigma_DLA(minpart, dist)
+        self.plot_sigma_DLA_median()
+        self.plot_sigma_DLA_model()
+        print "field dlas:",self.field_dla
+        ind = np.where(self.sigDLA > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
         plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        plt.yscale('log')
+        plt.xscale('log')
+
+    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
+        """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
+           of DLA cells associated with halos in this mass bin"""
+        self._get_sigma_DLA(minpart, dist)
+        ind = np.where(self.sigDLA > 0)
+        massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
+        #Now we have a cross-section, we know how many DLA cells are associated with each halo.
+        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
+        xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        plt.semilogx(xbins,hist, color=color)
+
+    def _get_sigma_DLA(self, minpart, dist):
+        """Helper for above to correctly populate sigDLA, from a savefile if possible"""
+        if minpart == 0 and dist == 1.:
+            try:
+                self.sigDLA
+            except AttributeError:
+                try:
+                    self.load_sigDLA()
+                except KeyError:
+                    self.save_sigDLA()
+        else:
+            (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
+
+    def plot_sigma_DLA_model(self):
+        """Plot my analytic model for the DLAs"""
+        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=100)
+        #Plot Analytic Fit
+        ap=self.get_sDLA_fit()
+        mdiff=np.log10(mass)-ap[0]
+        fit=(ap[2]*mdiff+ap[1])
+#         asfit=broken_fit(ap, np.log10(mass))
+        print "Fit: ",ap
+        plt.loglog(mass,10**fit,color="red",ls="-",lw=3)
+
+    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
+        """Plot the median and scatter of sigma_DLA against mass."""
+        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=7)
+        abin_mass = np.empty(np.size(mass)-1)
+        abin_mass = halohi.calc_binned_median(mass,self.real_sub_mass, self.real_sub_mass)
+        (amed,aloq,aupq)=self.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
+        #To avoid zeros
+        aloq-=1e-2
+        #Plot median sigma DLA
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
+
+    def plot_dla_metallicity(self, nbins=40,color="blue", ls="-"):
+        """Plot the distribution of DLA metallicities"""
+        self._plot_metallicity(True,nbins=nbins,color=color,ls=ls)
+
+    def plot_lls_metallicity(self, nbins=40,color="blue",ls="-"):
+        """Plot the distribution of LLS metallicities"""
+        self._plot_metallicity(False,nbins=nbins,color=color,ls=ls)
+
+    def _plot_metallicity(self, dla,nbins,color,ls):
+        """Plot the distribution of metallicities above"""
+        bins=np.logspace(-3,0,nbins)
+        mbin = np.array([(bins[i]+bins[i+1])/2. for i in range(0,np.size(bins)-1)])
+        if dla:
+            met = self.get_dla_metallicity()
+        else:
+            met = self.get_lls_metallicity()
+        #Abs. distance for entire spectrum
+        hist = np.histogram(met,np.log10(bins),density=True)[0]
+        plt.plot(np.log10(mbin),hist,color=color,ls=ls)
 
 import halomet
 
@@ -431,8 +508,8 @@ class HaloHIPlots:
 
     def plot_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
-        (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
+        (aNHI,af_N)=self.ahalo.column_density_function(0.1,minN-1,maxN+1)
+        (gNHI,gf_N)=self.ghalo.column_density_function(0.1,minN-1,maxN+1)
         plt.loglog(aNHI,af_N,color=acol, ls=astyle,label="Arepo",lw=6)
         plt.loglog(gNHI,gf_N,color=gcol, ls=gstyle,label="Gadget",lw=6)
 #         (aNH2,af_NH2)=self.ahalo.column_density_function(0.4,minN-1,maxN+1,grids=1)
@@ -539,7 +616,7 @@ class HaloHIPlots:
     def plot_rel_column_density(self,minN=17,maxN=23.):
         """Plots the column density distribution function. Figures 12 and 13"""
         (aNHI,af_N)=self.ahalo.column_density_function(0.4,minN-1,maxN+1)
-        (gNHI,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
+        (_,gf_N)=self.ghalo.column_density_function(0.4,minN-1,maxN+1)
         plt.semilogx(aNHI,af_N/gf_N,label="Arepo / Gadget",color=rcol)
         #Make the ticks be less-dense
 #         ax=plt.gca()

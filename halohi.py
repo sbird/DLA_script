@@ -54,10 +54,11 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False, molec=True):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
+        self.molec = molec
         self.set_units()
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
@@ -69,6 +70,7 @@ class HaloHI:
                 raise KeyError("reloading")
             #First try to load from a file
             self.load_savefile(self.savefile)
+            self.load_hi_grid()
         except (IOError,KeyError):
             self.load_header()
             self.load_halos(minpart)
@@ -131,7 +133,10 @@ class HaloHI:
     def load_savefile(self,savefile=None):
         """Load data from a file"""
         #Name of savefile
-        f=h5py.File(savefile,'r')
+        try:
+            f=h5py.File(savefile,'r')
+        except IOError:
+            raise IOError("Could not open "+savefile)
         grid_file=f["HaloData"]
         #if  not (grid_file.attrs["minpart"] == self.minpart):
         #    raise KeyError("File not for this structure")
@@ -147,23 +152,47 @@ class HaloHI:
             self.sub_mass = np.array(grid_file["sub_mass"])
             self.ind=np.array(grid_file["halo_ind"])
             self.nhalo=np.size(self.ind)
+            self.minpart = grid_file.attrs["minpart"]
+        except KeyError:
+            pass
+        try:
+            self.pDLA = grid_file.attrs["pDLA"]
+            self.Rho_DLA = grid_file.attrs["Rho_DLA"]
+            self.Omega_DLA = grid_file.attrs["Omega_DLA"]
+            self.cddf_bins = np.array(grid_file["cddf_bins"])
+            self.cddf_f_N = np.array(grid_file["cddf_f_N"])
         except KeyError:
             pass
         self.sub_cofm=np.array(grid_file["sub_cofm"])
         self.sub_radii=np.array(grid_file["sub_radii"])
 
-        self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-        grp = f["GridHIData"]
-        [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         f.close()
         del grid_file
         del f
 
-    def save_file(self):
+    def load_hi_grid(self):
+        """
+        Load the HI grid from the savefile
+        """
+        try:
+            f=h5py.File(self.savefile,'r')
+        except IOError:
+            raise IOError("Could not open "+self.savefile)
+        self.sub_nHI_grid=np.array([np.empty([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        grp = f["GridHIData"]
+        [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
+        f.close()
+
+    def save_file(self, save_grid=True):
         """
         Saves grids to a file, because they are slow to generate.
         File is hard-coded to be $snap_dir/snapdir_$snapnum/halohi_grid.hdf5.
         """
+        if save_grid:
+            try:
+                self.sub_nHI_grid
+            except AttributeError:
+                self.load_hi_grid()
         f=h5py.File(self.savefile,'w')
         grp = f.create_group("HaloData")
 
@@ -182,13 +211,22 @@ class HaloHI:
             grp.create_dataset('halo_ind',data=self.ind)
         except AttributeError:
             pass
-        grp_grid = f.create_group("GridHIData")
-        for i in xrange(0,self.nhalo):
-            try:
-                grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
-            except AttributeError:
-                pass
-        f.close()
+        try:
+            grp.attrs["pDLA"]=self.pDLA
+            grp.attrs["Rho_DLA"]=self.Rho_DLA
+            grp.attrs["Omega_DLA"]=self.Omega_DLA
+            grp.create_dataset('cddf_bins',data=self.cddf_bins)
+            grp.create_dataset('cddf_f_N',data=self.cddf_f_N)
+        except AttributeError:
+            pass
+        if save_grid:
+            grp_grid = f.create_group("GridHIData")
+            for i in xrange(0,self.nhalo):
+                try:
+                    grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
+                except AttributeError:
+                    pass
+            f.close()
 
     def __del__(self):
         """Delete big arrays"""
@@ -197,17 +235,20 @@ class HaloHI:
         except AttributeError:
             pass
 
+    def rmol(self,sg,ss):
+        """Molecular fraction Sigma_H2 / Sigma_HI ala Blitz & Rosolowsky, direct from the stellar surface
+        density. Assumes a stellar disc scale height of 0.3 kpc."""
+        return (1./59*(sg/1.33e20)*(ss/1.33e20)**0.5)**0.92
 
-    def get_H2_frac(self,nHI):
-        """Get the molecular fraction for neutral gas"""
-        fH2 = 1./(1+(0.1/nHI)**(0.92*5./3.)*35**0.92)
-        fH2[np.where(nHI < 0.1)] = 0
-        return fH2
+    def h2frac(self,sg, ss):
+        """Sigma_H2 / Total gas sigma"""
+        rmol = self.rmol(sg, ss)
+        return rmol/(1+rmol)
 
     def set_nHI_grid(self, gas=False):
         """Set up the grid around each halo where the HI is calculated.
         """
-        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
         self.once=True
         #Now grid the HI for each halo
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
@@ -221,6 +262,11 @@ class HaloHI:
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])
             if not gas:
+                #Hydrogen mass fraction
+                try:
+                    mass *= np.array(bar["GFM_Metals"][:,0])
+                except KeyError:
+                    mass *= 0.76
                 mass *= star.get_reproc_HI(bar)
             smooth = hsml.get_smooth_length(bar)
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]

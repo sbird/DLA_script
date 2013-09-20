@@ -157,9 +157,6 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         hplots.plot_column_density_breakdown()
         save_figure(path.join(outdir,"columden_break_"+str(snapnum)))
 
-        print "Arepo: Omega_DLA=",hplots.ahalo.omega_DLA(21.75)
-        print "Gadget: Omega_DLA=",hplots.ghalo.omega_DLA(21.75)
-
         #Fig 12
 #         plt.clf()
 #         hplots.plot_rel_column_density()
@@ -179,16 +176,3 @@ for (base,snapnum) in [(bb,ss) for bb in bases for ss in snaps]:
         plt.clf()
 
     del hplots
-
-def plot_omega_DLA():
-    """Plot Omega_DLA for a variety of redshifts"""
-    #Cutoff is NHI = 21.75
-    ar_om_DLA = [0.0438255320185,0.0877819801446,0.713437467697,1.46144716284,2.60101048655]
-    gad_om_DLA = [0.084774233630, 0.180307848083,0.36464657397931499,0.70912333103719749,1.22997188625,1.95213972877,2.63684502775]
-    zz = [8,7,6,5,4,3,2]
-    zza = [8,7,4,3,2]
-    plt.plot(zza,ar_om_DLA,'^',color="blue",ls="-")
-    plt.plot(zz,gad_om_DLA,'s',color="red",ls="--")
-    plt.ylabel(r"$1000 \Omega_\mathrm{DLA}$")
-    plt.xlabel(r"z")
-
