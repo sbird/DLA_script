@@ -281,6 +281,19 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
+    def plot_sigma_LLS(self, minpart = 0, dist=1.):
+        """Plot sigma_DLA"""
+        #Load defaults from file
+        self._get_sigma_LLS(minpart, dist)
+        print "field dlas:",self.field_lls
+        ind = np.where(self.sigLLS > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigLLS[ind]),bins=(30,30))
+        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        plt.yscale('log')
+        plt.xscale('log')
+
     def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""

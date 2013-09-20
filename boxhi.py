@@ -430,11 +430,15 @@ class BoxHI(HaloHI):
 
     def get_sigma_DLA_binned(self,mass,DLA_cut=20.3,DLA_upper_cut=42.,sigma=95):
         """Get the median and scatter of sigma_DLA against mass."""
-        aind = np.where(self.sigDLA > 0)
+        if DLA_cut < 17.5:
+            sigs = self.sigLLS
+        else:
+            sigs = self.sigDLA
+        aind = np.where(sigs > 0)
         #plt.loglog(self.real_sub_mass[aind], self.sigDLA[aind],'x')
-        amed=calc_binned_median(mass, self.real_sub_mass[aind], self.sigDLA[aind])
-        aupq=calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],sigma)-amed
+        amed=calc_binned_median(mass, self.real_sub_mass[aind], sigs[aind])
+        aupq=calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],sigma)-amed
         #Addition to avoid zeros
-        aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
+        aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],100-sigma)
         return (amed, aloq, aupq)
 
