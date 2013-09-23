@@ -82,7 +82,9 @@ PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     {
         const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
         const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
+        // Largest halo where the particle is within r_vir.
         int nearest_halo=-1;
+        int second_halo = -1;
         for (int j=0; j < PyArray_DIM(sub_cofm,0); j++)
         {
             double xpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,0) - xcoord);
@@ -95,17 +97,34 @@ PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
             //Distance
             double dd = xpos*xpos+ ypos*ypos;
             //Is it close?
-            if (dd < pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2)) {
+            double rvir = pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2);
+            if (dd < rvir) {
                 //Is it a larger mass than the current halo?
                 if (nearest_halo < 0 || (*(double *) PyArray_GETPTR1(sub_mass,j) > *(double *) PyArray_GETPTR1(sub_mass,nearest_halo)) ) {
                     nearest_halo = j;
                 }
+            }
+            else if (dd < 2*rvir) {
+                //If this is the first halo found where the particle is within 2 rvir,
+                //assign the particle to this halo.
+                //If there is another halo found like this, mark the particle as of ambiguous
+                //ownership, and thus a field DLA.
+                if (second_halo == -1)
+                    second_halo = j;
+                else if (second_halo > 0)
+                    second_halo = -2;
             }
         }
         if (nearest_halo >= 0){
             #pragma omp critical (_dla_cross_)
             {
                 *(double *) PyArray_GETPTR1(dla_cross,nearest_halo) += 1.;
+            }
+        }
+        else if (second_halo >= 0){
+            #pragma omp critical (_dla_cross_)
+            {
+                *(double *) PyArray_GETPTR1(dla_cross,second_halo) += 1.;
             }
         }
         else{
