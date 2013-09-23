@@ -294,7 +294,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
+    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",ls="-",dla = True, minpart = 0, dist=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
         if dla:
@@ -309,7 +309,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        plt.semilogx(xbins,hist, color=color)
+        plt.semilogx(xbins,hist, color=color, ls=ls)
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""

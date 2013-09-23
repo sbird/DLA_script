@@ -120,7 +120,7 @@ def plot_halohist(snap, dla=True):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10)
         plt.figure(1)
-        ahalo.plot_halo_hist(dla=dla,color=colors[sim])
+        ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
         plt.figure()
         if dla:
             print "sim:",sim,"snap: ",snap
