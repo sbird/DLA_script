@@ -18,8 +18,8 @@ from save_figure import save_figure
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan"}
-lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-"}
+colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan", 6:"magenta", 7:"grey"}
+lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"-.",7:"-"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -59,15 +59,12 @@ def plot_H2_effect(sim, snap):
 
 def plot_UVB_effect():
     """Load a simulation and plot its cddf"""
-    halo = myname.get_name(5, True)
-    savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI.hdf5")
-    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
-    ahalo.plot_column_density(color="blue", ls="--", moment=True)
-    savefile = path.join(halo,"snapdir_003/boxhi_grid_rahHI_doub_UVB.hdf5")
-    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
-    ahalo.plot_column_density(color="red",moment=True)
+    for i in (0,5,7):
+        halo = myname.get_name(i, True)
+        ahalo = dp.PrettyBox(halo, 3, nslice=10)
+        ahalo.plot_column_density(color=colors[i], ls=lss[i],moment=True)
     dla_data.column_density_data(moment=True)
-    save_figure(path.join(outdir, "cosmo5_UVB_3"))
+    save_figure(path.join(outdir, "cosmo_UVB_3"))
     plt.clf()
 
 def plot_cutoff():
@@ -116,7 +113,7 @@ def plot_covering_frac(sim, snap, ff=True):
 
 def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
-    for sim in xrange(6):
+    for sim in (0,1,3,5,7):   #xrange(8):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10)
         plt.figure(1)
@@ -201,7 +198,7 @@ def plot_rel_cddf(snap):
     basen = myname.get_name(5)
     base = dp.PrettyBox(basen, snap, nslice=10)
     cddf_base = base.column_density_function()
-    for xx in (0,1,2,3,4):
+    for xx in (0,1,2,3,4,7):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
@@ -214,7 +211,7 @@ def plot_rel_cddf(snap):
 def plot_all_rho():
     """Make the rho_HI plot with labels etc"""
     #Cosmo0
-    for i in xrange(6):
+    for i in (0,1,3,5,7):   #xrange(8):
         (zzz,dndx,omegadla) = get_rhohi_dndx(i)
         plt.figure(1)
         plt.plot(zzz,dndx, color=colors[i], ls=lss[i])
@@ -252,11 +249,11 @@ def plot_breakdown():
 if __name__ == "__main__":
     plot_H2_effect(5,3)
     plot_rel_res(5)
-    #plot_UVB_effect()
+    plot_UVB_effect()
     plot_all_rho()
-    plot_cutoff()
+#     plot_cutoff()
     #Make a plot of the column density functions.
-    for ss in xrange(6):
+    for ss in (0,1,3,5,7):   #xrange(6):
         plot_cddf_a_halo(ss, 3)
 
     dla_data.column_density_data()
@@ -266,7 +263,7 @@ if __name__ == "__main__":
 
     #Plot first moment
     for zz in (1,3,5):
-        for ss in xrange(6):
+        for ss in (0,1,3,5, 7):   #xrange(6):
             plot_cddf_a_halo(ss, zz, moment=True)
 
         if zz==3 :
@@ -302,8 +299,8 @@ if __name__ == "__main__":
 
     #Metallicity
     for zz in (1,3,5):
-        zrange = {1:(7,3.5), 3:None, 5:(2.5,0)}
-        for ss in xrange(6):
+        zrange = {1:(7,3.5), 3:None, 5:(2.5,1.5)}
+        for ss in (0,1,3,5,6,7):   #xrange(6):
             plot_metal_halo(ss, zz)
 
         vel_data.plot_alpha_metal_data(zrange[zz])
@@ -311,13 +308,18 @@ if __name__ == "__main__":
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()
 
-    for zz in (5,):
-        zrange = {1:(7,3.5), 3:None, 5:(2.5,0)}
-        for ss in xrange(6):
-            plot_metal_halo(ss, zz,lls=True)
-
-        vel_data.plot_lls_metal_data()
-
-        save_figure(path.join(outdir,"cosmo_lls_metal_z"+str(zz)))
-        plt.clf()
+    #LLS Metallicity
+#     for zz in (1,3,5):
+#         for ss in (0,1,3,5,6,7):   #xrange(6):
+#             plot_metal_halo(ss, zz, lls=True)
+#
+#         save_figure(path.join(outdir,"cosmo_lls_metal_z"+str(zz)))
+#         plt.clf()
+#
+#     #At z=0.55
+#     plot_metal_halo(0, 101,lls=True)
+#     vel_data.plot_lls_metal_data()
+#
+#     save_figure(path.join(outdir,"cosmo_lls_metal_z101"))
+#     plt.clf()
 #
