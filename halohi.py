@@ -88,7 +88,7 @@ class HaloHI:
         #Internal gadget length unit: 1 kpc/h in cm/h
         self.UnitLength_in_cm=3.085678e21
         self.UnitVelocity_in_cm_per_s=1e5
-        self.protonmass=1.66053886e-24
+        self.protonmass=1.67262178e-24
         #This could be loaded from the GFM.
         self.hy_mass=0.76
         #For printing

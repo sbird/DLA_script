@@ -62,7 +62,7 @@ class ColdGas:
         """
         mass = 0.
         kpchincm = 1./(1+self.redshift)
-        protonmass=1.66053886e-24
+        self.protonmass=1.67262178e-24
         for files in np.arange(0,500):
             try:
                 ff = hdfsim.get_file(self.num, self.base,files)
