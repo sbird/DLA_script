@@ -22,11 +22,13 @@ class BoxHI(HaloHI):
         reload_file - Ignore saved files if true
         nslice - number of slices in the z direction to divide the box into.
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False, molec=True):
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False, molec=True, start=0, end=3000):
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.molec = molec
         self.set_units()
+        self.start = int(start)
+        self.end = int(end)
         if savefile==None:
             self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid_H2.hdf5")
         else:
@@ -45,7 +47,12 @@ class BoxHI(HaloHI):
             #Grid size constant
             self.ngrid=16384*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            self.set_nHI_grid(gas)
+            try:
+                location = self.load_tmp(self.start)
+            except IOError:
+                print "Could not load file"
+                location = self.start
+            self.set_nHI_grid(gas, location)
             #Account for molecular fraction
             #This is done on the HI density now
             #self.set_stellar_grid()
@@ -69,7 +76,6 @@ class BoxHI(HaloHI):
         grp.create_dataset("LLS",data=ind_LLS)
         grp.create_dataset("LLS_val",data=self.sub_nHI_grid[ind_LLS])
         f.close()
-
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid

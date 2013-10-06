@@ -8,6 +8,7 @@ Classes:
 import numpy as np
 import numexpr as ne
 import halocat
+import sys
 import hdfsim
 import h5py
 import math
@@ -54,12 +55,14 @@ class HaloHI:
         self.sub_nHI_grid is a list of neutral hydrogen grids, in log(N_HI / cm^-2) units.
         self.sub_mass is a list of halo masses
         self.sub_cofm is a list of halo positions"""
-    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False, molec=True):
+    def __init__(self,snap_dir,snapnum,minpart=400,reload_file=False,savefile=None, gas=False, molec=True, start=0, end = 3000):
         self.minpart=minpart
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.molec = molec
         self.set_units()
+        self.start = start
+        self.end = end
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
         else:
@@ -245,7 +248,32 @@ class HaloHI:
         rmol = self.rmol(sg, ss)
         return rmol/(1+rmol)
 
-    def set_nHI_grid(self, gas=False):
+    def save_tmp(self, location):
+        """Save a partially completed file"""
+        f = h5py.File(self.savefile+"."+str(self.start)+".tmp",'w')
+        grp_grid = f.create_group("GridHIData")
+        for i in xrange(0,self.nhalo):
+            grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
+
+        f.attrs["file"]=location
+        f.close()
+
+    def load_tmp(self, start):
+        """
+        Load a partially completed file
+        """
+        print "Starting loading tmp file"
+        print self.savefile+"."+str(start)+".tmp"
+        f = h5py.File(self.savefile+"."+str(start)+".tmp",'r')
+        self.sub_nHI_grid=np.array([np.empty([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        grp = f["GridHIData"]
+        [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
+        location = f.attrs["file"]
+        f.close()
+        print "Successfully loaded file:",location
+        return location
+
+    def set_nHI_grid(self, gas=False, location=0):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
@@ -254,6 +282,8 @@ class HaloHI:
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
+        restart = 10
+        files = files[location:]
         for ff in files:
             f = h5py.File(ff,"r")
             print "Starting file ",ff
@@ -275,6 +305,13 @@ class HaloHI:
             del ipos
             del mass
             del smooth
+            if location >= self.end-1:
+                self.save_tmp(location)
+                sys.exit(0)
+            if location % restart == 0:
+                self.save_tmp(location)
+            location+=1
+
         #Deal with zeros: 0.1 will not even register for things at 1e17.
         #Also fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
