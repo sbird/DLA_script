@@ -48,11 +48,11 @@ class BoxHI(HaloHI):
             self.ngrid=16384*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             try:
-                location = self.load_tmp(self.start)
+                thisstart = self.load_tmp(self.start)
             except IOError:
                 print "Could not load file"
-                location = self.start
-            self.set_nHI_grid(gas, location)
+                thisstart = self.start
+            self.set_nHI_grid(gas, thisstart)
             #Account for molecular fraction
             #This is done on the HI density now
             #self.set_stellar_grid()

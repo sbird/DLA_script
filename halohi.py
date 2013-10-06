@@ -270,10 +270,10 @@ class HaloHI:
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         location = f.attrs["file"]
         f.close()
-        print "Successfully loaded file:",location
-        return location
+        print "Successfully loaded tmp file. Next to do is:",location+1
+        return location+1
 
-    def set_nHI_grid(self, gas=False, location=0):
+    def set_nHI_grid(self, gas=False, start=0):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
@@ -283,8 +283,9 @@ class HaloHI:
         #Larger numbers seem to be towards the beginning
         files.reverse()
         restart = 10
-        files = files[location:]
-        for ff in files:
+        files = files[start:self.end]
+        for xx in xrange(start, self.end):
+            ff = files[xx]
             f = h5py.File(ff,"r")
             print "Starting file ",ff
             bar=f["PartType0"]
@@ -305,12 +306,8 @@ class HaloHI:
             del ipos
             del mass
             del smooth
-            if location >= self.end-1:
-                self.save_tmp(location)
-                sys.exit(0)
-            if location % restart == 0:
-                self.save_tmp(location)
-            location+=1
+            if xx % restart == 0 or xx == self.end-1:
+                self.save_tmp(xx)
 
         #Deal with zeros: 0.1 will not even register for things at 1e17.
         #Also fix the units:
