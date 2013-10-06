@@ -236,6 +236,33 @@ class BoxHI(HaloHI):
         dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
+
+    def save_sigLLS(self):
+        """Generate and save sigma_LLS to the savefile"""
+        (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, 0, 1.)
+        f=h5py.File(self.savefile,'r+')
+        mgrp = f["CrossSection"]
+        try:
+            del mgrp["sigLLS"]
+        except KeyError:
+            pass
+        mgrp.attrs["field_lls"] = self.field_lls
+        mgrp.create_dataset("sigLLS",data=self.sigLLS)
+        f.close()
+
+    def load_sigLLS(self):
+        """Load sigma_LLS from a file"""
+        f=h5py.File(self.savefile,'r')
+        try:
+            mgrp = f["CrossSection"]
+            self.real_sub_mass = np.array(mgrp["sub_mass"])
+            self.sigLLS = np.array(mgrp["sigLLS"])
+            self.field_lls = mgrp.attrs["field_lls"]
+        except KeyError:
+            f.close()
+            raise
+        f.close()
+
     def save_sigDLA(self):
         """Generate and save sigma_DLA to the savefile"""
         (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 1.)
@@ -254,17 +281,17 @@ class BoxHI(HaloHI):
         mgrp.create_dataset("sigDLA",data=self.sigDLA)
         f.close()
 
-    def load_sigDLA(self,savefile=None):
+    def load_sigDLA(self):
         """Load sigma_DLA from a file"""
         f=h5py.File(self.savefile,'r')
         try:
             mgrp = f["CrossSection"]
+            self.real_sub_mass = np.array(mgrp["sub_mass"])
+            self.sigDLA = np.array(mgrp["sigDLA"])
+            self.field_dla = mgrp.attrs["field_dla"]
         except KeyError:
             f.close()
             raise
-        self.real_sub_mass = np.array(mgrp["sub_mass"])
-        self.sigDLA = np.array(mgrp["sigDLA"])
-        self.field_dla = mgrp.attrs["field_dla"]
         f.close()
 
     def find_cross_section(self, dla=True, minpart=0, vir_mult=1.):
@@ -293,7 +320,7 @@ class BoxHI(HaloHI):
     def _load_dla_index(self, dla=True):
         """Load the positions of DLAs or LLS from savefile"""
         #Load the DLA/LLS positions
-        f=h5py.File(self.savefile,'r+')
+        f=h5py.File(self.savefile,'r')
         grp = f["abslists"]
         #This is needed to make the dimensions right
         if dla:
@@ -409,11 +436,15 @@ class BoxHI(HaloHI):
 
     def get_sigma_DLA_binned(self,mass,DLA_cut=20.3,DLA_upper_cut=42.,sigma=95):
         """Get the median and scatter of sigma_DLA against mass."""
-        aind = np.where(self.sigDLA > 0)
+        if DLA_cut < 17.5:
+            sigs = self.sigLLS
+        else:
+            sigs = self.sigDLA
+        aind = np.where(sigs > 0)
         #plt.loglog(self.real_sub_mass[aind], self.sigDLA[aind],'x')
-        amed=calc_binned_median(mass, self.real_sub_mass[aind], self.sigDLA[aind])
-        aupq=calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],sigma)-amed
+        amed=calc_binned_median(mass, self.real_sub_mass[aind], sigs[aind])
+        aupq=calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],sigma)-amed
         #Addition to avoid zeros
-        aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], self.sigDLA[aind],100-sigma)
+        aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],100-sigma)
         return (amed, aloq, aupq)
 

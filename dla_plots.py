@@ -281,16 +281,35 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=1e12, nbins=20, color="blue",dla = True, minpart = 0, dist=1.):
+    def plot_sigma_LLS(self, minpart = 0, dist=1.):
+        """Plot sigma_DLA"""
+        #Load defaults from file
+        self._get_sigma_LLS(minpart, dist)
+        print "field dlas:",self.field_lls
+        ind = np.where(self.sigLLS > 0)
+        (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigLLS[ind]),bins=(30,30))
+        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        plt.yscale('log')
+        plt.xscale('log')
+
+    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",ls="-",dla = True, minpart = 0, dist=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
-        self._get_sigma_DLA(minpart, dist)
-        ind = np.where(self.sigDLA > 0)
+        if dla:
+            self._get_sigma_DLA(minpart, dist)
+            ind = np.where(self.sigDLA > 0)
+            sigs = self.sigDLA[ind]
+        else:
+            self._get_sigma_LLS(minpart, dist)
+            ind = np.where(self.sigLLS > 0)
+            sigs = self.sigLLS[ind]
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
-        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = self.sigDLA[ind],bins=np.log10(massbins),density=True)
+        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        plt.semilogx(xbins,hist, color=color)
+        plt.semilogx(xbins,hist, color=color, ls=ls)
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""
@@ -304,6 +323,19 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
                     self.save_sigDLA()
         else:
             (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
+
+    def _get_sigma_LLS(self, minpart, dist):
+        """Helper for above to correctly populate sigLLS, from a savefile if possible"""
+        if minpart == 0 and dist == 1.:
+            try:
+                self.sigLLS
+            except AttributeError:
+                try:
+                    self.load_sigLLS()
+                except KeyError:
+                    self.save_sigLLS()
+        else:
+            (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, minpart, dist)
 
     def plot_sigma_DLA_model(self):
         """Plot my analytic model for the DLAs"""
