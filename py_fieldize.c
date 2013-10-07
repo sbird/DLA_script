@@ -38,14 +38,20 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     PyArray_FILLWBYTE(pyfield, 0);
     double * field = (double *) PyArray_DATA(pyfield);
     //Copy of field array to store compensated bits for Kahan summation
+#ifndef NO_KAHAN
     double * comp = (double *) calloc(nx*nx,sizeof(double));
     if( !comp || !field ){
+#else
+    double * comp = NULL;
+    if( !field ){
+#endif
       PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for field arrays.\n");
       return NULL;
     }
     //Do the work
     ret = SPH_interpolate(field, comp, nx, pos, radii, value, weights, nval, periodic);
-    free(comp);
+    if (comp)
+        free(comp);
 
     if( ret == 1 ){
       PyErr_SetString(PyExc_ValueError, "Massless particle detected!");
