@@ -18,7 +18,7 @@ from save_figure import save_figure
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan", 6:"magenta", 7:"grey"}
+colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan", 7:"magenta", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"-.",7:"-"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
@@ -43,11 +43,14 @@ def plot_H2_effect(sim, snap):
     halo = myname.get_name(sim, True)
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_noH2.hdf5")
     ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
-    ahalo.plot_column_density(color="blue", ls="--")
+    ahalo.plot_column_density(color="blue", ls="--", moment=True)
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
-    ahalo2.plot_column_density(color="red")
-    dla_data.column_density_data()
+    ahalo2.plot_column_density(color="red",moment=True)
+#     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2-old.hdf5")
+#     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
+#     ahalo2.plot_column_density(color="green",moment=True)
+    dla_data.column_density_data(moment=True)
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
     cddf_base = ahalo.column_density_function()
@@ -202,11 +205,33 @@ def plot_rel_cddf(snap):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
-        plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[xx], ls=lss[xx])
-    plt.ylim(-0.5,0.5)
+        plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[xx], ls=lss[xx])
+    plt.ylim(0.3,1.7)
     plt.xlim(1e17, 1e22)
     save_figure(path.join(outdir,"cosmo_rel_cddf_z"+str(snap)))
     plt.clf()
+
+def plot_agn_rel_cddf(snap):
+    """Load and make a plot of the difference between both simulations with and without AGN"""
+    basen = myname.get_name(0)
+    base = dp.PrettyBox(basen, snap, nslice=10)
+    cddf_base = base.column_density_function()
+    basen = myname.get_name(4)
+    other = dp.PrettyBox(basen, snap, nslice=10)
+    cddf = other.column_density_function()
+    plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[0], ls=lss[0])
+    basen = myname.get_name(1)
+    base = dp.PrettyBox(basen, snap, nslice=10)
+    cddf_base = base.column_density_function()
+    basen = myname.get_name(2)
+    other = dp.PrettyBox(basen, snap, nslice=10)
+    cddf = other.column_density_function()
+    plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[1], ls=lss[1])
+    plt.ylim(0.8,1.5)
+    plt.xlim(1e17, 1e22)
+    save_figure(path.join(outdir,"cosmo_rel_agn_cddf_z"+str(snap)))
+    plt.clf()
+
 
 def plot_all_rho():
     """Make the rho_HI plot with labels etc"""
@@ -247,14 +272,16 @@ def plot_breakdown():
     plt.clf()
 
 if __name__ == "__main__":
-    plot_H2_effect(5,3)
+#     plot_H2_effect(5,3)
+    plot_H2_effect(7,4)
     plot_rel_res(5)
     plot_UVB_effect()
     plot_all_rho()
 #     plot_cutoff()
     #Make a plot of the column density functions.
-    for ss in (0,1,3,5,7):   #xrange(6):
-        plot_cddf_a_halo(ss, 3)
+    plot_cddf_a_halo(3, 3)
+    for ss in (0,1,5,7):   #xrange(6):
+        plot_cddf_a_halo(ss, 4)
 
     dla_data.column_density_data()
 
@@ -262,11 +289,14 @@ if __name__ == "__main__":
     plt.clf()
 
     #Plot first moment
-    for zz in (1,3,5):
-        for ss in (0,1,3,5, 7):   #xrange(6):
-            plot_cddf_a_halo(ss, zz, moment=True)
+    for zz in (1,3,4,5):
+        for ss in (0,1,3,5,7):   #xrange(6):
+            if zz == 4 and ss == 3:
+                plot_cddf_a_halo(3, 3, moment=True)
+            else:
+                plot_cddf_a_halo(ss, zz,moment=True)
 
-        if zz==3 :
+        if zz==4 :
             dla_data.column_density_data(moment=True)
 
         save_figure(path.join(outdir,"cosmo_cddf_z"+str(zz)+"_moment"))
@@ -274,19 +304,20 @@ if __name__ == "__main__":
 
     for zz in (1,3,5):
         plot_rel_cddf(zz)
-        plot_halohist(zz)
-        plot_halohist(zz, False)
+#         plot_halohist(zz)
+#         plot_halohist(zz, False)
 
     #Make a plot of the effect of AGN on the cddf.
     for ss in (2,1):
-        plot_cddf_a_halo(ss, 5, moment=True)
+        plot_cddf_a_halo(ss, 4, moment=True)
     for ss in (0,4):
-        plot_cddf_a_halo(ss, 5, moment=True)
-    #dla_data.column_density_data(moment=True)
+        plot_cddf_a_halo(ss, 4, moment=True)
+    dla_data.column_density_data(moment=True)
     plt.xlim(1e17,3e22)
     plt.ylim(1e-4,0.3)
     save_figure(path.join(outdir,"cosmo_cddf_agn_z2"))
     plt.clf()
+    plot_agn_rel_cddf(5)
 
     #Make a plot of the effect of modifying the minimum velocity
     for ss in (0,1,5):
