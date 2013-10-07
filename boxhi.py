@@ -22,7 +22,7 @@ class BoxHI(HaloHI):
         reload_file - Ignore saved files if true
         nslice - number of slices in the z direction to divide the box into.
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False, molec=True, start=0, end=3000):
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None,gas=False, molec=True, start=0, end=3000, ngrid=16384):
         self.snapnum=snapnum
         self.snap_dir=snap_dir
         self.molec = molec
@@ -45,7 +45,7 @@ class BoxHI(HaloHI):
             #Grid size double softening length
             #self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
             #Grid size constant
-            self.ngrid=16384*np.ones(self.nhalo)
+            self.ngrid=ngrid*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             try:
                 thisstart = self.load_tmp(self.start)
