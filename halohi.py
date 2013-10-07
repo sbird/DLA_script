@@ -297,7 +297,7 @@ class HaloHI:
                 try:
                     mass *= np.array(bar["GFM_Metals"][:,0])
                 except KeyError:
-                    mass *= 0.76
+                    mass *= self.hy_mass
                 mass *= star.get_reproc_HI(bar)
             smooth = hsml.get_smooth_length(bar)
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
@@ -314,7 +314,7 @@ class HaloHI:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
-            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            massg=self.UnitMass_in_g/self.hubble/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_nHI_grid[ii]*=(massg/epsilon**2)
             self.sub_nHI_grid[ii]+=0.1
