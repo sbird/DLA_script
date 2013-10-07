@@ -283,7 +283,6 @@ class HaloHI:
         #Larger numbers seem to be towards the beginning
         files.reverse()
         restart = 10
-        files = files[start:self.end]
         for xx in xrange(start, self.end):
             ff = files[xx]
             f = h5py.File(ff,"r")
