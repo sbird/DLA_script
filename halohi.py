@@ -283,7 +283,8 @@ class HaloHI:
         #Larger numbers seem to be towards the beginning
         files.reverse()
         restart = 10
-        for xx in xrange(start, self.end):
+        end = np.min(np.size(files),self.end)
+        for xx in xrange(start, end):
             ff = files[xx]
             f = h5py.File(ff,"r")
             print "Starting file ",ff
@@ -305,7 +306,7 @@ class HaloHI:
             del ipos
             del mass
             del smooth
-            if xx % restart == 0 or xx == self.end-1:
+            if xx % restart == 0 or xx == end-1:
                 self.save_tmp(xx)
 
         #Deal with zeros: 0.1 will not even register for things at 1e17.
