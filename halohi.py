@@ -265,7 +265,6 @@ class HaloHI:
         print "Starting loading tmp file"
         print self.savefile+"."+str(start)+".tmp"
         f = h5py.File(self.savefile+"."+str(start)+".tmp",'r')
-        self.sub_nHI_grid=np.array([np.empty([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
         grp = f["GridHIData"]
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         location = f.attrs["file"]
