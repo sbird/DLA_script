@@ -177,16 +177,22 @@ class BoxMet(bi.BoxHI):
     Class to find the mass-weighted metallicity for a box.
     Inherits from BoxHI
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None):
-        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, True, savefile, True)
-        self.sub_ZZ_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-        self.set_ZZ_grid()
+    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384):
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, True, savefile, True,start=start, end=end,ngrid=ngrid)
+
+        self.sub_ZZ_grid=np.array([np.zeros([ngrid,ngrid]) for i in xrange(0,nslice)])
+        try:
+            thisstart = self.load_met_tmp(self.start)
+        except IOError:
+            print "Could not load file"
+            thisstart = self.start
+        self.set_ZZ_grid(thisstart)
 
         #Find the metallicity
         for ii in xrange(0, self.nhalo):
             self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
 
-    def set_ZZ_grid(self):
+    def set_ZZ_grid(self, start=0):
         """Set up the mass * metallicity grid for the box
         Same as set_nHI_grid except mass is multiplied by GFM_Metallicity.
         """
@@ -195,7 +201,10 @@ class BoxMet(bi.BoxHI):
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
-        for ff in files:
+        restart = 10
+        end = np.min([np.size(files),self.end])
+        for xx in xrange(start, end):
+            ff = files[xx]
             f = h5py.File(ff,"r")
             print "Starting file ",ff
             bar=f["PartType0"]
@@ -213,6 +222,9 @@ class BoxMet(bi.BoxHI):
             del ipos
             del mass
             del smooth
+            if xx % restart == 0 or xx == end-1:
+                self.save_met_tmp(xx)
+
         #Deal with zeros: 0.1 will not even register for things at 1e17.
         #Also fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
@@ -237,3 +249,25 @@ class BoxMet(bi.BoxHI):
         mgrp.create_dataset("DLA",data=self.sub_ZZ_grid[dlaind])
         mgrp.create_dataset("LLS",data=self.sub_ZZ_grid[llsind])
         f.close()
+
+    def save_met_tmp(self, location):
+        """Save a partially completed file"""
+        f = h5py.File(self.savefile+"."+str(self.start)+".tmp",'r+')
+        grp_grid = f.create_group("GridZZData")
+        for i in xrange(0,self.nhalo):
+            grp_grid.create_dataset(str(i),data=self.sub_ZZ_grid[i])
+        f.attrs["met_file"]=location
+        f.close()
+
+    def load_met_tmp(self, start):
+        """
+        Load a partially completed file
+        """
+        print self.savefile+"."+str(start)+".tmp"
+        f = h5py.File(self.savefile+"."+str(start)+".tmp",'r')
+        grp = f["GridZZData"]
+        [ grp[str(i)].read_direct(self.sub_ZZ_grid[i]) for i in xrange(0,self.nhalo)]
+        location = f.attrs["met_file"]
+        f.close()
+        print "Successfully loaded metals from tmp file. Next to do is:",location+1
+        return location+1
