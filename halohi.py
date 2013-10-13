@@ -118,6 +118,10 @@ class HaloHI:
         min_mass = target_mass * minpart
         #Get halo catalog
         (self.ind,self.sub_mass,self.sub_cofm,self.sub_radii)=halocat.find_wanted_halos(self.snapnum, self.snap_dir, min_mass,2)
+        #Set sub_radii to be a constant (large) value for all halos above a certain size, because these
+        #halos are often extended.
+        hind = np.where(self.sub_mass > 1e11)
+        self.sub_radii[hind] = 400
         try:
             self.nhalo
         except AttributeError:

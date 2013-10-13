@@ -13,6 +13,7 @@ import os.path as path
 import myname
 import vel_data
 import numpy as np
+import halocat
 from save_figure import save_figure
 
 outdir = myname.base + "plots/grid"
@@ -232,6 +233,49 @@ def plot_agn_rel_cddf(snap):
     save_figure(path.join(outdir,"cosmo_rel_agn_cddf_z"+str(snap)))
     plt.clf()
 
+def plot_halos(sim,hh):
+    ahalo = dp.PrettyHalo(myname.get_name(sim),3,20000)
+    (mass, cofm, radii) = _load_halo(ahalo, 100)
+    plt.title(r"Central Halo: $"+dp.pr_num(ahalo.sub_mass[hh]/0.76/1e11)+r"\times 10^{11} M_\odot$")
+    ahalo.plot_pretty_halo(hh)
+    plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
+    dp.tight_layout_wrapper()
+    save_figure(path.join(outdir,"pretty_"+str(sim)+"_halo_"+str(hh)))
+    plt.clf()
+    ahalo.plot_pretty_cut_halo(hh)
+    plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
+    dp.tight_layout_wrapper()
+    save_figure(path.join(outdir,"pretty_cut_"+str(sim)+"_halo_"+str(hh)))
+    plt.clf()
+    del ahalo
+
+def plot_rvir(apos, cofm, radii, maxdist):
+    """Plot black circles for virial radius"""
+    zz = cofm[:,0]-apos[0]
+    #Make this a bit bigger so we catch halos just slightly within our radius
+    zcut = np.where(np.abs(zz) < 1.1*maxdist)
+    zcofm = cofm[zcut,1:][0]
+    #rel_r = np.sqrt(np.sum((zcofm - apos[1:])**2,1))
+    #rr = np.where(rel_r < 400)
+    dist = np.abs(zcofm-apos[1:])
+    rr = np.where(np.logical_and(dist[:,0]< 2*maxdist, dist[:,1] < 2*maxdist))
+    for r in rr[0]:
+      pos = zcofm[r]-apos[1:]
+      #Backwards because someone is a fortran programmer
+      circle=plt.Circle((pos[1],pos[0]),radii[zcut][r],color="black",fill=False)
+      ax = plt.gca()
+      ax.add_artist(circle)
+
+def _load_halo(self, minpart=400):
+    """Load a halo catalogue"""
+    #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
+    rhom = 2.78e+11* self.omegam / (1e3**3)
+    #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
+    target_mass = self.box**3 * rhom / self.npart[0]
+    min_mass = target_mass * minpart / 1e10
+    (_, halo_mass, halo_cofm, halo_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, min_mass)
+    return (halo_mass, halo_cofm, halo_radii)
+
 
 def plot_all_rho():
     """Make the rho_HI plot with labels etc"""
@@ -273,6 +317,14 @@ def plot_breakdown():
 
 if __name__ == "__main__":
 #     plot_H2_effect(5,3)
+
+    plot_halos(3,15)
+    plot_halos(3,50)
+    plot_halos(7,15)
+    plot_halos(7,50)
+    plot_halos(7,80)
+    plot_halos(1,15)
+    plot_halos(1,50)
     plot_H2_effect(7,4)
     plot_rel_res(5)
     plot_UVB_effect()
