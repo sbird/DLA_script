@@ -183,7 +183,7 @@ class BoxMet(bi.BoxHI):
         self.sub_ZZ_grid=np.array([np.zeros([ngrid,ngrid]) for i in xrange(0,nslice)])
         try:
             thisstart = self.load_met_tmp(self.start)
-        except IOError:
+        except (IOError,KeyError):
             print "Could not load file"
             thisstart = self.start
         self.set_ZZ_grid(thisstart)
