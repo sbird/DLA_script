@@ -361,11 +361,11 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def plot_dla_metallicity(self, nbins=40,color="blue", ls="-"):
         """Plot the distribution of DLA metallicities"""
-        self._plot_metallicity(True,nbins=nbins,color=color,ls=ls)
+        return self._plot_metallicity(True,nbins=nbins,color=color,ls=ls)
 
     def plot_lls_metallicity(self, nbins=40,color="blue",ls="-"):
         """Plot the distribution of LLS metallicities"""
-        self._plot_metallicity(False,nbins=nbins,color=color,ls=ls)
+        return self._plot_metallicity(False,nbins=nbins,color=color,ls=ls)
 
     def _plot_metallicity(self, dla,nbins,color,ls):
         """Plot the distribution of metallicities above"""
@@ -378,6 +378,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Abs. distance for entire spectrum
         hist = np.histogram(met,np.log10(bins),density=True)[0]
         plt.plot(np.log10(mbin),hist,color=color,ls=ls)
+        return (mbin,hist)
 
 import halomet
 
