@@ -14,25 +14,27 @@ import myname
 import vel_data
 import numpy as np
 import halocat
+from dla_plots import tight_layout_wrapper
 from save_figure import save_figure
 
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"blue", 3:"green", 4:"orange", 5:"cyan", 7:"magenta", 6:"grey"}
-lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"-.",7:"-"}
+colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"yellow", 5:"orange", 7:"blue", 6:"grey"}
+lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
+labels = {0:"REF",1:"HVEL", 2:"HVNAGN",3:"NOSN", 4:"NOAGN", 5:"MVEL",6:"METAL",7:"UVB"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, ff)
-    ahalo = dp.PrettyBox(halo, snap, nslice=10)
+    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
     ahalo.plot_column_density(color=colors[sim], ls=lss[sim], moment=moment)
     del ahalo
 
 def plot_metal_halo(sim, snap, ff=True, lls=False):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, ff)
-    ahalo = dp.PrettyBox(halo, snap, nslice=10)
+    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
     if lls:
         ahalo.plot_lls_metallicity(color=colors[sim], ls=lss[sim])
     else:
@@ -58,6 +60,9 @@ def plot_H2_effect(sim, snap):
     cddf = ahalo2.column_density_function()
     plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[sim], ls=lss[sim])
     plt.ylim(-0.5,0.5)
+    tight_layout_wrapper()
+    ax = plt.gca()
+    ylab = ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
     save_figure(path.join(outdir, "cosmo_rel"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
 
@@ -206,9 +211,13 @@ def plot_rel_cddf(snap):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
-        plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[xx], ls=lss[xx])
-    plt.ylim(0.3,1.7)
+        plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[xx], ls=lss[xx], label=labels[xx])
+    plt.legend(loc=2, ncol=2)
+    plt.xlabel(r"$N_\mathrm{HI}$ (cm$^{-2}$)")
+    plt.ylabel(r"$f(N)/f_\mathrm{MVEL}(N)$")
+    plt.ylim(0.3,1.9)
     plt.xlim(1e17, 1e22)
+    tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_rel_cddf_z"+str(snap)))
     plt.clf()
 
@@ -283,15 +292,18 @@ def plot_all_rho():
     for i in (0,1,3,5,7):   #xrange(8):
         (zzz,dndx,omegadla) = get_rhohi_dndx(i)
         plt.figure(1)
-        plt.plot(zzz,dndx, color=colors[i], ls=lss[i])
+        plt.plot(zzz,dndx, color=colors[i], ls=lss[i], label=labels[i])
         plt.figure(2)
-        plt.plot(zzz,omegadla, color=colors[i], ls=lss[i])
+        plt.plot(zzz,omegadla, color=colors[i], ls=lss[i],label=labels[i])
     plt.figure(1)
     plt.xlabel("z")
     plt.ylabel(r"$dN / dX$")
     dla_data.dndx_not()
     dla_data.dndx_pro()
     plt.xlim(2,4)
+    plt.ylim(0,0.14)
+    plt.legend(loc=2, ncol=3)
+    tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_dndx"))
     plt.clf()
 
@@ -301,6 +313,9 @@ def plot_all_rho():
     dla_data.omegahi_not()
     dla_data.omegahi_pro()
     plt.xlim(2,4)
+    plt.ylim(0,1.7)
+    plt.legend(loc=2, ncol=3)
+    tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_rhohi"))
     plt.clf()
 
@@ -318,13 +333,13 @@ def plot_breakdown():
 if __name__ == "__main__":
 #     plot_H2_effect(5,3)
 
-    plot_halos(3,15)
-    plot_halos(3,50)
-    plot_halos(7,15)
-    plot_halos(7,50)
-    plot_halos(7,80)
-    plot_halos(1,15)
-    plot_halos(1,50)
+#     plot_halos(3,15)
+#     plot_halos(3,50)
+#     plot_halos(7,15)
+#     plot_halos(7,50)
+#     plot_halos(7,80)
+#     plot_halos(1,15)
+#     plot_halos(1,50)
     plot_H2_effect(7,4)
     plot_rel_res(5)
     plot_UVB_effect()
@@ -335,8 +350,12 @@ if __name__ == "__main__":
     for ss in (0,1,5,7):   #xrange(6):
         plot_cddf_a_halo(ss, 4)
 
+    plt.legend(loc=3)
     dla_data.column_density_data()
 
+    ax = plt.gca()
+    ylab = ax.set_ylabel(r"$f(N)$")
+#     tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_cddf_z3"))
     plt.clf()
 
@@ -351,6 +370,10 @@ if __name__ == "__main__":
         if zz==4 :
             dla_data.column_density_data(moment=True)
 
+        plt.legend(loc=3)
+        ax = plt.gca()
+        ylab = ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
+        tight_layout_wrapper()
         save_figure(path.join(outdir,"cosmo_cddf_z"+str(zz)+"_moment"))
         plt.clf()
 
@@ -364,6 +387,7 @@ if __name__ == "__main__":
         plot_cddf_a_halo(ss, 4, moment=True)
     for ss in (0,4):
         plot_cddf_a_halo(ss, 4, moment=True)
+    plt.legend(loc=3)
     dla_data.column_density_data(moment=True)
     plt.xlim(1e17,3e22)
     plt.ylim(1e-4,0.3)
@@ -382,11 +406,13 @@ if __name__ == "__main__":
 
     #Metallicity
     for zz in (1,3,5):
-        zrange = {1:(7,3.5), 3:None, 5:(2.5,1.5)}
+        zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
         for ss in (0,1,3,5,6,7):   #xrange(6):
             plot_metal_halo(ss, zz)
 
         vel_data.plot_alpha_metal_data(zrange[zz])
+        plt.legend(loc=2)
+        plt.ylim(0,1.45)
         plt.xlim(-3,0)
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()

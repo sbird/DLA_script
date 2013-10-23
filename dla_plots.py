@@ -174,20 +174,27 @@ class PrettyHalo(halohi.HaloHI):
             paf_N = af_N*aNHI
         else:
             paf_N = af_N
-        plt.loglog(aNHI,paf_N,color=color, ls=ls, lw = 3)
+        try:
+            label = self.label
+        except AttributeError:
+            pass
+        plt.loglog(aNHI,paf_N,color=color, ls=ls, lw = 3, label=label)
         #Make the ticks be less-dense
         ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
-        ax.set_xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
-        ax.set_ylabel(r"$N_\mathrm{HI} f(N)$")
+        plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
+        if moment:
+            plt.ylabel(r"$N_\mathrm{HI} f(N)$")
+        else:
+            plt.ylabel(r"$f(N)$")
 #         plt.title(r"Column density function at $z="+pr_num(self.redshift,1)+"$")
         plt.xlim(10**minN, 10**maxN)
         plt.ylim(1e-27,1e-18)
         if moment:
             plt.ylim(5e-5,1)
 #         plt.legend(loc=0)
-        tight_layout_wrapper()
+#         tight_layout_wrapper()
         plt.show()
 
     def plot_column_density_breakdown(self,minN=17,maxN=23., color="black"):
@@ -231,7 +238,7 @@ class PrettyHalo(halohi.HaloHI):
         ax.set_xscale('log')
 #       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
-        ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)")
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.redshift,1)+"$")
         if DLA_cut == 17.:
@@ -263,8 +270,9 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
     """
     As above but for the whole box grid
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None):
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=False,savefile=None, label=""):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
+        self.label = label
 
     def plot_sigma_DLA(self, minpart = 0, dist=1.):
         """Plot sigma_DLA"""
@@ -280,6 +288,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
         plt.yscale('log')
         plt.xscale('log')
+        plt.xlabel(r"Halo Mass ($M_\odot$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc/h)$^2$")
 
     def plot_sigma_LLS(self, minpart = 0, dist=1.):
         """Plot sigma_DLA"""
@@ -309,7 +319,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        plt.semilogx(xbins,hist, color=color, ls=ls)
+        plt.semilogx(xbins,hist, color=color, ls=ls, label=self.label)
+        plt.xlabel(r"Halo Mass ($M_\odot$)")
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""
@@ -377,7 +388,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             met = self.get_lls_metallicity()
         #Abs. distance for entire spectrum
         hist = np.histogram(met,np.log10(bins),density=True)[0]
-        plt.plot(np.log10(mbin),hist,color=color,ls=ls)
+        plt.plot(np.log10(mbin),hist,color=color,ls=ls, label=self.label)
+        plt.xlabel(r"[X/H]")
 
 import halomet
 
@@ -457,7 +469,7 @@ class HaloHIPlots:
         ax.set_xscale('log')
 #       ax.tick_params(labelsize=30)
         ax.set_xlabel(r"Mass ($M_\odot$ h$^{-1}$)",size=25)
-        ax.set_ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)",size=25)
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc$^2$)",size=25)
         if DLA_cut == 20.3:
             plt.title(r"DLA cross-section at $z="+pr_num(self.ahalo.redshift,1)+"$")
         if DLA_cut == 17.:
