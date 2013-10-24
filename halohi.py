@@ -63,6 +63,9 @@ class HaloHI:
         self.set_units()
         self.start = start
         self.end = end
+        self.tmpfile = self.savefile+"."+str(self.start)+".tmp"
+        if gas:
+            self.tmpfile+=".gas"
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
         else:
@@ -254,7 +257,7 @@ class HaloHI:
 
     def save_tmp(self, location):
         """Save a partially completed file"""
-        f = h5py.File(self.savefile+"."+str(self.start)+".tmp",'w')
+        f = h5py.File(self.tmpfile,'w')
         grp_grid = f.create_group("GridHIData")
         for i in xrange(0,self.nhalo):
             grp_grid.create_dataset(str(i),data=self.sub_nHI_grid[i])
@@ -267,8 +270,8 @@ class HaloHI:
         Load a partially completed file
         """
         print "Starting loading tmp file"
-        print self.savefile+"."+str(start)+".tmp"
-        f = h5py.File(self.savefile+"."+str(start)+".tmp",'r')
+        print self.tmpfile
+        f = h5py.File(self.tmpfile,'r')
         grp = f["GridHIData"]
         [ grp[str(i)].read_direct(self.sub_nHI_grid[i]) for i in xrange(0,self.nhalo)]
         location = f.attrs["file"]
