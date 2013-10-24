@@ -48,7 +48,7 @@ class BoxHI(HaloHI):
             self.ngrid=ngrid*np.ones(self.nhalo)
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
             try:
-                thisstart = self.load_tmp(self.start)
+                thisstart = self.load_tmp()
             except IOError:
                 print "Could not load file"
                 thisstart = self.start
