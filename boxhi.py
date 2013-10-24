@@ -33,6 +33,9 @@ class BoxHI(HaloHI):
             self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid_H2.hdf5")
         else:
             self.savefile = savefile
+        self.tmpfile = self.savefile+"."+str(self.start)+".tmp"
+        if gas:
+            self.tmpfile+=".gas"
         self.sub_mass = 10.**12*np.ones(nslice)
         self.nhalo = nslice
         if reload_file:

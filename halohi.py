@@ -62,14 +62,14 @@ class HaloHI:
         self.set_units()
         self.start = start
         self.end = end
-        self.tmpfile = self.savefile+"."+str(self.start)+".tmp"
-        if gas:
-            self.tmpfile+=".gas"
         if savefile == None:
             self.savefile=path.join(self.snap_dir,"snapdir_"+str(self.snapnum).rjust(3,'0'),"halohi_grid.hdf5")
         else:
             self.savefile=savefile
 
+        self.tmpfile = self.savefile+"."+str(self.start)+".tmp"
+        if gas:
+            self.tmpfile+=".gas"
         try:
             if reload_file:
                 raise KeyError("reloading")
