@@ -8,7 +8,6 @@ Classes:
 import numpy as np
 import numexpr as ne
 import halocat
-import sys
 import hdfsim
 import h5py
 import math
@@ -265,7 +264,7 @@ class HaloHI:
         f.attrs["file"]=location
         f.close()
 
-    def load_tmp(self, start):
+    def load_tmp(self):
         """
         Load a partially completed file
         """
