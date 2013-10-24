@@ -252,7 +252,7 @@ class BoxMet(bi.BoxHI):
 
     def save_met_tmp(self, location):
         """Save a partially completed file"""
-        f = h5py.File(self.savefile+"."+str(self.start)+".tmp",'r+')
+        f = h5py.File(self.savefile+"."+str(self.start)+".met.tmp",'w')
         grp_grid = f.create_group("GridZZData")
         for i in xrange(0,self.nhalo):
             grp_grid.create_dataset(str(i),data=self.sub_ZZ_grid[i])
@@ -263,8 +263,8 @@ class BoxMet(bi.BoxHI):
         """
         Load a partially completed file
         """
-        print self.savefile+"."+str(start)+".tmp"
-        f = h5py.File(self.savefile+"."+str(start)+".tmp",'r')
+        print self.savefile+"."+str(start)+".met.tmp"
+        f = h5py.File(self.savefile+"."+str(start)+".met.tmp",'r')
         grp = f["GridZZData"]
         [ grp[str(i)].read_direct(self.sub_ZZ_grid[i]) for i in xrange(0,self.nhalo)]
         location = f.attrs["met_file"]
