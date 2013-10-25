@@ -45,15 +45,16 @@ def plot_H2_effect(sim, snap):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, True)
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_noH2.hdf5")
-    ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
+    ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile, label=r"No $H_2$")
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
-    ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
+    ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile, label=r"$H_2$")
     ahalo2.plot_column_density(color="red",moment=True)
 #     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2-old.hdf5")
 #     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
 #     ahalo2.plot_column_density(color="green",moment=True)
     dla_data.column_density_data(moment=True)
+    plt.legend(loc=3)
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
     cddf_base = ahalo.column_density_function()
@@ -124,7 +125,7 @@ def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
     for sim in (0,1,3,5,7):   #xrange(8):
         halo = myname.get_name(sim, True)
-        ahalo = dp.PrettyBox(halo, snap, nslice=10)
+        ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
         plt.figure(1)
         ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
         plt.figure()
@@ -142,6 +143,7 @@ def plot_halohist(snap, dla=True):
             save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaLLS_z"+str(snap)))
         plt.clf()
     plt.figure(1)
+    plt.legend(loc=2)
     if dla:
         save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
     else:
