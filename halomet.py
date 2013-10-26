@@ -230,7 +230,7 @@ class BoxMet(bi.BoxHI):
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
-            massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
+            massg=self.UnitMass_in_g/self.hubble/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_ZZ_grid[ii]*=(massg/epsilon**2)
             self.sub_ZZ_grid[ii]+=0.1
