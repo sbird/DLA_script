@@ -303,8 +303,8 @@ def plot_all_rho():
     dla_data.dndx_not()
     dla_data.dndx_pro()
     plt.xlim(2,4)
-    plt.ylim(0,0.14)
-    plt.legend(loc=2, ncol=3)
+    plt.ylim(0,0.13)
+    plt.legend(loc=4, ncol=3)
     tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_dndx"))
     plt.clf()
@@ -315,8 +315,8 @@ def plot_all_rho():
     dla_data.omegahi_not()
     dla_data.omegahi_pro()
     plt.xlim(2,4)
-    plt.ylim(0,1.7)
-    plt.legend(loc=2, ncol=3)
+    plt.ylim(0,2.)
+    plt.legend(loc=4, ncol=3)
     tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_rhohi"))
     plt.clf()
@@ -343,8 +343,8 @@ if __name__ == "__main__":
 #     plot_halos(1,15)
 #     plot_halos(1,50)
     plot_H2_effect(7,4)
-    plot_rel_res(5)
-    plot_UVB_effect()
+#     plot_rel_res(5)
+#     plot_UVB_effect()
     plot_all_rho()
 #     plot_cutoff()
     #Make a plot of the column density functions.
@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
     for zz in (1,3,5):
         plot_rel_cddf(zz)
-#         plot_halohist(zz)
+        plot_halohist(zz)
 #         plot_halohist(zz, False)
 
     #Make a plot of the effect of AGN on the cddf.
