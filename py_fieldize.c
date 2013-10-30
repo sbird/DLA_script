@@ -66,15 +66,15 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 
 PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 {
-    PyArrayObject *sub_cofm, *sub_mass, *sub_radii, *xcoords, *ycoords, *dla_cross;
+    PyArrayObject *sub_cofm, *sub_mass, *sub_radii, *xcoords, *ycoords, *zcoords, *dla_cross;
     double box;
-    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_mass, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &dla_cross) )
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_mass, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
     {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_mass, sub_radii, xcells, ycells, dla_cross\n");
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_mass, sub_radii, xcells, ycells, zcells, dla_cross\n");
         return NULL;
     }
     if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_mass, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE) 
-            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
+            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
     {
           PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double.\n");
           return NULL;
@@ -88,49 +88,39 @@ PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     {
         const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
         const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
+        const double zcoord =  (*(double *) PyArray_GETPTR1(zcoords,i));
         // Largest halo where the particle is within r_vir.
         int nearest_halo=-1;
-        int second_halo = -1;
         for (int j=0; j < PyArray_DIM(sub_cofm,0); j++)
         {
             double xpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,0) - xcoord);
             double ypos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,1) - ycoord);
+            double zpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,2) - zcoord);
             //Periodic wrapping
             if (xpos > box/2.)
                 xpos = box-xpos;
             if (ypos > box/2.)
                 ypos = box-ypos;
+            if (zpos > box/2.)
+                zpos = box-zpos;
+
             //Distance
-            double dd = xpos*xpos+ ypos*ypos;
+            double dd = xpos*xpos + ypos*ypos + zpos*zpos;
             //Is it close?
             double rvir = pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2);
             if (dd < rvir) {
+                if (nearest_halo > 0)
+                  printf("This should never happen!: part %ld halo %d\n",i,j);
                 //Is it a larger mass than the current halo?
                 if (nearest_halo < 0 || (*(double *) PyArray_GETPTR1(sub_mass,j) > *(double *) PyArray_GETPTR1(sub_mass,nearest_halo)) ) {
                     nearest_halo = j;
                 }
-            }
-            else if (dd < 2*rvir) {
-                //If this is the first halo found where the particle is within 2 rvir,
-                //assign the particle to this halo.
-                //If there is another halo found like this, mark the particle as of ambiguous
-                //ownership, and thus a field DLA.
-                if (second_halo == -1)
-                    second_halo = j;
-                else if (second_halo > 0)
-                    second_halo = -2;
             }
         }
         if (nearest_halo >= 0){
             #pragma omp critical (_dla_cross_)
             {
                 *(double *) PyArray_GETPTR1(dla_cross,nearest_halo) += 1.;
-            }
-        }
-        else if (second_halo >= 0){
-            #pragma omp critical (_dla_cross_)
-            {
-                *(double *) PyArray_GETPTR1(dla_cross,second_halo) += 1.;
             }
         }
         else{
@@ -142,6 +132,57 @@ PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     return Py_BuildValue("l",field_dlas);
 }
 
+PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
+{
+    PyArrayObject *pos, *mass, *xpos, *ypos, *zpos, *hidist, *himasses;
+    double slabsz, gridsz;
+    if(!PyArg_ParseTuple(args, "O!O!ddO!O!O!O!O!",&PyArray_Type, &pos, &PyArray_Type, &mass, &slabsz, &gridsz, &PyArray_Type, &xpos, &PyArray_Type, &ypos,&PyArray_Type, &zpos, &PyArray_Type, &hidist, &PyArray_Type, &himasses) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses\n");
+        return NULL;
+    }
+    if(check_type(pos, NPY_FLOAT) || check_type(mass, NPY_FLOAT)
+            || check_type(xpos, NPY_DOUBLE) || check_type(ypos, NPY_DOUBLE) || check_type(zpos, NPY_DOUBLE)
+            || check_type(hidist, NPY_DOUBLE) || check_type(himasses, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double except mass and pos.\n");
+          return NULL;
+    }
+
+    const npy_intp npart = PyArray_SIZE(mass);
+    const npy_intp ndlas = PyArray_SIZE(xpos);
+
+    #pragma omp parallel for
+    for (npy_intp i=0; i< npart; i++)
+    {
+        const float xcoord = (*(float *) PyArray_GETPTR2(pos,i,0));
+        const float ycoord = (*(float *) PyArray_GETPTR2(pos,i,1));
+        const float zcoord = (*(float *) PyArray_GETPTR2(pos,i,2));
+        const float mmass = (*(float *) PyArray_GETPTR1(mass,i));
+        // Largest halo where the particle is within r_vir.
+        for (npy_intp j=0; j < ndlas; j++)
+        {
+            double xxdist = fabs(*(double *) PyArray_GETPTR1(xpos, j) - xcoord);
+            double yydist = fabs(*(double *) PyArray_GETPTR1(ypos, j) - ycoord);
+            double zzdist = fabs(*(double *) PyArray_GETPTR1(zpos, j) - zcoord);
+            //Is it in this cell?
+            if (xxdist < slabsz/2. && yydist < gridsz/2. && zzdist < gridsz/2.)
+            {
+                #pragma omp critical (_himass_)
+                {
+                    *(double *) PyArray_GETPTR1(hidist,j) += mmass*xcoord;
+                    *(double *) PyArray_GETPTR1(himasses,j) += mmass;
+                }
+                break;
+            }
+        }
+    }
+    int i=0;
+    return Py_BuildValue("i",&i);
+}
+
+
+
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
@@ -149,8 +190,13 @@ static PyMethodDef __fieldize[] = {
    "    "},
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
-   "    Arguments: sub_cofm, sub_mass, sub_radii, xcells, ycells (output from np.where), dla_cross[nn]"
+   "    Arguments: sub_cofm, sub_mass, sub_radii, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
    "    "},
+  {"_calc_distance_kernel", Py_calc_distance_kernel, METH_VARARGS,
+   "Kernel for finding the HI weighted distance"
+   "    Arguments: pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses"
+   "    "},
+
   {NULL, NULL, 0, NULL},
 };
 

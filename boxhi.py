@@ -5,12 +5,13 @@ import numpy as np
 import os.path as path
 import fieldize
 import numexpr as ne
+import cold_gas
 import halocat
 from halohi import HaloHI,calc_binned_median,calc_binned_percentile
 import hdfsim
 from brokenpowerfit import powerfit
 import h5py
-from _fieldize_priv import _find_halo_kernel
+from _fieldize_priv import _find_halo_kernel,_calc_distance_kernel
 
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.
@@ -303,18 +304,14 @@ class BoxHI(HaloHI):
            If within the virial radius of multiple halos, use the most massive one."""
         (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
         dlaind = self._load_dla_index(dla)
+        #Computing z distances
+        xslab = self._calc_z_distance(dlaind)
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
         field_dla = 0
-        #Treat each slice separately
-        for ss in xrange(self.nhalo):
-            halo_ind = np.where(np.logical_and(halo_cofm[:,0] > ss*self.box/self.nhalo, halo_cofm[:,0] < (ss+1)*self.box/self.nhalo))
-            slab_ind = np.where(dlaind[0] == ss)
-            yslab = (dlaind[1][slab_ind]+0.5)*self.box*1./self.ngrid[0]
-            zslab = (dlaind[2][slab_ind]+0.5)*self.box*1./self.ngrid[0]
-            field_dla += _find_halo_kernel(self.box, halo_cofm[halo_ind,1:][0],halo_mass[halo_ind],vir_mult*halo_radii[halo_ind],yslab, zslab,dla_cross)
-            print "Done slab ",ss,"field_dla = ",field_dla
-
+        yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
+        zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
+        field_dla += _find_halo_kernel(self.box, halo_cofm,halo_mass,vir_mult*halo_radii,xslab, yslab, zslab,dla_cross)
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
@@ -451,3 +448,51 @@ class BoxHI(HaloHI):
         aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],100-sigma)
         return (amed, aloq, aupq)
 
+    def _calc_z_distance(self, dlaind):
+        """Calculate the HI weighted z distance along a sightline.
+           This involves reading particles again."""
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
+        #Positions of DLA. First column is the slab.
+        hidist = np.zeros_like(dlaind[0],dtype=np.float64)
+        himasses = np.zeros_like(hidist)
+        #Positions of DLAs in physical coordinates
+        #When calculating DLAs we integrate over the x direction!
+        gridsz = 1.*self.box/self.ngrid[0]
+        slabsz = 1.*self.box/self.nhalo
+        xpos = (dlaind[0]+0.5)*slabsz
+        ypos = (dlaind[1]+0.5)*gridsz
+        zpos = (dlaind[2]+0.5)*gridsz
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        for ff in files:
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType0"]
+            pos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            hifrac = star.get_reproc_HI(bar)
+            ind = np.where(hifrac > 1e-3)
+            mass = mass[ind]*hifrac[ind]
+            pos = pos[ind,:][0]
+            f.close()
+            #Loop over particles. For each particle,
+            #see if it is near a DLA, and if so, add to the HI distance array for that DLA.
+            _calc_distance_kernel(pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses)
+            #for ii in xrange(np.size(mass)):
+                #xppos = pos[ii,0]
+                #yppos = pos[ii,1]
+                #zppos = pos[ii,2]
+                #nrhalos = np.where(ne.evaluate("(abs(xpos - xppos) < slabsz/2.) & (abs(ypos - yppos) < gridsz/2.) & (abs(zpos-zppos) < gridsz/2.)"))
+                #if np.size(nrhalos) == 0:
+                    #continue
+                #for halo in nrhalos:
+                    #hidist[halo] += mass[ii]*pos[ii,0]
+                    #himasses[halo] += mass[ii]
+            #Explicitly delete some things.
+            del pos
+            del mass
+        assert himass > 0
+        return hidist/himasses
