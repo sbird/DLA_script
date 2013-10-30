@@ -2,6 +2,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #include "fieldize.h"
+#include <map>
 
 /*Check whether the passed array has type typename. Returns 1 if it doesn't, 0 if it does.*/
 int check_type(PyArrayObject * arr, int npy_typename)
@@ -11,7 +12,7 @@ int check_type(PyArrayObject * arr, int npy_typename)
 
 //  int    3*nval arr  nval arr  nval arr   nx*nx arr  int     nval arr  (or 0)
 //['nval','pos',     'radii',    'value',   'field',   'nx',    'weights']
-PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
+extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 {
     PyArrayObject *pos, *radii, *value, *weights;
     int periodic, nx, ret;
@@ -64,7 +65,7 @@ PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
 }
 
 
-PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
+extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 {
     PyArrayObject *sub_cofm, *sub_mass, *sub_radii, *xcoords, *ycoords, *zcoords, *dla_cross;
     double box;
@@ -132,7 +133,7 @@ PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     return Py_BuildValue("l",field_dlas);
 }
 
-PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
+extern "C" PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
 {
     PyArrayObject *pos, *mass, *xpos, *ypos, *zpos, *hidist, *himasses;
     double slabsz, gridsz;
@@ -152,25 +153,34 @@ PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
     const npy_intp npart = PyArray_SIZE(mass);
     const npy_intp ndlas = PyArray_SIZE(xpos);
 
-    #pragma omp parallel for
-    for (npy_intp i=0; i< npart; i++)
+    //Copy the data into a map, which automatically sorts it. I don't really need to do this, 
+    //but it is easier than writing my own iterator class for the python array.
+    std::map<float,int> zvalarr;
+    for (int i=0; i< npart; i++)
     {
-        const float xcoord = (*(float *) PyArray_GETPTR2(pos,i,0));
-        const float ycoord = (*(float *) PyArray_GETPTR2(pos,i,1));
-        const float zcoord = (*(float *) PyArray_GETPTR2(pos,i,2));
-        const float mmass = (*(float *) PyArray_GETPTR1(mass,i));
-        // Largest halo where the particle is within r_vir.
-        for (npy_intp j=0; j < ndlas; j++)
+        zvalarr[*(float *) PyArray_GETPTR2(pos,i,2)] = i;
+    }
+    #pragma omp parallel for
+    // Largest halo where the particle is within r_vir.
+    for (npy_intp j=0; j < ndlas; j++)
+    {
+        double xxdla = *(double *) PyArray_GETPTR1(xpos, j);
+        double yydla = *(double *) PyArray_GETPTR1(ypos, j);
+        double zzdla = *(double *) PyArray_GETPTR1(zpos, j);
+        std::map<float,int>::iterator lower = zvalarr.lower_bound(zzdla-gridsz/2.);
+        std::map<float,int>::iterator upper = zvalarr.upper_bound(zzdla+gridsz/2.);
+        for (std::map<float,int>::iterator it=lower; it != upper; ++it)
         {
-            double xxdist = fabs(*(double *) PyArray_GETPTR1(xpos, j) - xcoord);
-            double yydist = fabs(*(double *) PyArray_GETPTR1(ypos, j) - ycoord);
-            double zzdist = fabs(*(double *) PyArray_GETPTR1(zpos, j) - zcoord);
+            const double xxdist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,0)-xxdla);
+            const double yydist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,1)-yydla);
+            const double zzdist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,2)-zzdla);
             //Is it in this cell?
             if (xxdist < slabsz/2. && yydist < gridsz/2. && zzdist < gridsz/2.)
             {
                 #pragma omp critical (_himass_)
                 {
-                    *(double *) PyArray_GETPTR1(hidist,j) += mmass*xcoord;
+                    const float mmass = (*(float *) PyArray_GETPTR1(mass,it->second));
+                    *(double *) PyArray_GETPTR1(hidist,j) += mmass*( *(float *) PyArray_GETPTR2(pos,it->second,0));
                     *(double *) PyArray_GETPTR1(himasses,j) += mmass;
                 }
                 break;
