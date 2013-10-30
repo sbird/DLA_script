@@ -477,20 +477,11 @@ class BoxHI(HaloHI):
             ind = np.where(hifrac > 1e-3)
             mass = mass[ind]*hifrac[ind]
             pos = pos[ind,:][0]
+            print np.shape(pos)
             f.close()
             #Loop over particles. For each particle,
             #see if it is near a DLA, and if so, add to the HI distance array for that DLA.
             _calc_distance_kernel(pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses)
-            #for ii in xrange(np.size(mass)):
-                #xppos = pos[ii,0]
-                #yppos = pos[ii,1]
-                #zppos = pos[ii,2]
-                #nrhalos = np.where(ne.evaluate("(abs(xpos - xppos) < slabsz/2.) & (abs(ypos - yppos) < gridsz/2.) & (abs(zpos-zppos) < gridsz/2.)"))
-                #if np.size(nrhalos) == 0:
-                    #continue
-                #for halo in nrhalos:
-                    #hidist[halo] += mass[ii]*pos[ii,0]
-                    #himasses[halo] += mass[ii]
             #Explicitly delete some things.
             del pos
             del mass

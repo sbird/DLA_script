@@ -19,10 +19,10 @@ endif
 
 #Are we using gcc or icc?
 ifeq (icc,$(findstring icc,${CC}))
-  CFLAGS +=-O2 -g -c -w1 -openmp -fpic -std=gnu99
+  CFLAGS +=-O2 -g -c -w1 -openmp -fpic
   LINK +=${CXX} -openmp
 else
-  CFLAGS +=-O2 -g -c -Wall -fopenmp -fPIC -std=gnu99
+  CFLAGS +=-O2 -g -c -Wall -fopenmp -fPIC
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif
@@ -35,6 +35,9 @@ clean: _fieldize_priv.so
 
 %.o: %.c
 	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
+
+%.o: %.cpp
+	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $^ -o $@
 
 _fieldize_priv.so: py_fieldize.o SPH_fieldize.o
 	$(LINK) $(LFLAGS) -shared $^ -o $@
