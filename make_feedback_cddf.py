@@ -129,6 +129,11 @@ def plot_halohist(snap, dla=True):
         plt.figure(1)
         if sim != 2 and sim != 4:
             ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
+        if sim == 5:
+            plt.figure(35)
+            ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim],plot_error=True)
+            plt.figure(34)
+            ahalo.plot_sigma_DLA()
         plt.figure()
         if dla:
             print "sim:",sim,"snap: ",snap
@@ -159,6 +164,20 @@ def plot_halohist(snap, dla=True):
     plt.xlim(1e9,3e12)
     plt.ylim(0,0.8)
     save_figure(path.join(outdir, "halos/cosmo_halohist_error_z"+str(snap)))
+    plt.clf()
+    plt.figure(34)
+    small = myname.get_name(5, True,box=10)
+    ahalo = dp.PrettyBox(small, snap, nslice=10, label=labels[5])
+    ahalo.plot_sigma_DLA(color="blue", color2="blue")
+    plt.ylim(1,1e5)
+    plt.xlim(1e8,1e12)
+    save_figure(path.join(outdir, "halos/cosmo5_10_sigmaDLA_z"+str(snap)))
+    plt.clf()
+    plt.figure(35)
+    ahalo.plot_halo_hist(dla=dla,color=colors[0], ls=lss[0],plot_error=True)
+    plt.ylim(0,1)
+    plt.xlim(1e8,3e12)
+    save_figure(path.join(outdir, "halos/cosmo_10_halohist_z"+str(snap)))
     plt.clf()
 
 def get_rhohi_dndx(sim, ff=True, box=25):
