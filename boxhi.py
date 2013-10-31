@@ -11,6 +11,7 @@ from halohi import HaloHI,calc_binned_median,calc_binned_percentile
 import hdfsim
 from brokenpowerfit import powerfit
 import h5py
+import hsml
 from _fieldize_priv import _find_halo_kernel,_calc_distance_kernel
 
 class BoxHI(HaloHI):
@@ -150,6 +151,54 @@ class BoxHI(HaloHI):
             massg=self.UnitMass_in_g/self.hubble*self.hy_mass/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_star_grid[ii]*=(massg/epsilon**2)
+        return
+
+    def set_zdir_grid(self, zdir_grid, gas=False, start=0):
+        """Set up the grid around each halo where the HI is calculated.
+        """
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
+        self.once=True
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+#         restart = 10
+        end = np.min([np.size(files),self.end])
+        for xx in xrange(start, end):
+            ff = files[xx]
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])*ipos[:,2]
+            if not gas:
+                #Hydrogen mass fraction
+                try:
+                    mass *= np.array(bar["GFM_Metals"][:,0])
+                except KeyError:
+                    mass *= self.hy_mass
+                mass *= star.get_reproc_HI(bar)
+            smooth = hsml.get_smooth_length(bar)
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,zdir_grid) for ii in xrange(0,self.nhalo)]
+            f.close()
+            #Explicitly delete some things.
+            del ipos
+            del mass
+            del smooth
+#             if xx % restart == 0 or xx == end-1:
+#                 self.save_tmp(xx)
+
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            zdir_grid[ii]*=(massg/epsilon**2)
+            zdir_grid[ii]+=0.1
+            np.log10(zdir_grid[ii],zdir_grid[ii])
         return
 
     def absorption_distance(self):
@@ -303,9 +352,12 @@ class BoxHI(HaloHI):
            each halo resolved with at least minpart particles.
            If within the virial radius of multiple halos, use the most massive one."""
         (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
-        dlaind = self._load_dla_index(dla)
         #Computing z distances
-        xslab = self._calc_z_distance(dlaind)
+        zdir_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.set_zdir_grid(zdir_grid)
+        dlaind = self._load_dla_index(dla)
+        xslab = np.array([zdir_grid[dlaind]/self._load_dla_val(dla)])
+        del zdir_grid
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
         field_dla = 0
@@ -329,6 +381,19 @@ class BoxHI(HaloHI):
             ind = (grp["LLS"][0,:],grp["LLS"][1,:],grp["LLS"][2,:])
         f.close()
         return ind
+
+    def _load_dla_val(self, dla=True):
+        """Load the values of DLAs or LLS from savefile"""
+        #Load the DLA/LLS positions
+        f=h5py.File(self.savefile,'r')
+        grp = f["abslists"]
+        #This is needed to make the dimensions right
+        if dla:
+            nhi = grp["DLA_val"]
+        else:
+            nhi = grp["LLS_val"]
+        f.close()
+        return nhi
 
     def _load_halo(self, minpart=400):
         """Load a halo catalogue"""
@@ -485,4 +550,6 @@ class BoxHI(HaloHI):
             #Explicitly delete some things.
             del pos
             del mass
+        assert np.all(himasses > 0)
+        himasses[np.where(himasses == 0)] = 1
         return hidist/himasses

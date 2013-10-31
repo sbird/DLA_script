@@ -160,16 +160,18 @@ extern "C" PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
     {
         zvalarr[*(float *) PyArray_GETPTR2(pos,i,2)] = i;
     }
-    #pragma omp parallel for
+//     #pragma omp parallel for
     // Largest halo where the particle is within r_vir.
     for (npy_intp j=0; j < ndlas; j++)
     {
         double xxdla = *(double *) PyArray_GETPTR1(xpos, j);
         double yydla = *(double *) PyArray_GETPTR1(ypos, j);
         double zzdla = *(double *) PyArray_GETPTR1(zpos, j);
-        std::map<float,int>::iterator lower = zvalarr.lower_bound(zzdla-gridsz/2.);
-        std::map<float,int>::iterator upper = zvalarr.upper_bound(zzdla+gridsz/2.);
-        for (std::map<float,int>::iterator it=lower; it != upper; ++it)
+        std::map<float,int>::const_iterator lower = zvalarr.lower_bound(zzdla-gridsz/2.);
+        std::map<float,int>::const_iterator upper = zvalarr.lower_bound(zzdla+gridsz/2.);
+//         if(lower==upper)
+//             printf("zzdla %g gridsz %g lower %g upper %g \n",zzdla, gridsz/2.,lower->first, upper->first);
+        for (std::map<float,int>::const_iterator it=lower; it != upper; ++it)
         {
             const double xxdist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,0)-xxdla);
             const double yydist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,1)-yydla);
