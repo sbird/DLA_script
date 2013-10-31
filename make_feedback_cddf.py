@@ -20,7 +20,7 @@ from save_figure import save_figure
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"yellow", 5:"orange", 7:"blue", 6:"grey"}
+colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
 labels = {0:"REF",1:"HVEL", 2:"HVNAGN",3:"NOSN", 4:"NOAGN", 5:"MVEL",6:"METAL",7:"UVB"}
 
@@ -123,11 +123,12 @@ def plot_covering_frac(sim, snap, ff=True):
 
 def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
-    for sim in (0,1,3,5,7):   #xrange(8):
+    for sim in (0,1,2,3,4,5,7):   #xrange(8):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
         plt.figure(1)
-        ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
+        if sim != 2 and sim != 4:
+            ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
         plt.figure()
         if dla:
             print "sim:",sim,"snap: ",snap
@@ -145,9 +146,19 @@ def plot_halohist(snap, dla=True):
     plt.figure(1)
     plt.legend(loc=2)
     if dla:
+        plt.xlim(1e9,3e12)
         save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
     else:
         save_figure(path.join(outdir, "halos/cosmo_halohist_lls_z"+str(snap)))
+    plt.clf()
+    halo = myname.get_name(7, True)
+    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[7])
+    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls=":",plot_error=True)
+    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls="--",plot_error=True, errfac=27.)
+    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls="-",plot_error=False)
+    plt.xlim(1e9,3e12)
+    plt.ylim(0,0.8)
+    save_figure(path.join(outdir, "halos/cosmo_halohist_error_z"+str(snap)))
     plt.clf()
 
 def get_rhohi_dndx(sim, ff=True, box=25):
@@ -348,9 +359,8 @@ if __name__ == "__main__":
     plot_all_rho()
 #     plot_cutoff()
     #Make a plot of the column density functions.
-    plot_cddf_a_halo(3, 3)
-    for ss in (0,1,5,7):   #xrange(6):
-        plot_cddf_a_halo(ss, 4)
+    for ss in (0,1,3,5,7):   #xrange(6):
+        plot_cddf_a_halo(ss, 3)
 
     plt.legend(loc=3)
     dla_data.column_density_data()
@@ -369,7 +379,7 @@ if __name__ == "__main__":
             else:
                 plot_cddf_a_halo(ss, zz,moment=True)
 
-        if zz==4 :
+        if zz==3 :
             dla_data.column_density_data(moment=True)
 
         plt.legend(loc=3)

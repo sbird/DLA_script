@@ -304,7 +304,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=20, color="blue",ls="-",dla = True, minpart = 0, dist=1.):
+    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=15, color="blue",ls="-",dla = True, minpart = 0, dist=1., plot_error=False, errfac=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
         if dla:
@@ -318,8 +318,14 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
+        #For error bars
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
-        plt.semilogx(xbins,hist, color=color, ls=ls, label=self.label)
+        nzind = np.where(hist > 0)
+        plt.semilogx(xbins[nzind],hist[nzind], color=color, ls=ls, label=self.label)
+        if plot_error:
+            (nn,_)=np.histogram(np.log10(self.real_sub_mass[ind]),bins=np.log10(massbins))
+            plt.semilogx(xbins[nzind],hist[nzind]*(1+1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
+            plt.semilogx(xbins[nzind],hist[nzind]*(1-1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
         plt.xlabel(r"Halo Mass ($M_\odot$)")
 
     def _get_sigma_DLA(self, minpart, dist):

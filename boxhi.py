@@ -485,5 +485,4 @@ class BoxHI(HaloHI):
             #Explicitly delete some things.
             del pos
             del mass
-        assert himass > 0
         return hidist/himasses
