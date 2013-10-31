@@ -172,14 +172,17 @@ class BoxHI(HaloHI):
             ipos=np.array(bar["Coordinates"])
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])*ipos[:,2]
-            if not gas:
-                #Hydrogen mass fraction
-                try:
-                    mass *= np.array(bar["GFM_Metals"][:,0])
-                except KeyError:
-                    mass *= self.hy_mass
-                mass *= star.get_reproc_HI(bar)
-            smooth = hsml.get_smooth_length(bar)
+            #Hydrogen mass fraction
+            try:
+                mass *= np.array(bar["GFM_Metals"][:,0])
+            except KeyError:
+                mass *= self.hy_mass
+            nhi = star.get_reproc_HI(bar)
+            ind = np.where(nhi > 1.e-3)
+            mass = mass[ind]
+            ipos = ipos[ind,:][0]
+
+            smooth = hsml.get_smooth_length(bar)[ind]
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,zdir_grid) for ii in xrange(0,self.nhalo)]
             f.close()
             #Explicitly delete some things.
