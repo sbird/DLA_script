@@ -34,7 +34,7 @@ clean: _fieldize_priv.so
 	rm *.o $^
 
 %.o: %.c
-	$(CC) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
+	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
