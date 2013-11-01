@@ -171,7 +171,7 @@ class BoxHI(HaloHI):
             bar=f["PartType0"]
             ipos=np.array(bar["Coordinates"])
             #Get HI mass in internal units
-            mass=np.array(bar["Masses"])*ipos[:,2]
+            mass=np.array(bar["Masses"])
             #Hydrogen mass fraction
             try:
                 mass *= np.array(bar["GFM_Metals"][:,0])
@@ -181,6 +181,9 @@ class BoxHI(HaloHI):
             ind = np.where(nhi > 1.e-3)
             mass = mass[ind]*nhi[ind]
             ipos = ipos[ind,:][0]
+            #Get x * m for the weighted z direction
+            if not gas:
+                mass*=ipos[:,0]
 
             smooth = hsml.get_smooth_length(bar)[ind]
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,zdir_grid) for ii in xrange(0,self.nhalo)]
@@ -357,6 +360,10 @@ class BoxHI(HaloHI):
         self.set_zdir_grid(zdir_grid)
         dlaind = self._load_dla_index(dla)
         xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
+        #Check that each projected z dir is within the slab.
+        for slab in xrange(0,self.nhalo):
+            iii = np.where(dlaind[0] == slab)
+            assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
         del zdir_grid
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
