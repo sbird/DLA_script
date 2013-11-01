@@ -112,16 +112,13 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
                 zpos = box-zpos;
 
             //Distance
-            double dd = xpos*xpos + ypos*ypos + zpos*zpos;
+            const double dd = xpos*xpos + ypos*ypos + zpos*zpos;
             //Is it close?
-            double rvir = pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2);
-            if (dd < rvir) {
-                if (nearest_halo > 0)
-                  printf("This should never happen!: part %ld halo %d\n",i,j);
-                //Is it a larger mass than the current halo?
-                if (nearest_halo < 0 || (*(double *) PyArray_GETPTR1(sub_mass,j) > *(double *) PyArray_GETPTR1(sub_mass,nearest_halo)) ) {
+            const double rvir = pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2);
+            //We will only be within the virial radius for one halo
+            if (dd <= rvir) {
                     nearest_halo = j;
-                }
+                    break;
             }
         }
         if (nearest_halo >= 0){
