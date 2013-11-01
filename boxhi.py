@@ -179,7 +179,7 @@ class BoxHI(HaloHI):
                 mass *= self.hy_mass
             nhi = star.get_reproc_HI(bar)
             ind = np.where(nhi > 1.e-3)
-            mass = mass[ind]
+            mass = mass[ind]*nhi[ind]
             ipos = ipos[ind,:][0]
 
             smooth = hsml.get_smooth_length(bar)[ind]
@@ -359,7 +359,7 @@ class BoxHI(HaloHI):
         zdir_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
         self.set_zdir_grid(zdir_grid)
         dlaind = self._load_dla_index(dla)
-        xslab = np.array([zdir_grid[dlaind]/self._load_dla_val(dla)])
+        xslab = 10**np.array([zdir_grid[dlaind]-self._load_dla_val(dla)])
         del zdir_grid
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
@@ -392,9 +392,9 @@ class BoxHI(HaloHI):
         grp = f["abslists"]
         #This is needed to make the dimensions right
         if dla:
-            nhi = grp["DLA_val"]
+            nhi = np.array(grp["DLA_val"])
         else:
-            nhi = grp["LLS_val"]
+            nhi = np.array(grp["LLS_val"])
         f.close()
         return nhi
 
