@@ -51,7 +51,7 @@ class BoxHI(HaloHI):
             #self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
             #Grid size constant
             self.ngrid=ngrid*np.ones(self.nhalo)
-            self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            self.sub_nHI_grid=np.zeros([self.nhalo, ngrid,ngrid])
             try:
                 thisstart = self.load_tmp()
             except IOError:
@@ -125,7 +125,7 @@ class BoxHI(HaloHI):
     def set_stellar_grid(self):
         """Set up a grid around each halo containing the stellar column density
         """
-        self.sub_star_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        self.sub_star_grid=np.zeros([self.nhalo, self.ngrid[0],self.ngrid[0]])
         self.once=True
         #Now grid the HI for each halo
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
@@ -353,7 +353,7 @@ class BoxHI(HaloHI):
            If within the virial radius of multiple halos, use the most massive one."""
         (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
         #Computing z distances
-        zdir_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+        zdir_grid=np.zeros([self.nhalo, self.ngrid[0],self.ngrid[0]])
         self.set_zdir_grid(zdir_grid)
         dlaind = self._load_dla_index(dla)
         xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
