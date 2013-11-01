@@ -81,6 +81,12 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
           return NULL;
     }
 
+    if(PyArray_NDIM(xcoords) != 1 || PyArray_NDIM(ycoords) != 1 || PyArray_NDIM(zcoords) != 1)
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input DLA coordinates are not 1D\n");
+          return NULL;
+    }
+
     const npy_intp ncells = PyArray_SIZE(xcoords);
     long int field_dlas = 0;
 

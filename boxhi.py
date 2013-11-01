@@ -192,16 +192,13 @@ class BoxHI(HaloHI):
 #             if xx % restart == 0 or xx == end-1:
 #                 self.save_tmp(xx)
 
-        #Deal with zeros: 0.1 will not even register for things at 1e17.
-        #Also fix the units:
+        #Fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
             massg=self.UnitMass_in_g/self.hubble/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             zdir_grid[ii]*=(massg/epsilon**2)
-            zdir_grid[ii]+=0.1
-            np.log10(zdir_grid[ii],zdir_grid[ii])
         return
 
     def absorption_distance(self):
@@ -359,7 +356,7 @@ class BoxHI(HaloHI):
         zdir_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
         self.set_zdir_grid(zdir_grid)
         dlaind = self._load_dla_index(dla)
-        xslab = 10**np.array([zdir_grid[dlaind]-self._load_dla_val(dla)])
+        xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
         del zdir_grid
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
