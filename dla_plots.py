@@ -274,18 +274,18 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
         self.label = label
 
-    def plot_sigma_DLA(self, minpart = 0, dist=1.):
+    def plot_sigma_DLA(self, minpart = 0, dist=1., color=acol, color2="#cd5c5c"):
         """Plot sigma_DLA"""
         #Load defaults from file
         self._get_sigma_DLA(minpart, dist)
-        self.plot_sigma_DLA_median()
-        self.plot_sigma_DLA_model()
+        self.plot_sigma_DLA_median(color=color)
+        self.plot_sigma_DLA_model(color=color)
         print "field dlas:",self.field_dla
         ind = np.where(self.sigDLA > 0)
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
-        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=("#cd5c5c",acol2),alpha=0.4)
+        plt.contourf(10**xbins,10**ybins,hist.T,[1,1000],colors=(color2,color),alpha=0.4)
         plt.yscale('log')
         plt.xscale('log')
         plt.xlabel(r"Halo Mass ($M_\odot$)")
@@ -354,7 +354,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         else:
             (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, minpart, dist)
 
-    def plot_sigma_DLA_model(self):
+    def plot_sigma_DLA_model(self,color="red"):
         """Plot my analytic model for the DLAs"""
         mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=100)
         #Plot Analytic Fit
@@ -363,9 +363,9 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         fit=(ap[2]*mdiff+ap[1])
 #         asfit=broken_fit(ap, np.log10(mass))
         print "Fit: ",ap
-        plt.loglog(mass,10**fit,color="red",ls="-",lw=3)
+        plt.loglog(mass,10**fit,color=color,ls="-",lw=3)
 
-    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.):
+    def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.,color=acol):
         """Plot the median and scatter of sigma_DLA against mass."""
         mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=7)
         abin_mass = np.empty(np.size(mass)-1)
@@ -374,7 +374,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #To avoid zeros
         aloq-=1e-2
         #Plot median sigma DLA
-        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=acol,ms=15,elinewidth=4)
+        plt.errorbar(abin_mass, amed,yerr=[aloq,aupq],fmt='^',color=color,ms=15,elinewidth=4)
 
     def plot_dla_metallicity(self, nbins=40,color="blue", ls="-"):
         """Plot the distribution of DLA metallicities"""
