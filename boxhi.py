@@ -330,11 +330,13 @@ class BoxHI(HaloHI):
         try:
             del mgrp["sub_mass"]
             del mgrp["sigDLA"]
+            del mgrp["DLAzdir"]
         except KeyError:
             pass
         mgrp.attrs["field_dla"] = self.field_dla
         mgrp.create_dataset("sub_mass",data=self.real_sub_mass)
         mgrp.create_dataset("sigDLA",data=self.sigDLA)
+        mgrp.create_dataset("DLAzdir",data=self.dla_zdir)
         f.close()
 
     def load_sigDLA(self):
@@ -365,12 +367,13 @@ class BoxHI(HaloHI):
             iii = np.where(dlaind[0] == slab)
             assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
         del zdir_grid
+        self.dla_zdir = xslab
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
-        field_dla = 0
         yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
         zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
-        field_dla += _find_halo_kernel(self.box, halo_cofm,halo_mass,vir_mult*halo_radii,xslab, yslab, zslab,dla_cross)
+        print "Starting find_halo_kernel"
+        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,xslab, yslab, zslab,dla_cross)
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2

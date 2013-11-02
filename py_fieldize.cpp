@@ -64,42 +64,10 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     return for_return;
 }
 
-
-extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
+//Test whether a particle with position (xcoord, ycoord, zcoord)
+//is within the virial radius of halo j.
+inline bool is_halo_close(const int j, const double xcoord, const double ycoord, const double zcoord, const PyArrayObject * sub_cofm, const PyArrayObject * sub_radii, const double box)
 {
-    PyArrayObject *sub_cofm, *sub_mass, *sub_radii, *xcoords, *ycoords, *zcoords, *dla_cross;
-    double box;
-    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_mass, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
-    {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_mass, sub_radii, xcells, ycells, zcells, dla_cross\n");
-        return NULL;
-    }
-    if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_mass, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE) 
-            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
-    {
-          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double.\n");
-          return NULL;
-    }
-
-    if(PyArray_NDIM(xcoords) != 1 || PyArray_NDIM(ycoords) != 1 || PyArray_NDIM(zcoords) != 1)
-    {
-          PyErr_SetString(PyExc_AttributeError, "Input DLA coordinates are not 1D\n");
-          return NULL;
-    }
-
-    const npy_intp ncells = PyArray_SIZE(xcoords);
-    long int field_dlas = 0;
-
-    #pragma omp parallel for
-    for (npy_intp i=0; i< ncells; i++)
-    {
-        const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
-        const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
-        const double zcoord =  (*(double *) PyArray_GETPTR1(zcoords,i));
-        // Largest halo where the particle is within r_vir.
-        int nearest_halo=-1;
-        for (int j=0; j < PyArray_DIM(sub_cofm,0); j++)
-        {
             double xpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,0) - xcoord);
             double ypos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,1) - ycoord);
             double zpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,2) - zcoord);
@@ -117,8 +85,80 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
             const double rvir = pow(*(double *) PyArray_GETPTR1(sub_radii,j), 2);
             //We will only be within the virial radius for one halo
             if (dd <= rvir) {
-                    nearest_halo = j;
+                return true;
+            }
+            else
+                return false;
+}
+
+extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
+{
+    PyArrayObject *sub_cofm, *sub_radii, *xcoords, *ycoords, *zcoords, *dla_cross;
+    double box;
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, xcells, ycells, zcells, dla_cross\n");
+        return NULL;
+    }
+    if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE)
+            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double.\n");
+          return NULL;
+    }
+
+    if(PyArray_NDIM(xcoords) != 1 || PyArray_NDIM(ycoords) != 1 || PyArray_NDIM(zcoords) != 1)
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input DLA coordinates are not 1D\n");
+          return NULL;
+    }
+
+    const npy_intp ncells = PyArray_SIZE(xcoords);
+    const npy_intp nhalo = PyArray_DIM(sub_cofm,0);
+    long int field_dlas = 0;
+    //Store index in a map as the easiest way of sorting it
+    std::map<const double, const int> xlowerbound;
+    //Map contains the lowest x value that can still be within the virial radius of the halo
+    for (int i=0; i< nhalo; ++i){
+        const double xmin = *(double *) PyArray_GETPTR2(sub_cofm,i,0)- *(double *) PyArray_GETPTR1(sub_radii,i);
+        xlowerbound.insert(std::pair<const double, const int>(xmin,i));
+    }
+
+    #pragma omp parallel for
+    for (npy_intp i=0; i< ncells; i++)
+    {
+        const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
+        const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
+        const double zcoord =  (*(double *) PyArray_GETPTR1(zcoords,i));
+        //First item in the map not less than xcoord:
+        // So this is first value s.t. halo - r > xx
+        // We want to consider all values earlier than this, which will have xx > halo - r
+        std::map<const double,const int>::const_iterator upper = xlowerbound.lower_bound(xcoord);
+
+        // Largest halo where the particle is within r_vir.
+        int nearest_halo=-1;
+        const std::map<const double,const int>::const_iterator bottom = (--xlowerbound.begin());
+        const std::map<const double,const int>::const_iterator top = (--xlowerbound.end());
+
+        for (std::map<const double,const int>::const_iterator it = upper; it != bottom; --it)
+        {
+            if (is_halo_close(it->second, xcoord, ycoord, zcoord, sub_cofm, sub_radii, box)) {
+//                 if(nearest_halo > 0)
+//                     printf("This should never happen!\n");
+                nearest_halo = it->second;
+                break;
+            }
+        }
+        //Continue from the other end of the range, in case of periodicity
+        if (nearest_halo < 0){
+            for (std::map<const double,const int>::const_iterator it = top; it != upper; --it)
+            {
+                if (is_halo_close(it->second, xcoord, ycoord, zcoord, sub_cofm, sub_radii, box)) {
+//                     if(nearest_halo > 0)
+//                         printf("This should never happen!\n");
+                    nearest_halo = it->second;
                     break;
+                }
             }
         }
         if (nearest_halo >= 0){
@@ -205,7 +245,7 @@ static PyMethodDef __fieldize[] = {
    "    "},
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
-   "    Arguments: sub_cofm, sub_mass, sub_radii, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
+   "    Arguments: sub_cofm, sub_radii, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
    "    "},
   {"_calc_distance_kernel", Py_calc_distance_kernel, METH_VARARGS,
    "Kernel for finding the HI weighted distance"
