@@ -304,20 +304,20 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.yscale('log')
         plt.xscale('log')
 
-    def plot_halo_hist(self, Mmin=1e9, Mmax=8e12, nbins=15, color="blue",ls="-",dla = True, minpart = 0, dist=1., plot_error=False, errfac=1.):
+    def plot_halo_hist(self, Mmin=1e8, Mmax=8e12, nbins=20, color="blue",ls="-",dla = True, minpart = 0, dist=2., plot_error=False, errfac=1.):
         """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
            of DLA cells associated with halos in this mass bin"""
         if dla:
             self._get_sigma_DLA(minpart, dist)
             ind = np.where(self.sigDLA > 0)
-            sigs = self.sigDLA[ind]
+            sigs = self.sigDLA[ind]/1e6
         else:
             self._get_sigma_LLS(minpart, dist)
             ind = np.where(self.sigLLS > 0)
-            sigs = self.sigLLS[ind]
+            sigs = self.sigLLS[ind]/1e6
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
-        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=True)
+        (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=False)
         #For error bars
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         nzind = np.where(hist > 0)
@@ -330,7 +330,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""
-        if minpart == 0 and dist == 1.:
+        if minpart == 0 and dist == 2.:
             try:
                 self.sigDLA
             except AttributeError:
@@ -343,7 +343,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def _get_sigma_LLS(self, minpart, dist):
         """Helper for above to correctly populate sigLLS, from a savefile if possible"""
-        if minpart == 0 and dist == 1.:
+        if minpart == 0 and dist == 2.:
             try:
                 self.sigLLS
             except AttributeError:
