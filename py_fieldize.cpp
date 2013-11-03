@@ -39,22 +39,24 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     PyArray_FILLWBYTE(pyfield, 0);
     double * field = (double *) PyArray_DATA(pyfield);
     //Copy of field array to store compensated bits for Kahan summation
-#ifndef NO_KAHAN
-    double * comp = (double *) calloc(nx*nx,sizeof(double));
-    if( !comp || !field ){
-#else
-    double * comp = NULL;
     if( !field ){
-#endif
-      PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for field arrays.\n");
+      PyErr_SetString(PyExc_MemoryError, "Passed a null field array!.\n");
       return NULL;
     }
     //Do the work
-    SPH_interpolate worker(field, comp, nx, periodic);
+#ifdef NO_KAHAN
+    SPH_interpolate worker(field, nx, periodic);
     ret = worker.do_work(pos, radii, value, weights, nval);
-    if (comp)
-        free(comp);
-
+#else
+    try {
+        Kahan_SPH_interpolate worker(field, nx, periodic);
+        ret = worker.do_work(pos, radii, value, weights, nval);
+    }
+    catch (std::bad_alloc &) {
+      PyErr_SetString(PyExc_MemoryError, "Could not allocate Kahan compensation array!\n");
+      return NULL;
+    }
+#endif
     if( ret == 1 ){
       PyErr_SetString(PyExc_ValueError, "Massless particle detected!");
       return NULL;
