@@ -154,68 +154,6 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     return Py_BuildValue("l",field_dlas);
 }
 
-extern "C" PyObject * Py_calc_distance_kernel(PyObject *self, PyObject *args)
-{
-    PyArrayObject *pos, *mass, *xpos, *ypos, *zpos, *hidist, *himasses;
-    double slabsz, gridsz;
-    if(!PyArg_ParseTuple(args, "O!O!ddO!O!O!O!O!",&PyArray_Type, &pos, &PyArray_Type, &mass, &slabsz, &gridsz, &PyArray_Type, &xpos, &PyArray_Type, &ypos,&PyArray_Type, &zpos, &PyArray_Type, &hidist, &PyArray_Type, &himasses) )
-    {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses\n");
-        return NULL;
-    }
-    if(check_type(pos, NPY_FLOAT) || check_type(mass, NPY_FLOAT)
-            || check_type(xpos, NPY_DOUBLE) || check_type(ypos, NPY_DOUBLE) || check_type(zpos, NPY_DOUBLE)
-            || check_type(hidist, NPY_DOUBLE) || check_type(himasses, NPY_DOUBLE))
-    {
-          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double except mass and pos.\n");
-          return NULL;
-    }
-
-    const npy_intp npart = PyArray_SIZE(mass);
-    const npy_intp ndlas = PyArray_SIZE(xpos);
-
-    //Copy the data into a map, which automatically sorts it. I don't really need to do this, 
-    //but it is easier than writing my own iterator class for the python array.
-    std::map<float,int> zvalarr;
-    for (int i=0; i< npart; i++)
-    {
-        zvalarr[*(float *) PyArray_GETPTR2(pos,i,2)] = i;
-    }
-//     #pragma omp parallel for
-    // Largest halo where the particle is within r_vir.
-    for (npy_intp j=0; j < ndlas; j++)
-    {
-        double xxdla = *(double *) PyArray_GETPTR1(xpos, j);
-        double yydla = *(double *) PyArray_GETPTR1(ypos, j);
-        double zzdla = *(double *) PyArray_GETPTR1(zpos, j);
-        std::map<float,int>::const_iterator lower = zvalarr.lower_bound(zzdla-gridsz/2.);
-        std::map<float,int>::const_iterator upper = zvalarr.lower_bound(zzdla+gridsz/2.);
-//         if(lower==upper)
-//             printf("zzdla %g gridsz %g lower %g upper %g \n",zzdla, gridsz/2.,lower->first, upper->first);
-        for (std::map<float,int>::const_iterator it=lower; it != upper; ++it)
-        {
-            const double xxdist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,0)-xxdla);
-            const double yydist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,1)-yydla);
-            const double zzdist = fabs(*(float *) PyArray_GETPTR2(pos,it->second,2)-zzdla);
-            //Is it in this cell?
-            if (xxdist < slabsz/2. && yydist < gridsz/2. && zzdist < gridsz/2.)
-            {
-                #pragma omp critical (_himass_)
-                {
-                    const float mmass = (*(float *) PyArray_GETPTR1(mass,it->second));
-                    *(double *) PyArray_GETPTR1(hidist,j) += mmass*( *(float *) PyArray_GETPTR2(pos,it->second,0));
-                    *(double *) PyArray_GETPTR1(himasses,j) += mmass;
-                }
-                break;
-            }
-        }
-    }
-    int i=0;
-    return Py_BuildValue("i",&i);
-}
-
-
-
 static PyMethodDef __fieldize[] = {
   {"_SPH_Fieldize", Py_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
@@ -225,11 +163,6 @@ static PyMethodDef __fieldize[] = {
    "Kernel for populating a field containing the mass of the nearest halo to each point"
    "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
    "    "},
-  {"_calc_distance_kernel", Py_calc_distance_kernel, METH_VARARGS,
-   "Kernel for finding the HI weighted distance"
-   "    Arguments: pos, mass,slabsz, gridsz, xpos, ypos,zpos,hidist, himasses"
-   "    "},
-
   {NULL, NULL, 0, NULL},
 };
 
