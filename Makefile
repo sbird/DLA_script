@@ -38,9 +38,8 @@ all: _fieldize_priv.so
 clean: _fieldize_priv.so
 	rm *.o $^
 
-%.o: %.c
-%.o: %.cpp
-	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
+%.o: %.cpp fieldize.h
+	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $< -o $@
 
 _fieldize_priv.so: py_fieldize.o SPH_fieldize.o
 	$(LINK) $(LFLAGS) -shared $^ -o $@

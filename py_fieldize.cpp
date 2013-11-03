@@ -50,7 +50,8 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
       return NULL;
     }
     //Do the work
-    ret = SPH_interpolate(field, comp, nx, pos, radii, value, weights, nval, periodic);
+    SPH_interpolate worker(field, comp, nx, periodic);
+    ret = worker.do_work(pos, radii, value, weights, nval);
     if (comp)
         free(comp);
 

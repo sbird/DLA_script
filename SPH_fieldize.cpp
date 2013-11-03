@@ -1,6 +1,7 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include <algorithm>
+#include "fieldize.h"
 
 /*Compute the SPH weighting for this cell, using the trapezium rule.
  * rr is the smoothing length, r0 is the distance of the cell from the center*/
@@ -67,7 +68,7 @@ inline void KahanSum(double* sum, double* comp, const double input, const int xo
 /**
  Do the hard work interpolating with an SPH kernel particles handed to us from python.
 */
-int SPH_interpolate(double * field, double * comp, const int nx, PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval, const int periodic)
+int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
 {
     for(int p=0;p<nval;p++){
         //Temp variables
