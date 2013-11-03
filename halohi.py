@@ -359,6 +359,7 @@ class HaloHI:
 
             #if np.size(ind_bc1)>0 or np.size(ind_bc2)>0:
             #    print "Fixed some periodic cells!"
+        return (ipos, ismooth, mHI)
 
     def _convert_interp_units(self, ii, ipos, ismooth):
         """Convert smoothing lengths and positions to grid units"""
@@ -381,7 +382,7 @@ class HaloHI:
                 smooth - Smoothing lengths
                 sub_grid - Grid to add the interpolated data to
         """
-        self._find_particles_near_halo(ii, ipos, ismooth, mHI)
+        (ipos, ismooth, mHI) = self._find_particles_near_halo(ii, ipos, ismooth, mHI)
 
         if np.size(ipos) == 0:
             return
