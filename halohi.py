@@ -326,15 +326,8 @@ class HaloHI:
             np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
-        """Helper function for sub_nHI_grid
-            that puts data arrays loaded from a particular file onto the grid.
-            Arguments:
-                pos - Position array
-                rho - Density array to be interpolated
-                smooth - Smoothing lengths
-                sub_grid - Grid to add the interpolated data to
-        """
+    def _find_particles_near_halo(self, ii, ipos, ismooth, mHI):
+        """Find the particles near a halo, paying attention to periodic box conditions"""
         #Find particles near each halo
         sub_pos=self.sub_cofm[ii]
         grid_radius = self.sub_radii[ii]
@@ -367,20 +360,33 @@ class HaloHI:
             #if np.size(ind_bc1)>0 or np.size(ind_bc2)>0:
             #    print "Fixed some periodic cells!"
 
+    def _convert_interp_units(self, ii, ipos, ismooth):
+        """Convert smoothing lengths and positions to grid units"""
+        #coords in grid units
+        coords=fieldize.convert_centered(ipos-self.sub_cofm[ii],self.ngrid[ii],2*self.sub_radii[ii])
+        #To Convert smoothing lengths to grid coordinates.
+        cellspkpc=(self.ngrid[ii]/(2*self.sub_radii[ii]))
+        if self.once:
+            avgsmth=np.mean(ismooth)
+            print ii," Av. smoothing length is ",avgsmth," kpc/h ",avgsmth*cellspkpc, "grid cells min: ",np.min(ismooth)*cellspkpc
+            self.once=False
+        return (coords, ismooth*cellspkpc)
+
+    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
+        """Helper function for sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        self._find_particles_near_halo(ii, ipos, ismooth, mHI)
+
         if np.size(ipos) == 0:
             return
 
-        #coords in grid units
-        coords=fieldize.convert_centered(ipos-sub_pos,self.ngrid[ii],2*self.sub_radii[ii])
-        #NH0
-        cellspkpc=(self.ngrid[ii]/(2*self.sub_radii[ii]))
-        #Convert smoothing lengths to grid coordinates.
-        ismooth*=cellspkpc
-        if self.once:
-            avgsmth=np.mean(ismooth)
-            print ii," Av. smoothing length is ",avgsmth/cellspkpc," kpc/h ",avgsmth, "grid cells min: ",np.min(ismooth)
-            self.once=False
-        #interpolate the density
+        (coords,ismooth) = self._convert_interp_units(ii, ipos, ismooth)
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights)
         return
 
