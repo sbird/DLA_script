@@ -67,6 +67,55 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     return for_return;
 }
 
+extern "C" PyObject * Py_Discard_SPH_Fieldize(PyObject *self, PyObject *args)
+{
+    PyArrayObject *pos, *radii, *value, *weights, *field_list;
+    int periodic, nx, ret;
+    if(!PyArg_ParseTuple(args, "O!O!O!O!O!ii",&PyArray_Type, &field_list, &PyArray_Type, &pos, &PyArray_Type, &radii, &PyArray_Type, &value, &PyArray_Type, &weights,&periodic, &nx) )
+    {
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use field_list, pos, radii, value, weights periodic=False, nx\n");
+        return NULL;
+    }
+    if(check_type(field_list, NPY_INT) || check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(weights, NPY_DOUBLE))
+    {
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: field_list needs int32, pos, radii and value need float32, weights float64.\n");
+          return NULL;
+    }
+    const npy_intp nval = PyArray_DIM(radii,0);
+    if(nval != PyArray_DIM(value,0) || nval != PyArray_DIM(pos,0))
+    {
+      PyErr_SetString(PyExc_ValueError, "pos, radii and value should have the same length.\n");
+      return NULL;
+    }
+    //Field for the output.
+    npy_intp nlist = PyArray_SIZE(field_list);
+    PyArrayObject * pyfield = (PyArrayObject *) PyArray_SimpleNew(1, &nlist, NPY_DOUBLE);
+    PyArray_FILLWBYTE(pyfield, 0);
+    double * field = (double *) PyArray_DATA(pyfield);
+    //Copy of field array to store compensated bits for Kahan summation
+    if( !field ){
+      PyErr_SetString(PyExc_MemoryError, "Passed a null field array!.\n");
+      return NULL;
+    }
+    //Do the work
+    try {
+        DiscardingSphInterp worker(field, field_list, nx, periodic);
+        ret = worker.do_work(pos, radii, value, weights, nval);
+    }
+    catch (std::bad_alloc &) {
+      PyErr_SetString(PyExc_MemoryError, "Could not allocate Kahan compensation array!\n");
+      return NULL;
+    }
+    if( ret == 1 ){
+      PyErr_SetString(PyExc_ValueError, "Massless particle detected!");
+      return NULL;
+    }
+    //printf("Total high: %d total low: %d (%ld)\n",tothigh, totlow,nval);
+    PyObject * for_return = Py_BuildValue("O",pyfield);
+    Py_DECREF(pyfield);
+    return for_return;
+}
+
 //Test whether a particle with position (xcoord, ycoord, zcoord)
 //is within the virial radius of halo j.
 inline bool is_halo_close(const int j, const double xcoord, const double ycoord, const double zcoord, const PyArrayObject * sub_cofm, const PyArrayObject * sub_radii, const double box)
@@ -165,6 +214,10 @@ static PyMethodDef __fieldize[] = {
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
    "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
+   "    "},
+  {"_Discard_SPH_Fieldize", Py_Discard_SPH_Fieldize, METH_VARARGS,
+   "Interpolate particles onto a grid using SPH interpolation."
+   "    Arguments: pos, radii, value, weights, periodic=T/F, nx"
    "    "},
   {NULL, NULL, 0, NULL},
 };
