@@ -93,11 +93,11 @@ inline bool is_halo_close(const int j, const double xcoord, const double ycoord,
 
 extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 {
-    PyArrayObject *sub_cofm, *sub_radii, *xcoords, *ycoords, *zcoords, *dla_cross;
+    PyArrayObject *sub_cofm, *sub_radii, *sub_mass, *xcoords, *ycoords, *zcoords, *dla_cross;
     double box;
-    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &sub_mass, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
     {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, xcells, ycells, zcells, dla_cross\n");
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells, dla_cross\n");
         return NULL;
     }
     if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE)
@@ -117,11 +117,10 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     const npy_intp nhalo = PyArray_DIM(sub_cofm,0);
     long int field_dlas = 0;
     //Store index in a map as the easiest way of sorting it
-    std::map<const double, const int> xlowerbound;
-    //Map contains the lowest x value that can still be within the virial radius of the halo
+    std::map<const double, const int> sort_mass;
+    //Insert - the mass into the map, so that the largest halo comes first.
     for (int i=0; i< nhalo; ++i){
-        const double xmin = *(double *) PyArray_GETPTR2(sub_cofm,i,0)- *(double *) PyArray_GETPTR1(sub_radii,i);
-        xlowerbound.insert(std::pair<const double, const int>(xmin,i));
+        sort_mass.insert(std::pair<const double, const int>(-1*(*(double *) PyArray_GETPTR1(sub_mass,i)),i));
     }
 
     #pragma omp parallel for
@@ -130,35 +129,14 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
         const double xcoord =  (*(double *) PyArray_GETPTR1(xcoords,i));
         const double ycoord =  (*(double *) PyArray_GETPTR1(ycoords,i));
         const double zcoord =  (*(double *) PyArray_GETPTR1(zcoords,i));
-        //First item in the map not less than xcoord:
-        // So this is first value s.t. halo - r > xx
-        // We want to consider all values earlier than this, which will have xx > halo - r
-        std::map<const double,const int>::const_iterator upper = xlowerbound.lower_bound(xcoord);
 
         // Largest halo where the particle is within r_vir.
         int nearest_halo=-1;
-        const std::map<const double,const int>::const_iterator bottom = (--xlowerbound.begin());
-        const std::map<const double,const int>::const_iterator top = (--xlowerbound.end());
-
-        for (std::map<const double,const int>::const_iterator it = upper; it != bottom; --it)
+        for (std::map<const double,const int>::const_iterator it = sort_mass.begin(); it != sort_mass.end(); ++it)
         {
             if (is_halo_close(it->second, xcoord, ycoord, zcoord, sub_cofm, sub_radii, box)) {
-//                 if(nearest_halo > 0)
-//                     printf("This should never happen!\n");
                 nearest_halo = it->second;
                 break;
-            }
-        }
-        //Continue from the other end of the range, in case of periodicity
-        if (nearest_halo < 0){
-            for (std::map<const double,const int>::const_iterator it = top; it != upper; --it)
-            {
-                if (is_halo_close(it->second, xcoord, ycoord, zcoord, sub_cofm, sub_radii, box)) {
-//                     if(nearest_halo > 0)
-//                         printf("This should never happen!\n");
-                    nearest_halo = it->second;
-                    break;
-                }
             }
         }
         if (nearest_halo >= 0){
@@ -245,7 +223,7 @@ static PyMethodDef __fieldize[] = {
    "    "},
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
-   "    Arguments: sub_cofm, sub_radii, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
+   "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
    "    "},
   {"_calc_distance_kernel", Py_calc_distance_kernel, METH_VARARGS,
    "Kernel for finding the HI weighted distance"

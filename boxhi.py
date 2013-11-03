@@ -321,7 +321,7 @@ class BoxHI(HaloHI):
 
     def save_sigDLA(self):
         """Generate and save sigma_DLA to the savefile"""
-        (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 1.)
+        (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 2.)
         f=h5py.File(self.savefile,'r+')
         try:
             mgrp = f.create_group("CrossSection")
@@ -352,28 +352,33 @@ class BoxHI(HaloHI):
             raise
         f.close()
 
-    def find_cross_section(self, dla=True, minpart=0, vir_mult=1.):
+    def find_cross_section(self, dla=True, minpart=0, vir_mult=1.1):
         """Find the number of DLA cells within dist virial radii of
            each halo resolved with at least minpart particles.
            If within the virial radius of multiple halos, use the most massive one."""
         (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
-        #Computing z distances
-        zdir_grid=np.zeros([self.nhalo, self.ngrid[0],self.ngrid[0]])
-        self.set_zdir_grid(zdir_grid)
         dlaind = self._load_dla_index(dla)
-        xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
-        #Check that each projected z dir is within the slab.
-        for slab in xrange(0,self.nhalo):
-            iii = np.where(dlaind[0] == slab)
-            assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
-        del zdir_grid
+        #Computing z distances
+        f=h5py.File(self.savefile,'r')
+        try:
+            xslab = np.array(f["CrossSection"]["DLAzdir"])
+        except KeyError:
+            zdir_grid=np.zeros([self.nhalo, self.ngrid[0],self.ngrid[0]])
+            self.set_zdir_grid(zdir_grid)
+            xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
+            #Check that each projected z dir is within the slab.
+            for slab in xrange(0,self.nhalo):
+                iii = np.where(dlaind[0] == slab)
+                assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
+            del zdir_grid
+        f.close()
         self.dla_zdir = xslab
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
         yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
         zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
         print "Starting find_halo_kernel"
-        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,xslab, yslab, zslab,dla_cross)
+        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,halo_mass, xslab, yslab, zslab,dla_cross)
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
