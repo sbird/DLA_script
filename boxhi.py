@@ -12,7 +12,7 @@ import hdfsim
 from brokenpowerfit import powerfit
 import h5py
 import hsml
-from _fieldize_priv import _find_halo_kernel,_calc_distance_kernel
+from _fieldize_priv import _find_halo_kernel,_Discard_SPH_Fieldize
 
 class BoxHI(HaloHI):
     """Class for calculating a large grid encompassing the whole simulation.
@@ -153,7 +153,7 @@ class BoxHI(HaloHI):
             self.sub_star_grid[ii]*=(massg/epsilon**2)
         return
 
-    def set_zdir_grid(self, zdir_grid, gas=False, start=0):
+    def set_zdir_grid(self, dlaind):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
@@ -162,9 +162,9 @@ class BoxHI(HaloHI):
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
-#         restart = 10
+        xslab = np.zeros_like(dlaind[0])
         end = np.min([np.size(files),self.end])
-        for xx in xrange(start, end):
+        for xx in xrange(end):
             ff = files[xx]
             f = h5py.File(ff,"r")
             print "Starting file ",ff
@@ -179,30 +179,46 @@ class BoxHI(HaloHI):
                 mass *= self.hy_mass
             nhi = star.get_reproc_HI(bar)
             ind = np.where(nhi > 1.e-3)
-            mass = mass[ind]*nhi[ind]
             ipos = ipos[ind,:][0]
             #Get x * m for the weighted z direction
-            if not gas:
-                mass*=ipos[:,0]
-
+            mass = mass[ind]*nhi[ind]
+            mass*=ipos[:,0]
             smooth = hsml.get_smooth_length(bar)[ind]
-            [self.sub_gridize_single_file(ii,ipos,smooth,mass,zdir_grid) for ii in xrange(0,self.nhalo)]
+            for slab in xrange(self.nhalo):
+                ind = np.where(dlaind[0] == slab)
+                xslab[ind] = self.sub_list_grid_file(slab,ipos,smooth,mass,dlaind[1][ind], dlaind[2][ind])
             f.close()
             #Explicitly delete some things.
             del ipos
             del mass
             del smooth
-#             if xx % restart == 0 or xx == end-1:
-#                 self.save_tmp(xx)
 
         #Fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
-        for ii in xrange(0,self.nhalo):
-            massg=self.UnitMass_in_g/self.hubble/self.protonmass
-            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
-            zdir_grid[ii]*=(massg/epsilon**2)
-        return
+        massg=self.UnitMass_in_g/self.hubble/self.protonmass
+        epsilon=2.*self.sub_radii[0]/(self.ngrid[0])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+        xslab*=(massg/epsilon**2)
+        return xslab
+
+    def sub_list_grid_file(self,ii,ipos,ismooth,mHI,yslab, zslab):
+        """Helper function for sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        self._find_particles_near_halo(ii, ipos, ismooth, mHI)
+
+        if np.size(ipos) == 0:
+            return np.zeros_like(yslab)
+
+        (coords,ismooth) = self._convert_interp_units(ii, ipos, ismooth)
+        slablist = yslab*self.ngrid[0]+zslab
+        xslab = _Discard_SPH_Fieldize(slablist, coords, ismooth, mHI, np.array([0.]),True,self.ngrid[0])
+        return xslab
 
     def absorption_distance(self):
         """Compute X(z), the absorption distance per sightline (eq. 9 of Nagamine et al 2003)
@@ -363,14 +379,12 @@ class BoxHI(HaloHI):
         try:
             xslab = np.array(f["CrossSection"]["DLAzdir"])
         except KeyError:
-            zdir_grid=np.zeros([self.nhalo, self.ngrid[0],self.ngrid[0]])
-            self.set_zdir_grid(zdir_grid)
-            xslab = np.array([zdir_grid[dlaind]/10**self._load_dla_val(dla)])[0]
+            xhimass = self.set_zdir_grid(dlaind)
+            xslab = np.array([xhimass/10**self._load_dla_val(dla)])
             #Check that each projected z dir is within the slab.
             for slab in xrange(0,self.nhalo):
                 iii = np.where(dlaind[0] == slab)
                 assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
-            del zdir_grid
         f.close()
         self.dla_zdir = xslab
         dla_cross = np.zeros_like(halo_mass)
