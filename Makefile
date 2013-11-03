@@ -1,7 +1,12 @@
 #Python include path
 PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
 
-ifeq ($(CC),cc)
+GCCV:=$(shell gcc --version)
+ifeq (/4.8,$(findstring /4.8,${GCCV}))
+	CC = gcc
+	CXX = g++
+endif
+ifeq ($(CXX),cc)
   ICC:=$(shell which icc --tty-only 2>&1)
   #Can we find icc?
   ifeq (/icc,$(findstring /icc,${ICC}))
@@ -18,7 +23,7 @@ ifeq ($(CC),cc)
 endif
 
 #Are we using gcc or icc?
-ifeq (icc,$(findstring icc,${CC}))
+ifeq (icpc,$(findstring icpc,${CXX}))
   CFLAGS +=-O2 -g -c -w1 -openmp -fpic
   LINK +=${CXX} -openmp
 else
@@ -34,8 +39,6 @@ clean: _fieldize_priv.so
 	rm *.o $^
 
 %.o: %.c
-	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
-
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG -DNO_KAHAN $(PYINC) -c $^ -o $@
 
