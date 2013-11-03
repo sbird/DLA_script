@@ -363,7 +363,7 @@ class HaloHI:
     def _convert_interp_units(self, ii, ipos, ismooth):
         """Convert smoothing lengths and positions to grid units"""
         #coords in grid units
-        coords=fieldize.convert_centered(ipos-self.sub_cofm[ii],self.ngrid[ii],2*self.sub_radii[ii])
+        coords=fieldize.convert_centered(ipos-self.sub_cofm[ii].astype('float32'),int(self.ngrid[ii]),2*self.sub_radii[ii])
         #To Convert smoothing lengths to grid coordinates.
         cellspkpc=(self.ngrid[ii]/(2*self.sub_radii[ii]))
         if self.once:

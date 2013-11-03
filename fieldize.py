@@ -38,6 +38,7 @@ def convert_centered(pos, ngrid,box):
         ngrid - dimension of grid
         box - Size of the grid in units of pos
     """
+    ngrid = int(ngrid)
     return pos*(ngrid-1.)/float(box)+(ngrid-1.)/2.
 
 def check_input(pos, field):

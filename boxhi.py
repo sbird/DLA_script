@@ -216,8 +216,8 @@ class BoxHI(HaloHI):
             return np.zeros_like(yslab)
 
         (coords,ismooth) = self._convert_interp_units(ii, ipos, ismooth)
-        slablist = yslab*self.ngrid[0]+zslab
-        xslab = _Discard_SPH_Fieldize(slablist, coords, ismooth, mHI, np.array([0.]),True,self.ngrid[0])
+        slablist = yslab*int(self.ngrid[0])+zslab
+        xslab = _Discard_SPH_Fieldize(slablist, coords, ismooth, mHI, np.array([0.]),True,int(self.ngrid[0]))
         return xslab
 
     def absorption_distance(self):
