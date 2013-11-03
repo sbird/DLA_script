@@ -82,15 +82,8 @@ class BoxHI(HaloHI):
         grp.create_dataset("LLS_val",data=self.sub_nHI_grid[ind_LLS])
         f.close()
 
-    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
-        """Helper function for sub_nHI_grid
-            that puts data arrays loaded from a particular file onto the grid.
-            Arguments:
-                pos - Position array
-                rho - Density array to be interpolated
-                smooth - Smoothing lengths
-                sub_grid - Grid to add the interpolated data to
-        """
+    def _find_particles_in_slab(self,ii,ipos,ismooth, mHI):
+        """Find particles in the slab and convert their units to grid units"""
         #At the moment any particle which is located in the slice is wholly in the slice:
         #no periodicity or smoothing.
         #Gather all particles in this slice
@@ -117,8 +110,18 @@ class BoxHI(HaloHI):
             print ii," Av. smoothing length is ",avgsmth," kpc/h ",avgsmth*cellspkpc, "grid cells min: ",np.min(ismooth)*cellspkpc
             self.once=False
         #Convert smoothing lengths to grid coordinates.
-        ismooth*=cellspkpc
+        return (coords, ismooth*cellspkpc, mHI)
 
+    def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
+        """Helper function for sub_nHI_grid
+            that puts data arrays loaded from a particular file onto the grid.
+            Arguments:
+                pos - Position array
+                rho - Density array to be interpolated
+                smooth - Smoothing lengths
+                sub_grid - Grid to add the interpolated data to
+        """
+        (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
         return
 
@@ -162,7 +165,7 @@ class BoxHI(HaloHI):
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
-        xslab = np.zeros_like(dlaind[0])
+        xslab = np.zeros_like(dlaind[0], dtype=np.float64)
         end = np.min([np.size(files),self.end])
         for xx in xrange(end):
             ff = files[xx]
@@ -202,20 +205,10 @@ class BoxHI(HaloHI):
         return xslab
 
     def sub_list_grid_file(self,ii,ipos,ismooth,mHI,yslab, zslab):
-        """Helper function for sub_nHI_grid
-            that puts data arrays loaded from a particular file onto the grid.
-            Arguments:
-                pos - Position array
-                rho - Density array to be interpolated
-                smooth - Smoothing lengths
-                sub_grid - Grid to add the interpolated data to
+        """Like sub_gridize_single_file for set_zdir_grid
         """
-        self._find_particles_near_halo(ii, ipos, ismooth, mHI)
+        (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
 
-        if np.size(ipos) == 0:
-            return np.zeros_like(yslab)
-
-        (coords,ismooth) = self._convert_interp_units(ii, ipos, ismooth)
         slablist = yslab*int(self.ngrid[0])+zslab
         xslab = _Discard_SPH_Fieldize(slablist, coords, ismooth, mHI, np.array([0.]),True,int(self.ngrid[0]))
         return xslab
