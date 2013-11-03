@@ -1,9 +1,6 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
-
-/*C...*/
-#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
-#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
+#include <algorithm>
 
 /*Compute the SPH weighting for this cell, using the trapezium rule.
  * rr is the smoothing length, r0 is the distance of the cell from the center*/
@@ -136,8 +133,8 @@ int SPH_interpolate(double * field, double * comp, const int nx, PyArrayObject *
          * Then add the right fraction to the total array*/
 
         #pragma omp parallel for
-        for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++)
-            for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+        for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++)
+            for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
                 KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy,nx);
             }
         //Deal with cells that have wrapped around the edges of the grid
@@ -146,7 +143,7 @@ int SPH_interpolate(double * field, double * comp, const int nx, PyArrayObject *
             #pragma omp parallel for
             for(int gy=nx-1;gy<=upgy;gy++){
                 //Wrapping only y over
-                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
                     KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1),nx);
                 }
                 //y over, x over
@@ -162,7 +159,7 @@ int SPH_interpolate(double * field, double * comp, const int nx, PyArrayObject *
             #pragma omp parallel for
             for(int gy=lowgy;gy<=0;gy++){
                 //Only y under
-                for(int gx=MAX(lowgx,0);gx<=MIN(upgx,nx-1);gx++){
+                for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
                     KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1),nx);
                 }
                 //y under, x over
@@ -176,7 +173,7 @@ int SPH_interpolate(double * field, double * comp, const int nx, PyArrayObject *
             }
             //Finally wrap only x
             #pragma omp parallel for
-            for(int gy=MAX(lowgy,0);gy<=MIN(upgy,nx-1);gy++){
+            for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++){
                 //x over
                 for(int gx=nx-1;gx<=upgx;gx++){
                     KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy,nx);
