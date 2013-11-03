@@ -142,8 +142,8 @@ template <class T> int SphInterp<T>::do_work(PyArrayObject *pos, PyArrayObject *
         float pp[2];
         pp[0]= *(float *)PyArray_GETPTR2(pos,p,1);
         pp[1]= *(float *)PyArray_GETPTR2(pos,p,2);
-        float rr= *((float *)PyArray_GETPTR1(radii,p));
-        float val= *((float *)PyArray_GETPTR1(value,p));
+        const float rr= *((float *)PyArray_GETPTR1(radii,p));
+        const float val= *((float *)PyArray_GETPTR1(value,p));
         double weight = 1;
         if (PyArray_DIM(weights,0) == nval){
             weight= *((double *)PyArray_GETPTR1(weights,p));
@@ -154,10 +154,10 @@ template <class T> int SphInterp<T>::do_work(PyArrayObject *pos, PyArrayObject *
                 weight = 1;
         }
         //Max size of kernel
-        int upgx = floor(pp[0]+rr);
-        int upgy = floor(pp[1]+rr);
-        int lowgx = floor(pp[0]-rr);
-        int lowgy = floor(pp[1]-rr);
+        const int upgx = floor(pp[0]+rr);
+        const int upgy = floor(pp[1]+rr);
+        const int lowgx = floor(pp[0]-rr);
+        const int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
                 sum.doSum(val/weight, lowgx,lowgy);
