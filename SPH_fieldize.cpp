@@ -45,26 +45,6 @@ double compute_sph_cell_weight(double rr, double r0)
 
 
 
-#ifndef NO_KAHAN
-/*Evaluate one iteration of Kahan Summation: sum is the current value of the field,
- *comp the compensation array, input the value to add this time.*/
-inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
-{
-  const int off = nx*xoff+yoff;
-  const double yy = input - *(comp+off);
-  const double temp = *(sum+off)+yy;     //Alas, sum is big, y small, so low-order digits of y are lost.
-  *(comp+off) = (temp - *(sum+off)) -yy; //(t - sum) recovers the high-order part of y; subtracting y recovers -(low part of y)
-  *(sum+off) = temp;               //Algebraically, c should always be zero. Beware eagerly optimising compilers!
-}
-
-#else
-
-inline void KahanSum(double* sum, double* comp, const double input, const int xoff, const int yoff, const int nx)
-{
-  *(sum+nx*xoff+yoff)+=input;
-}
-#endif
-
 /**
  Do the hard work interpolating with an SPH kernel particles handed to us from python.
 */
@@ -93,7 +73,7 @@ int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayOb
         int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-                KahanSum(field, comp, val/weight, lowgx,lowgy,nx);
+                KahanSum(val/weight, lowgx,lowgy);
                 continue;
         }
         /*Array for storing cell weights*/
@@ -136,7 +116,7 @@ int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayOb
         #pragma omp parallel for
         for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++)
             for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy,nx);
+                KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy);
             }
         //Deal with cells that have wrapped around the edges of the grid
         if (periodic){
@@ -145,15 +125,15 @@ int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayOb
             for(int gy=nx-1;gy<=upgy;gy++){
                 //Wrapping only y over
                 for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1));
                 }
                 //y over, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1));
                 }
                 //y over, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1));
                 }
             }
             //Wrapping y under
@@ -161,15 +141,15 @@ int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayOb
             for(int gy=lowgy;gy<=0;gy++){
                 //Only y under
                 for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1));
                 }
                 //y under, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1));
                 }
                 //y under, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1),nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1));
                 }
             }
             //Finally wrap only x
@@ -177,11 +157,11 @@ int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayOb
             for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++){
                 //x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy,nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy);
                 }
                 //x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(field, comp, val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy,nx);
+                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy);
                 }
             }
         }
