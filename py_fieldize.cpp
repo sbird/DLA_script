@@ -45,11 +45,11 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
     }
     //Do the work
 #ifdef NO_KAHAN
-    SPH_interpolate worker(field, nx, periodic);
+    SphInterp worker(field, nx, periodic);
     ret = worker.do_work(pos, radii, value, weights, nval);
 #else
     try {
-        Kahan_SPH_interpolate worker(field, nx, periodic);
+        KahanSphInterp worker(field, nx, periodic);
         ret = worker.do_work(pos, radii, value, weights, nval);
     }
     catch (std::bad_alloc &) {

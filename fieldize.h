@@ -2,14 +2,14 @@
 #include "numpy/arrayobject.h"
 #include <new>
 
-class SPH_interpolate
+class SphInterp
 {
     public:
         //field: pointer to the array where interpolated data is stored
         //comp: pointer to temporary memory for Kahan summation. Not used if NO_KAHAN is defined
         //nx: size of the above arrays is nx*nx
         //periodic: should we assume input array is periodic?
-        SPH_interpolate(double * field_i, int nx_i, bool periodic_i):
+        SphInterp(double * field_i, int nx_i, bool periodic_i):
            field(field_i), nx(nx_i), periodic(periodic_i)
         {};
         //pos: array of particle positions
@@ -32,18 +32,18 @@ class SPH_interpolate
 
 };
 
-class Kahan_SPH_interpolate: public SPH_interpolate
+class KahanSphInterp: public SphInterp
 {
     public:
-        Kahan_SPH_interpolate(double * field_i, int nx_i, bool periodic_i):
-            SPH_interpolate(field_i, nx_i, periodic_i)
+        KahanSphInterp(double * field_i, int nx_i, bool periodic_i):
+            SphInterp(field_i, nx_i, periodic_i)
         {
             //Allocate Kahan compensation array, and throw if we can't.
             comp = (double *) calloc(nx*nx,sizeof(double));
             if( !comp )
                 throw std::bad_alloc();
         }
-        ~Kahan_SPH_interpolate()
+        ~KahanSphInterp()
         {
             free(comp);
         };
@@ -60,3 +60,6 @@ class Kahan_SPH_interpolate: public SPH_interpolate
     private:
         double * comp;
 };
+
+
+/* class Discarding */

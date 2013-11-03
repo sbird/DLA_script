@@ -48,7 +48,7 @@ double compute_sph_cell_weight(double rr, double r0)
 /**
  Do the hard work interpolating with an SPH kernel particles handed to us from python.
 */
-int SPH_interpolate::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
+int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
 {
     for(int p=0;p<nval;p++){
         //Temp variables
