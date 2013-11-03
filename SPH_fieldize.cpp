@@ -48,7 +48,7 @@ double compute_sph_cell_weight(double rr, double r0)
 /**
  Do the hard work interpolating with an SPH kernel particles handed to us from python.
 */
-int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
+template <class T> int SphInterp<T>::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
 {
     for(int p=0;p<nval;p++){
         //Temp variables
@@ -73,7 +73,7 @@ int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *
         int lowgy = floor(pp[1]-rr);
         //Try to save some integrations if this particle is totally in this cell
         if (lowgx==upgx && lowgy==upgy && lowgx >= 0 && lowgy >= 0){
-                KahanSum(val/weight, lowgx,lowgy);
+                sum.doSum(val/weight, lowgx,lowgy);
                 continue;
         }
         /*Array for storing cell weights*/
@@ -116,7 +116,7 @@ int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *
         #pragma omp parallel for
         for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++)
             for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy);
+                sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy);
             }
         //Deal with cells that have wrapped around the edges of the grid
         if (periodic){
@@ -125,15 +125,15 @@ int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *
             for(int gy=nx-1;gy<=upgy;gy++){
                 //Wrapping only y over
                 for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy-(nx-1));
                 }
                 //y over, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy-(nx-1));
                 }
                 //y over, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy-(nx-1));
                 }
             }
             //Wrapping y under
@@ -141,15 +141,15 @@ int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *
             for(int gy=lowgy;gy<=0;gy++){
                 //Only y under
                 for(int gx=std::max(lowgx,0);gx<=std::min(upgx,nx-1);gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx,gy+(nx-1));
                 }
                 //y under, x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy+(nx-1));
                 }
                 //y under, x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1));
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy+(nx-1));
                 }
             }
             //Finally wrap only x
@@ -157,11 +157,11 @@ int SphInterp::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *
             for(int gy=std::max(lowgy,0);gy<=std::min(upgy,nx-1);gy++){
                 //x over
                 for(int gx=nx-1;gx<=upgx;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy);
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx-(nx-1),gy);
                 }
                 //x under
                 for(int gx=lowgx;gx<=0;gx++){
-                    KahanSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy);
+                    sum.doSum(val*sph_w[gy-lowgy][gx-lowgx]/total/weight,gx+(nx-1),gy);
                 }
             }
         }

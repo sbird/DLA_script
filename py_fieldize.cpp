@@ -44,19 +44,20 @@ extern "C" PyObject * Py_SPH_Fieldize(PyObject *self, PyObject *args)
       return NULL;
     }
     //Do the work
-#ifdef NO_KAHAN
-    SphInterp worker(field, nx, periodic);
-    ret = worker.do_work(pos, radii, value, weights, nval);
-#else
     try {
-        KahanSphInterp worker(field, nx, periodic);
+#ifdef NO_KAHAN
+        SimpleSummer sum(field, nx);
+        SphInterp<SimpleSummer> worker(sum, nx, periodic);
+#else
+        KahanSummer sum(field, nx);
+        SphInterp<KahanSummer> worker(sum, nx, periodic);
+#endif
         ret = worker.do_work(pos, radii, value, weights, nval);
     }
     catch (std::bad_alloc &) {
       PyErr_SetString(PyExc_MemoryError, "Could not allocate Kahan compensation array!\n");
       return NULL;
     }
-#endif
     if( ret == 1 ){
       PyErr_SetString(PyExc_ValueError, "Massless particle detected!");
       return NULL;
@@ -76,7 +77,7 @@ extern "C" PyObject * Py_Discard_SPH_Fieldize(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use field_list, pos, radii, value, weights periodic=False, nx\n");
         return NULL;
     }
-    if(check_type(field_list, NPY_INT) || check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(weights, NPY_DOUBLE))
+    if(check_type(field_list, NPY_INT64) || check_type(pos, NPY_FLOAT) || check_type(radii, NPY_FLOAT) || check_type(value, NPY_FLOAT) || check_type(weights, NPY_DOUBLE))
     {
           PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: field_list needs int32, pos, radii and value need float32, weights float64.\n");
           return NULL;
@@ -99,7 +100,8 @@ extern "C" PyObject * Py_Discard_SPH_Fieldize(PyObject *self, PyObject *args)
     }
     //Do the work
     try {
-        DiscardingSphInterp worker(field, field_list, nx, periodic);
+        DiscardingSummer sum(field, field_list, nx);
+        SphInterp<DiscardingSummer> worker(sum, nx, periodic);
         ret = worker.do_work(pos, radii, value, weights, nval);
     }
     catch (std::bad_alloc &) {
