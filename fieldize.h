@@ -111,10 +111,9 @@ class DiscardingSummer: public Summer
         inline void doSum(const double input, const int xoff, const int yoff)
         {
             const int off = nx*xoff+yoff;
-            std::map<const int, const int>::iterator it = index.find(off);
+            std::map<const int, const int>::const_iterator it = index.find(off);
             if(it != index.end())
             {
-                field[it->second]+= input;
                 const double yy = input - comp[it->second];
                 const double temp = field[it->second]+yy;     //Alas, field is big, y small, so low-order digits of y are lost.
                 comp[it->second] = temp - field[it->second] -yy; //(t - field) recovers the high-order part of y; subtracting y recovers -(low part of y)

@@ -189,7 +189,8 @@ class BoxHI(HaloHI):
             smooth = hsml.get_smooth_length(bar)[ind]
             for slab in xrange(self.nhalo):
                 ind = np.where(dlaind[0] == slab)
-                xslab[ind] = self.sub_list_grid_file(slab,ipos,smooth,mass,dlaind[1][ind], dlaind[2][ind])
+                xslab[ind] += self.sub_list_grid_file(slab,ipos,smooth,mass,dlaind[1][ind], dlaind[2][ind])
+
             f.close()
             #Explicitly delete some things.
             del ipos
@@ -373,7 +374,7 @@ class BoxHI(HaloHI):
             xslab = np.array(f["CrossSection"]["DLAzdir"])
         except KeyError:
             xhimass = self.set_zdir_grid(dlaind)
-            xslab = np.array([xhimass/10**self._load_dla_val(dla)])
+            xslab = xhimass/10**self._load_dla_val(dla)
             #Check that each projected z dir is within the slab.
             for slab in xrange(0,self.nhalo):
                 iii = np.where(dlaind[0] == slab)
