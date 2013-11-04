@@ -375,10 +375,6 @@ class BoxHI(HaloHI):
         except KeyError:
             xhimass = self.set_zdir_grid(dlaind)
             xslab = xhimass/10**self._load_dla_val(dla)
-            #Check that each projected z dir is within the slab.
-            for slab in xrange(0,self.nhalo):
-                iii = np.where(dlaind[0] == slab)
-                assert np.all((xslab[iii] > 0.95*slab*self.box/self.nhalo)*(xslab[iii] < 1.05*(slab+1)*self.box/self.nhalo))
         f.close()
         self.dla_zdir = xslab
         dla_cross = np.zeros_like(halo_mass)
@@ -517,7 +513,7 @@ class BoxHI(HaloHI):
         mass=np.logspace(np.log10(minM),np.log10(maxM),num=bins)
         bin_mass = np.array([(mass[i]+mass[i+1])/2. for i in xrange(0,np.size(mass)-1)])
         (sDLA,loq,upq)=self.get_sigma_DLA_binned(mass,sigma=68)
-        ind = np.where((sDLA > 0)*(loq+upq > 0)*(bin_mass > 3e10))
+        ind = np.where((sDLA > 0)*(loq+upq > 0)*(bin_mass > 10**8.5))
         err = (upq[ind]+loq[ind])/2.
         #Arbitrary large values if err is zero
         return powerfit(np.log10(bin_mass[ind]), np.log10(sDLA[ind]), np.log10(err), breakpoint=10)
