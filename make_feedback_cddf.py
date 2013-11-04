@@ -127,8 +127,8 @@ def plot_halohist(snap, dla=True):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
         plt.figure(1)
-        if sim != 2 and sim != 4:
-            ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
+#         if sim != 2 and sim != 4:
+        ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim])
         if sim == 5:
             plt.figure(35)
             ahalo.plot_halo_hist(dla=dla,color=colors[sim], ls=lss[sim],plot_error=True)
@@ -142,43 +142,51 @@ def plot_halohist(snap, dla=True):
             print "sim:",sim,"snap: ",snap
             ahalo.plot_sigma_LLS()
         plt.ylim(1,1e5)
-        plt.xlim(1e9,1e12)
+        plt.xlim(5e7,1e13)
         if dla:
             save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaDLA_z"+str(snap)))
         else:
             save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaLLS_z"+str(snap)))
         plt.clf()
     plt.figure(1)
-    plt.legend(loc=2)
+    plt.legend(loc=1)
     if dla:
-        plt.xlim(1e9,3e12)
+        plt.xlim(1e8,1e13)
+        plt.ylim(0,1.3)
         save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
     else:
         save_figure(path.join(outdir, "halos/cosmo_halohist_lls_z"+str(snap)))
     plt.clf()
-    halo = myname.get_name(7, True)
-    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[7])
-    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls=":",plot_error=True)
-    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls="--",plot_error=True, errfac=27.)
-    ahalo.plot_halo_hist(dla=dla,color=colors[7], ls="-",plot_error=False)
-    plt.xlim(1e9,3e12)
-    plt.ylim(0,0.8)
-    save_figure(path.join(outdir, "halos/cosmo_halohist_error_z"+str(snap)))
-    plt.clf()
-    plt.figure(34)
+
+def multi_halohist(snap):
+    """Plot selected simulations against each other in sigma_DLA"""
     small = myname.get_name(5, True,box=10)
+    big = myname.get_name(5, True,box=25)
     ahalo = dp.PrettyBox(small, snap, nslice=10, label=labels[5])
+    bighalo = dp.PrettyBox(big, snap, nslice=10, label=labels[5])
+    bighalo.plot_sigma_DLA()
     ahalo.plot_sigma_DLA(color="blue", color2="blue")
     plt.ylim(1,1e5)
-    plt.xlim(1e8,1e12)
+    plt.xlim(5e7,1e12)
     save_figure(path.join(outdir, "halos/cosmo5_10_sigmaDLA_z"+str(snap)))
     plt.clf()
-    plt.figure(35)
-    ahalo.plot_halo_hist(dla=dla,color=colors[0], ls=lss[0],plot_error=True)
+    ahalo.plot_halo_hist(color=colors[0], ls=lss[0],plot_error=True)
+    bighalo.plot_halo_hist(color=colors[5], ls=lss[5],plot_error=True)
     plt.ylim(0,1)
     plt.xlim(1e8,3e12)
     save_figure(path.join(outdir, "halos/cosmo_10_halohist_z"+str(snap)))
     plt.clf()
+    for pair in ((1,2), (0,5), (0,7)):
+        small = myname.get_name(pair[0])
+        big = myname.get_name(pair[1])
+        ahalo = dp.PrettyBox(small, snap, nslice=10, label=labels[5])
+        bighalo = dp.PrettyBox(big, snap, nslice=10, label=labels[5])
+        bighalo.plot_sigma_DLA()
+        ahalo.plot_sigma_DLA(color="blue", color2="blue")
+        plt.ylim(1,1e5)
+        plt.xlim(5e7,1e12)
+        save_figure(path.join(outdir, "halos/cosmo"+str(pair[0])+str(pair[1])+"_sigmaDLA_z"+str(snap)))
+        plt.clf()
 
 def get_rhohi_dndx(sim, ff=True, box=25):
     """Plot rho_HI and dndx across redshift"""
@@ -411,6 +419,7 @@ if __name__ == "__main__":
     for zz in (1,3,5):
         plot_rel_cddf(zz)
         plot_halohist(zz)
+#         multi_halohist(zz)
 #         plot_halohist(zz, False)
 
     #Make a plot of the effect of AGN on the cddf.
