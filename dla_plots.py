@@ -274,7 +274,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         boxhi.BoxHI.__init__(self,snap_dir,snapnum,nslice, reload_file=reload_file,savefile=savefile)
         self.label = label
 
-    def plot_sigma_DLA(self, minpart = 0, dist=1., color=acol, color2="#cd5c5c"):
+    def plot_sigma_DLA(self, minpart = 0, dist=2., color=acol, color2="#cd5c5c"):
         """Plot sigma_DLA"""
         #Load defaults from file
         self._get_sigma_DLA(minpart, dist)
@@ -291,7 +291,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.xlabel(r"Halo Mass ($M_\odot$)")
         plt.ylabel(r"$\sigma_\mathrm{DLA}$ (kpc/h)$^2$")
 
-    def plot_sigma_LLS(self, minpart = 0, dist=1.):
+    def plot_sigma_LLS(self, minpart = 0, dist=2.):
         """Plot sigma_DLA"""
         #Load defaults from file
         self._get_sigma_LLS(minpart, dist)
@@ -327,6 +327,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             plt.semilogx(xbins[nzind],hist[nzind]*(1+1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
             plt.semilogx(xbins[nzind],hist[nzind]*(1-1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
         plt.xlabel(r"Halo Mass ($M_\odot$)")
+        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Mpc/h)$^2$")
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""
