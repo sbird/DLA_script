@@ -54,6 +54,7 @@ def plot_H2_effect(sim, snap):
 #     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
 #     ahalo2.plot_column_density(color="green",moment=True)
     dla_data.column_density_data(moment=True)
+    dla_data.noterdaeme_12_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
     plt.legend(loc=3)
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
@@ -380,6 +381,16 @@ if __name__ == "__main__":
 #     plot_halos(7,80)
 #     plot_halos(1,15)
 #     plot_halos(1,50)
+#     zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
+#     halo = myname.get_name(0)
+#     ahalo = dp.PrettyBox(halo, 3, nslice=10, label=labels[0])
+#     ahalo.plot_dla_metallicity(color="blue", ls="-")
+#     vel_data.plot_alpha_metal_data(zrange[3])
+#     plt.ylim(0,1)
+#     plt.xlim(-3,0)
+#     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
+#     plt.clf()
+#
     plot_H2_effect(7,4)
 #     plot_rel_res(5)
 #     plot_UVB_effect()
@@ -456,6 +467,7 @@ if __name__ == "__main__":
         plt.xlim(-3,0)
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()
+
 
     #LLS Metallicity
 #     for zz in (1,3,5):

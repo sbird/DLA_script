@@ -25,7 +25,7 @@ def calc_binned_median(bin_edge,xaxis,data):
     media = np.zeros(np.size(bin_edge)-1)
     for i in xrange(0,np.size(bin_edge)-1):
         ind = np.where((xaxis > bin_edge[i])*(xaxis < bin_edge[i+1]))
-        if np.size(ind) > 0:
+        if np.size(ind) > 5:
             media[i] = np.median(data[ind])
     return media
 
@@ -36,7 +36,7 @@ def calc_binned_percentile(bin_edge,xaxis,data,per=75):
     percen = np.zeros(np.size(bin_edge)-1)
     for i in xrange(0,np.size(bin_edge)-1):
         ind = np.where((xaxis > bin_edge[i])*(xaxis < bin_edge[i+1]))
-        if np.size(ind) > 0:
+        if np.size(ind) > 5:
             percen[i] = scipy.stats.scoreatpercentile(data[ind],per)
     return percen
 
