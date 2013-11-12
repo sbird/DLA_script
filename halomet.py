@@ -178,19 +178,36 @@ class BoxMet(bi.BoxHI):
     Inherits from BoxHI
     """
     def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384):
-        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, True, savefile, True,start=start, end=end,ngrid=ngrid)
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
+        self.set_ZZ_fast_dla()
 
-        self.sub_ZZ_grid=np.array([np.zeros([ngrid,ngrid]) for i in xrange(0,nslice)])
-        try:
-            thisstart = self.load_met_tmp(self.start)
-        except (IOError,KeyError):
-            print "Could not load file"
-            thisstart = self.start
-        self.set_ZZ_grid(thisstart)
+#         self.sub_ZZ_grid=np.array([np.zeros([ngrid,ngrid]) for i in xrange(0,nslice)])
+#         try:
+#             thisstart = self.load_met_tmp(self.start)
+#         except (IOError,KeyError):
+#             print "Could not load file"
+#             thisstart = self.start
+#         self.set_ZZ_grid(thisstart)
 
         #Find the metallicity
-        for ii in xrange(0, self.nhalo):
-            self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
+#         for ii in xrange(0, self.nhalo):
+#             self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
+
+    def set_ZZ_fast_dla(dla=True):
+        """Faster metallicity computation for only those cells with a DLA"""
+        dlaind = self._load_dla_index(dla)
+        #Computing z distances
+        f=h5py.File(self.savefile,'r')
+        xhmass = self.set_zdir_grid(dlaind,gas=True, key="met")
+        himass = self.set_zdir_grid(dlaind,gas=True,key="")
+        met = xhimass/himass
+        f=h5py.File(self.savefile,'r+')
+        mgrp = f.create_group("Metallicities")
+        if dla:
+            mgrp.create_dataset("DLA",data=met)
+        else:
+            mgrp.create_dataset("LLS",data=met)
+        f.close()
 
     def set_ZZ_grid(self, start=0):
         """Set up the mass * metallicity grid for the box

@@ -156,7 +156,7 @@ class BoxHI(HaloHI):
             self.sub_star_grid[ii]*=(massg/epsilon**2)
         return
 
-    def set_zdir_grid(self, dlaind):
+    def set_zdir_grid(self, dlaind, gas=False, key="zpos"):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
@@ -175,17 +175,24 @@ class BoxHI(HaloHI):
             ipos=np.array(bar["Coordinates"])
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])
-            #Hydrogen mass fraction
-            try:
-                mass *= np.array(bar["GFM_Metals"][:,0])
-            except KeyError:
-                mass *= self.hy_mass
+            if not gas:
+                #Hydrogen mass fraction
+                try:
+                    mass *= np.array(bar["GFM_Metals"][:,0])
+                except KeyError:
+                    mass *= self.hy_mass
             nhi = star.get_reproc_HI(bar)
             ind = np.where(nhi > 1.e-3)
             ipos = ipos[ind,:][0]
             #Get x * m for the weighted z direction
-            mass = mass[ind]*nhi[ind]
-            mass*=ipos[:,0]
+            if not gas:
+                mass = mass[ind]*nhi[ind]
+            if key == "zpos":
+                mass*=ipos[:,0]
+            if key == "met":
+                met = np.array(bar["GFM_Metallicity"])[ind]
+                met[np.where(met <=0)] = 1e-50
+                mass *= met
             smooth = hsml.get_smooth_length(bar)[ind]
             for slab in xrange(self.nhalo):
                 ind = np.where(dlaind[0] == slab)
