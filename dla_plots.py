@@ -327,7 +327,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             plt.semilogx(xbins[nzind],hist[nzind]*(1+1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
             plt.semilogx(xbins[nzind],hist[nzind]*(1-1./np.sqrt(errfac*nn[nzind])), color="grey", ls=ls)
         plt.xlabel(r"Halo Mass ($M_\odot$)")
-        plt.ylabel(r"$\sigma_\mathrm{DLA}$ (Mpc/h)$^2$")
+        plt.ylabel(r"$\sigma_\mathrm{T}$ (Mpc/h)$^2$")
 
     def _get_sigma_DLA(self, minpart, dist):
         """Helper for above to correctly populate sigDLA, from a savefile if possible"""
