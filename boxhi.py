@@ -94,7 +94,7 @@ class BoxHI(HaloHI):
         indj = np.where(ne.evaluate("abs(jjpos-jpos) < grid_radius"))
 
         if np.size(indj) == 0:
-            return
+            return (None, None, None)
 
         ipos = ipos[indj]
         # Update smooth and rho arrays as well:
@@ -122,6 +122,8 @@ class BoxHI(HaloHI):
                 sub_grid - Grid to add the interpolated data to
         """
         (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
+        if coords == None:
+            return
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
         return
 
