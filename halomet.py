@@ -306,7 +306,6 @@ class FastBoxMet(bi.BoxHI):
         """Faster metallicity computation for only those cells with a DLA"""
         dlaind = self._load_dla_index(dla)
         #Computing z distances
-        f=h5py.File(self.savefile,'r')
         xhmass = self.set_zdir_grid(dlaind,gas=True, key="met")
         hmass = self.set_zdir_grid(dlaind,gas=True,key="")
         met = xhmass/hmass
@@ -316,6 +315,20 @@ class FastBoxMet(bi.BoxHI):
             mgrp.create_dataset("DLA",data=met)
         else:
             mgrp.create_dataset("LLS",data=met)
+        f.close()
+
+    def set_metal_species_fast_dla(self, elem, ion, dla=True):
+        """Faster metallicity computation for only those cells with a DLA"""
+        dlaind = self._load_dla_index(dla)
+        #Computing z distances
+        species = self.set_zdir_grid(dlaind,gas=True, key=elem, ion=ion)
+        f=h5py.File(self.savefile,'r+')
+        mgrp = f.create_group(elem)
+        mmgrp = mgrp.create_group(str(ion))
+        if dla:
+            mmgrp.create_dataset("DLA",data=species)
+        else:
+            mmgrp.create_dataset("LLS",data=species)
         f.close()
 
     def _get_secondary_array(self, ind, bar, elem="", ion=-1):

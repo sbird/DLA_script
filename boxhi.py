@@ -156,7 +156,7 @@ class BoxHI(HaloHI):
             self.sub_star_grid[ii]*=(massg/epsilon**2)
         return
 
-    def set_zdir_grid(self, dlaind, gas=False, key="zpos"):
+    def set_zdir_grid(self, dlaind, gas=False, key="zpos", ion=-1):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
@@ -191,7 +191,7 @@ class BoxHI(HaloHI):
                 mass*=ipos[:,0]
             elif key != "":
                 try:
-                    mass *= self._get_secondary_array(ind,bar,key)
+                    mass *= self._get_secondary_array(ind,bar,key, ion)
                 except NotImplementedError:
                     pass
             smooth = hsml.get_smooth_length(bar)[ind]
