@@ -9,6 +9,7 @@ Classes:
 import numpy as np
 import hdfsim
 import convert_cloudy
+import cold_gas
 import os.path as path
 import hsml
 import h5py
@@ -317,14 +318,21 @@ class FastBoxMet(bi.BoxHI):
             mgrp.create_dataset("LLS",data=met)
         f.close()
 
-    def _get_secondary_array(self, ind, bar, key="", ion=1):
+    def _get_secondary_array(self, ind, bar, elem="", ion=-1):
         """Get the array whose HI weighted amount we want to compute. Throws ValueError
         if key is not a desired species."""
-        if key == "met":
+        if elem == "met":
             met = np.array(bar["GFM_Metallicity"])[ind]
         else:
-            nelem = self.species.index(key)
+            nelem = self.species.index(elem)
             met = np.array(bar["GFM_Metals"][:,nelem])[ind]
+            if ion != -1:
+                star=cold_gas.RahmatiRT(self.redshift, self.hubble)
+                den=star.get_code_rhoH(bar)
+                temp = star.get_temp(den, bar)
+                temp = temp[ind]
+                den = den[ind]
+                met *= self.cloudy_table.ion(elem, ion, den, temp)
         met[np.where(met <=0)] = 1e-50
         return met
 
