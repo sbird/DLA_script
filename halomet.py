@@ -179,28 +179,26 @@ class BoxMet(bi.BoxHI):
     """
     def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384):
         bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
-        self.set_ZZ_fast_dla()
-
-#         self.sub_ZZ_grid=np.array([np.zeros([ngrid,ngrid]) for i in xrange(0,nslice)])
-#         try:
-#             thisstart = self.load_met_tmp(self.start)
-#         except (IOError,KeyError):
-#             print "Could not load file"
-#             thisstart = self.start
-#         self.set_ZZ_grid(thisstart)
+        self.sub_ZZ_grid=np.zeros([nslice, ngrid,ngrid])
+        try:
+            thisstart = self.load_met_tmp(self.start)
+        except (IOError,KeyError):
+            print "Could not load file"
+            thisstart = self.start
+        self.set_ZZ_grid(thisstart)
 
         #Find the metallicity
-#         for ii in xrange(0, self.nhalo):
-#             self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
+        for ii in xrange(0, self.nhalo):
+            self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
 
-    def set_ZZ_fast_dla(dla=True):
+    def set_ZZ_fast_dla(self, dla=True):
         """Faster metallicity computation for only those cells with a DLA"""
         dlaind = self._load_dla_index(dla)
         #Computing z distances
         f=h5py.File(self.savefile,'r')
         xhmass = self.set_zdir_grid(dlaind,gas=True, key="met")
-        himass = self.set_zdir_grid(dlaind,gas=True,key="")
-        met = xhimass/himass
+        hmass = self.set_zdir_grid(dlaind,gas=True,key="")
+        met = xhmass/hmass
         f=h5py.File(self.savefile,'r+')
         mgrp = f.create_group("Metallicities")
         if dla:
@@ -288,3 +286,45 @@ class BoxMet(bi.BoxHI):
         f.close()
         print "Successfully loaded metals from tmp file. Next to do is:",location+1
         return location+1
+
+class FastBoxMet(bi.BoxHI):
+    """
+    Class to find the mass-weighted metallicity for a box.
+    Inherits from BoxHI
+    """
+    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384, cdir=None):
+        self.species = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Mg', 'Si', 'Fe', 'Z']
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
+        if cdir != None:
+            self.cloudy_table = convert_cloudy.CloudyTable(self.redshift, cdir)
+        else:
+            self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
+        self.set_ZZ_fast_dla()
+
+    def set_ZZ_fast_dla(self, dla=True):
+        """Faster metallicity computation for only those cells with a DLA"""
+        dlaind = self._load_dla_index(dla)
+        #Computing z distances
+        f=h5py.File(self.savefile,'r')
+        xhmass = self.set_zdir_grid(dlaind,gas=True, key="met")
+        hmass = self.set_zdir_grid(dlaind,gas=True,key="")
+        met = xhmass/hmass
+        f=h5py.File(self.savefile,'r+')
+        mgrp = f.create_group("Metallicities")
+        if dla:
+            mgrp.create_dataset("DLA",data=met)
+        else:
+            mgrp.create_dataset("LLS",data=met)
+        f.close()
+
+    def _get_secondary_array(self, ind, bar, key="", ion=1):
+        """Get the array whose HI weighted amount we want to compute. Throws ValueError
+        if key is not a desired species."""
+        if key == "met":
+            met = np.array(bar["GFM_Metallicity"])[ind]
+        else:
+            nelem = self.species.index(key)
+            met = np.array(bar["GFM_Metals"][:,nelem])[ind]
+        met[np.where(met <=0)] = 1e-50
+        return met
+

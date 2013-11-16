@@ -189,10 +189,11 @@ class BoxHI(HaloHI):
                 mass = mass[ind]*nhi[ind]
             if key == "zpos":
                 mass*=ipos[:,0]
-            if key == "met":
-                met = np.array(bar["GFM_Metallicity"])[ind]
-                met[np.where(met <=0)] = 1e-50
-                mass *= met
+            elif key != "":
+                try:
+                    mass *= self._get_secondary_array(ind,bar,key)
+                except NotImplementedError:
+                    pass
             smooth = hsml.get_smooth_length(bar)[ind]
             for slab in xrange(self.nhalo):
                 ind = np.where(dlaind[0] == slab)
@@ -211,6 +212,11 @@ class BoxHI(HaloHI):
         epsilon=2.*self.sub_radii[0]/(self.ngrid[0])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
         xslab*=(massg/epsilon**2)
         return xslab
+
+    def _get_secondary_array(self, ind, bar, key, ion=1):
+        """Get the array whose HI weighted amount we want to compute. Throws ValueError
+        if key is not a desired species."""
+        raise NotImplementedError("Not valid species")
 
     def sub_list_grid_file(self,ii,ipos,ismooth,mHI,yslab, zslab):
         """Like sub_gridize_single_file for set_zdir_grid
