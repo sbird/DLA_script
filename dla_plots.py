@@ -379,25 +379,38 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def plot_dla_metallicity(self, nbins=40,color="blue", ls="-"):
         """Plot the distribution of DLA metallicities"""
-        return self._plot_metallicity(True,nbins=nbins,color=color,ls=ls)
+        met = self.get_dla_metallicity()
+        return self._plot_metallicity(met,nbins=nbins,color=color,ls=ls)
 
     def plot_lls_metallicity(self, nbins=40,color="blue",ls="-"):
         """Plot the distribution of LLS metallicities"""
-        return self._plot_metallicity(False,nbins=nbins,color=color,ls=ls)
+        met = self.get_lls_metallicity()
+        return self._plot_metallicity(met, nbins=nbins,color=color,ls=ls)
 
-    def _plot_metallicity(self, dla,nbins,color,ls):
+    def _plot_metallicity(self, met, nbins,color,ls,upper=0,lower=-3):
         """Plot the distribution of metallicities above"""
-        bins=np.logspace(-3,0,nbins)
+        bins=np.logspace(lower,upper,nbins)
         mbin = np.array([(bins[i]+bins[i+1])/2. for i in range(0,np.size(bins)-1)])
-        if dla:
-            met = self.get_dla_metallicity()
-        else:
-            met = self.get_lls_metallicity()
         #Abs. distance for entire spectrum
         hist = np.histogram(met,np.log10(bins),density=True)[0]
         plt.plot(np.log10(mbin),hist,color=color,ls=ls, label=self.label)
         plt.xlabel(r"[X/H]")
         return (mbin,hist)
+
+    def plot_species_fraction(self, species, ion, dla=True, nbins=40, color="blue", ls="-"):
+        """Plot [X/HI] for X given by species and ion in DLAs or LLS"""
+        met = self.get_ion_metallicity(species, ion, dla)
+        return self._plot_metallicity(met, nbins=nbins,color=color,ls=ls)
+
+    def plot_ion_corr(self, species, ion, dla=True,nbins=80,color="blue",ls="-"):
+        if dla:
+            met = self.get_dla_metallicity()
+        else:
+            met = self.get_lls_metallicity()
+        ion_met = self.get_ion_metallicity(species, ion, dla)
+        print 10**np.max(ion_met-met), 10**np.min(ion_met-met), 10**np.median(ion_met-met)
+        return self._plot_metallicity(ion_met-met, nbins=nbins,color=color,ls=ls,upper=1.5,lower=-1)
+
 
 import halomet
 

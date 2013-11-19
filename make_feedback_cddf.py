@@ -41,6 +41,19 @@ def plot_metal_halo(sim, snap, ff=True, lls=False):
         ahalo.plot_dla_metallicity(color=colors[sim], ls=lss[sim])
     del ahalo
 
+def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True):
+    """Plot metallicity from GFM_Metallicity vs from a single species for computing ionisation corrections"""
+    halo = myname.get_name(sim)
+    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
+    ahalo.plot_dla_metallicity()
+    ahalo.plot_species_fraction(species, ion, dla, color="red", ls="--")
+    save_figure(path.join(outdir, "cosmo"+str(sim)+"_ion_corr"+str(snap)))
+    plt.clf()
+    ahalo.plot_ion_corr(species, ion, dla)
+    save_figure(path.join(outdir, "cosmo"+str(sim)+"_rel_ion_corr"+str(snap)))
+    plt.clf()
+    del ahalo
+
 def plot_H2_effect(sim, snap):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, True)
@@ -391,6 +404,7 @@ if __name__ == "__main__":
 #     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
 #     plt.clf()
 #
+    plot_metal_ion_corr(7,3)
     plot_cddf_a_halo(7, 3)
 
     dla_data.column_density_data()

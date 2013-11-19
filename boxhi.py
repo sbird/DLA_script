@@ -184,9 +184,10 @@ class BoxHI(HaloHI):
             nhi = star.get_reproc_HI(bar)
             ind = np.where(nhi > 1.e-3)
             ipos = ipos[ind,:][0]
+            mass = mass[ind]
             #Get x * m for the weighted z direction
             if not gas:
-                mass = mass[ind]*nhi[ind]
+                mass *= nhi[ind]
             if key == "zpos":
                 mass*=ipos[:,0]
             elif key != "":
@@ -508,6 +509,23 @@ class BoxHI(HaloHI):
             ff = h5py.File(self.savefile,"r")
             self.dla_metallicity = np.array(ff["Metallicities"]["DLA"])
             return self.dla_metallicity-np.log10(solar)
+
+    def get_ion_metallicity(self, species,ion, dla=True, solarz=0.0133):
+        """Get the metallicity derived from an ionic species"""
+        f=h5py.File(self.savefile,'r')
+        grp = f[species][str(ion)]
+        #This is needed to make the dimensions right
+        if dla:
+            spec = np.array(grp["DLA"])
+        else:
+            spec = np.array(grp["LLS"])
+        f.close()
+        #Divide by H mass fraction
+        hi = self._load_dla_val(dla)  #+np.log10(0.76)
+        #Solar abundances from Hazy table 7.1 as Z = n/n(H)
+        solar = {"C":2.45e-4, "N":8.51e-5, "O":4.9e-4, "Ne":1.e-4, "Mg":3.47e-5, "Si":3.47e-5, "Fe":2.82e-5}
+        met = np.log10(spec+0.1)-hi-np.log10(solar[species]*0.76/solarz)
+        return met
 
     def get_lls_metallicity(self, solar=0.0133):
         """Get the LLS metallicities from the save file, as [M/H]"""

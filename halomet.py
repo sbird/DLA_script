@@ -192,22 +192,6 @@ class BoxMet(bi.BoxHI):
         for ii in xrange(0, self.nhalo):
             self.sub_ZZ_grid[ii] -= self.sub_nHI_grid[ii]
 
-    def set_ZZ_fast_dla(self, dla=True):
-        """Faster metallicity computation for only those cells with a DLA"""
-        dlaind = self._load_dla_index(dla)
-        #Computing z distances
-        f=h5py.File(self.savefile,'r')
-        xhmass = self.set_zdir_grid(dlaind,gas=True, key="met")
-        hmass = self.set_zdir_grid(dlaind,gas=True,key="")
-        met = xhmass/hmass
-        f=h5py.File(self.savefile,'r+')
-        mgrp = f.create_group("Metallicities")
-        if dla:
-            mgrp.create_dataset("DLA",data=met)
-        else:
-            mgrp.create_dataset("LLS",data=met)
-        f.close()
-
     def set_ZZ_grid(self, start=0):
         """Set up the mass * metallicity grid for the box
         Same as set_nHI_grid except mass is multiplied by GFM_Metallicity.
@@ -300,7 +284,6 @@ class FastBoxMet(bi.BoxHI):
             self.cloudy_table = convert_cloudy.CloudyTable(self.redshift, cdir)
         else:
             self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
-        self.set_ZZ_fast_dla()
 
     def set_ZZ_fast_dla(self, dla=True):
         """Faster metallicity computation for only those cells with a DLA"""
