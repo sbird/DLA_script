@@ -397,6 +397,40 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.xlabel(r"distance to halo ($R_\mathrm{vir}$)")
         return (mbin,hist)
 
+    def plot_colden_mass_breakdown(self,ncdbins=30):
+        """Find the proportion of DLAs in each column density bin with various halo masses"""
+        (halo_mass, _, _) = self._load_halo(0)
+        self._get_sigma_DLA(0,2)
+        ind = np.where(self.dla_halo >= 0)
+        find = np.where(self.dla_halo < 0)
+        masses = halo_mass[self.dla_halo[ind]]
+        dlaval = self._load_dla_val(True)
+        cdbins = np.linspace(20.3,np.max(dlaval),ncdbins+1)
+        massbins = 10**np.arange(9,14)
+        massbins[0] = 10**8
+        nmassbins = np.size(massbins)-1
+#         massbins = np.logspace(np.log10(np.min(masses))-0.1,np.log10(np.max(masses))+0.1,nmassbins+1)
+        fractions = np.zeros([nmassbins+2,ncdbins])
+        for cc in xrange(ncdbins):
+            cind = np.where((dlaval > cdbins[cc])*(dlaval <= cdbins[cc+1]))
+            cind = np.where((dlaval[ind] > cdbins[cc])*(dlaval[ind] <= cdbins[cc+1]))
+            for mm in xrange(nmassbins):
+                mind = np.where((masses[cind] > massbins[mm])*(masses[cind] <= massbins[mm+1]))
+                fractions[mm+1, cc] = np.max(np.shape(mind))
+            #Field DLAs
+            cind = np.where((dlaval[find] > cdbins[cc])*(dlaval[find] <= cdbins[cc+1]))
+            fractions[nmassbins+1,cc] = np.max(np.shape(cind))
+
+        cumfrac = np.cumsum(fractions,0)
+        fractions/=cumfrac[-1,:]
+        cumfrac/=cumfrac[-1,:]
+        width = np.array([(-cdbins[i]+cdbins[i+1]) for i in range(0,np.size(cdbins)-1)])
+        colors = ["red", "green", "blue", "black", "orange", "purple"]
+        for mm in xrange(nmassbins):
+            plt.bar(cdbins[:-1],fractions[mm+1,:],bottom=cumfrac[mm,:],width=width, color=colors[mm],label=pr_num(np.log10(massbins[mm]))+" - "+pr_num(np.log10(massbins[mm+1])), linewidth=0)
+        plt.bar(cdbins[:-1],fractions[nmassbins+1,:],bottom=cumfrac[nmassbins,:],width=width, label="Field",color=colors[-1],linewidth=0)
+        return (cdbins, massbins, fractions)
+
 
 import halomet
 

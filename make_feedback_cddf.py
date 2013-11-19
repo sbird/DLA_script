@@ -375,14 +375,18 @@ def plot_all_rho():
 
 def plot_breakdown():
     """Make a plot of the column density function, broken down by halo mass."""
-    for sss in (0,2,3):
+    for sss in (0,1,2,3,4,5,6,7):
         halo = myname.get_name(sss, True)
-        ahalo = dp.PrettyBox(halo, 3, nslice=10)
-        ahalo.plot_column_density_breakdown(color=colors[sss], minN=20., maxN=22.5)
-        del ahalo
+        for nn in (1,3,5):
+            ahalo = dp.PrettyBox(halo, nn, nslice=10)
+            ahalo.plot_colden_mass_breakdown()
+            plt.xlim(20.3,22.3)
+            plt.ylim(0,1.4)
+            plt.legend(loc=2,ncol=2)
+            save_figure(path.join(outdir,"halos/break/cosmo"+str(sss)+"_"+str(nn)+"_break"))
+            plt.clf()
+            del ahalo
 
-    save_figure(path.join(outdir,"cosmo_cddf_break"))
-    plt.clf()
 
 if __name__ == "__main__":
 #     plot_H2_effect(5,3)
@@ -404,6 +408,7 @@ if __name__ == "__main__":
 #     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
 #     plt.clf()
 #
+    plot_breakdown()
     plot_metal_ion_corr(7,3)
     plot_cddf_a_halo(7, 3)
 
