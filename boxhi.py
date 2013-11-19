@@ -319,15 +319,17 @@ class BoxHI(HaloHI):
 
     def save_sigLLS(self):
         """Generate and save sigma_LLS to the savefile"""
-        (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, 0, 1.)
+        (self.real_sub_mass, self.sigLLS, self.field_lls, self.lls_halo) = self.find_cross_section(False, 0, 2.)
         f=h5py.File(self.savefile,'r+')
         mgrp = f["CrossSection"]
         try:
             del mgrp["sigLLS"]
+            del mgrp["LLS_halo"]
         except KeyError:
             pass
         mgrp.attrs["field_lls"] = self.field_lls
         mgrp.create_dataset("sigLLS",data=self.sigLLS)
+        mgrp.create_dataset("LLS_halo",data=self.lls_halo)
         f.close()
 
     def load_sigLLS(self):
@@ -337,6 +339,7 @@ class BoxHI(HaloHI):
             mgrp = f["CrossSection"]
             self.real_sub_mass = np.array(mgrp["sub_mass"])
             self.sigLLS = np.array(mgrp["sigLLS"])
+            self.lls_halo = np.array(mgrp["LLS_halo"])
             self.field_lls = mgrp.attrs["field_lls"]
         except KeyError:
             f.close()
@@ -345,7 +348,7 @@ class BoxHI(HaloHI):
 
     def save_sigDLA(self):
         """Generate and save sigma_DLA to the savefile"""
-        (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, 0, 2.)
+        (self.real_sub_mass, self.sigDLA, self.field_dla,self.dla_halo) = self.find_cross_section(True, 0, 2.)
         f=h5py.File(self.savefile,'r+')
         try:
             mgrp = f.create_group("CrossSection")
@@ -355,11 +358,13 @@ class BoxHI(HaloHI):
             del mgrp["sub_mass"]
             del mgrp["sigDLA"]
             del mgrp["DLAzdir"]
+            del mgrp["DLA_halo"]
         except KeyError:
             pass
         mgrp.attrs["field_dla"] = self.field_dla
         mgrp.create_dataset("sub_mass",data=self.real_sub_mass)
         mgrp.create_dataset("sigDLA",data=self.sigDLA)
+        mgrp.create_dataset("DLA_halo",data=self.dla_halo)
         mgrp.create_dataset("DLAzdir",data=self.dla_zdir)
         f.close()
 
@@ -370,13 +375,14 @@ class BoxHI(HaloHI):
             mgrp = f["CrossSection"]
             self.real_sub_mass = np.array(mgrp["sub_mass"])
             self.sigDLA = np.array(mgrp["sigDLA"])
+            self.dla_halo = np.array(mgrp["DLA_halo"])
             self.field_dla = mgrp.attrs["field_dla"]
         except KeyError:
             f.close()
             raise
         f.close()
 
-    def find_cross_section(self, dla=True, minpart=0, vir_mult=1.1):
+    def find_cross_section(self, dla=True, minpart=0, vir_mult=2):
         """Find the number of DLA cells within dist virial radii of
            each halo resolved with at least minpart particles.
            If within the virial radius of multiple halos, use the most massive one."""
@@ -395,12 +401,14 @@ class BoxHI(HaloHI):
         celsz = 1.*self.box/self.ngrid[0]
         yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
         zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
+        assigned_halo = np.zeros_like(yslab, dtype=np.int32)
+        assigned_halo-=1
         print "Starting find_halo_kernel"
-        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,halo_mass, xslab, yslab, zslab,dla_cross)
+        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,halo_mass, xslab, yslab, zslab,dla_cross, assigned_halo)
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
-        return (halo_mass, dla_cross, 100.*field_dla/np.shape(dlaind)[1])
+        return (halo_mass, dla_cross, 100.*field_dla/np.shape(dlaind)[1],assigned_halo)
 
     def _load_dla_index(self, dla=True):
         """Load the positions of DLAs or LLS from savefile"""

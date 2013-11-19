@@ -147,17 +147,18 @@ inline bool is_halo_close(const int j, const double xcoord, const double ycoord,
 
 extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 {
-    PyArrayObject *sub_cofm, *sub_radii, *sub_mass, *xcoords, *ycoords, *zcoords, *dla_cross;
+    PyArrayObject *sub_cofm, *sub_radii, *sub_mass, *xcoords, *ycoords, *zcoords, *dla_cross, *assigned_halo;
     double box;
-    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &sub_mass, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross) )
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &sub_mass, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross, &PyArray_Type, &assigned_halo) )
     {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells, dla_cross\n");
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells, dla_cross, assigned_halo\n");
         return NULL;
     }
     if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE)
-            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE))
+            || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE)
+            ||  check_type(assigned_halo, NPY_INT32))
     {
-          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double.\n");
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double except assigned_halo.\n");
           return NULL;
     }
 
@@ -197,6 +198,7 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
             #pragma omp critical (_dla_cross_)
             {
                 *(double *) PyArray_GETPTR1(dla_cross,nearest_halo) += 1.;
+                *(int32_t *) PyArray_GETPTR1(assigned_halo,i) = nearest_halo;
             }
         }
         else{
@@ -215,7 +217,7 @@ static PyMethodDef __fieldize[] = {
    "    "},
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
-   "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn]"
+   "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn], assigned_halo"
    "    "},
   {"_Discard_SPH_Fieldize", Py_Discard_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."

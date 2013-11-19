@@ -177,10 +177,10 @@ class PrettyHalo(halohi.HaloHI):
         try:
             label = self.label
         except AttributeError:
-            pass
+            label=""
         plt.loglog(aNHI,paf_N,color=color, ls=ls, lw = 3, label=label)
         #Make the ticks be less-dense
-        ax=plt.gca()
+        #ax=plt.gca()
         #ax.xaxis.set_ticks(np.power(10.,np.arange(int(minN),int(maxN),2)))
         #ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(af_N[-1])),int(np.log10(af_N[0])),2)))
         plt.xlabel(r"$N_\mathrm{HI} (\mathrm{cm}^{-2})$")
@@ -340,7 +340,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
                 except KeyError:
                     self.save_sigDLA()
         else:
-            (self.real_sub_mass, self.sigDLA, self.field_dla) = self.find_cross_section(True, minpart, dist)
+            (self.real_sub_mass, self.sigDLA, self.field_dla, self.dla_halo) = self.find_cross_section(True, minpart, dist)
 
     def _get_sigma_LLS(self, minpart, dist):
         """Helper for above to correctly populate sigLLS, from a savefile if possible"""
@@ -353,7 +353,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
                 except KeyError:
                     self.save_sigLLS()
         else:
-            (self.real_sub_mass, self.sigLLS, self.field_lls) = self.find_cross_section(False, minpart, dist)
+            (self.real_sub_mass, self.sigLLS, self.field_lls, self.lls_halo) = self.find_cross_section(False, minpart, dist)
 
     def plot_sigma_DLA_model(self,color="red"):
         """Plot my analytic model for the DLAs"""
@@ -403,6 +403,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         return self._plot_metallicity(met, nbins=nbins,color=color,ls=ls)
 
     def plot_ion_corr(self, species, ion, dla=True,nbins=80,color="blue",ls="-"):
+        """Plot the difference between the single-species ionisation and the metallicity from GFM_Metallicity"""
         if dla:
             met = self.get_dla_metallicity()
         else:
