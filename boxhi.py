@@ -516,6 +516,7 @@ class BoxHI(HaloHI):
         except AttributeError:
             ff = h5py.File(self.savefile,"r")
             self.dla_metallicity = np.array(ff["Metallicities"]["DLA"])
+            ff.close()
             return self.dla_metallicity-np.log10(solar)
 
     def get_ion_metallicity(self, species,ion, dla=True, solarz=0.0133):
@@ -529,7 +530,7 @@ class BoxHI(HaloHI):
             spec = np.array(grp["LLS"])
         f.close()
         #Divide by H mass fraction
-        hi = self._load_dla_val(dla)  #+np.log10(0.76)
+        hi = self._load_dla_val(dla)
         #Solar abundances from Hazy table 7.1 as Z = n/n(H)
         solar = {"C":2.45e-4, "N":8.51e-5, "O":4.9e-4, "Ne":1.e-4, "Mg":3.47e-5, "Si":3.47e-5, "Fe":2.82e-5}
         met = np.log10(spec+0.1)-hi-np.log10(solar[species]*0.76/solarz)
@@ -542,6 +543,7 @@ class BoxHI(HaloHI):
         except AttributeError:
             ff = h5py.File(self.savefile,"r")
             self.lls_metallicity = np.array(ff["Metallicities"]["LLS"])
+            ff.close()
             return self.lls_metallicity-np.log10(solar)
 
     def get_sDLA_fit(self):
