@@ -306,12 +306,20 @@ class FastBoxMet(bi.BoxHI):
         #Computing z distances
         species = self.set_zdir_grid(dlaind,gas=True, key=elem, ion=ion)
         f=h5py.File(self.savefile,'r+')
-        mgrp = f.create_group(elem)
-        mmgrp = mgrp.create_group(str(ion))
+        try:
+            mgrp = f.create_group(elem)
+            mmgrp = mgrp.create_group(str(ion))
+        except ValueError:
+            mmgrp = f[elem][str(ion)]
         if dla:
-            mmgrp.create_dataset("DLA",data=species)
+            datas="DLA"
         else:
-            mmgrp.create_dataset("LLS",data=species)
+            datas="LLS"
+        try:
+            del mmgrp[datas]
+        except KeyError:
+            pass
+        mmgrp.create_dataset(datas,data=species)
         f.close()
 
     def _get_secondary_array(self, ind, bar, elem="", ion=-1):
