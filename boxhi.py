@@ -612,7 +612,7 @@ class BoxHI(HaloHI):
         self._get_sigma_DLA(0,2)
         dlaind = self._load_dla_index(True)
         #Halo positions
-        ind = np.where(self.dla_halo > 0)
+        ind = np.where(self.dla_halo >= 0)
         halopos = halo_cofm[self.dla_halo[ind]]
         #Computing z distances
         xslab = self._get_dla_zpos(dlaind,True)
