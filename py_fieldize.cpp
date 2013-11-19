@@ -194,11 +194,11 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
                 break;
             }
         }
+        *(int32_t *) PyArray_GETPTR1(assigned_halo,i) = nearest_halo;
         if (nearest_halo >= 0){
             #pragma omp critical (_dla_cross_)
             {
                 *(double *) PyArray_GETPTR1(dla_cross,nearest_halo) += 1.;
-                *(int32_t *) PyArray_GETPTR1(assigned_halo,i) = nearest_halo;
             }
         }
         else{

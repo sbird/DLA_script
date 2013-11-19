@@ -389,18 +389,12 @@ class BoxHI(HaloHI):
         (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
         dlaind = self._load_dla_index(dla)
         #Computing z distances
-        f=h5py.File(self.savefile,'r')
-        try:
-            xslab = np.array(f["CrossSection"]["DLAzdir"])
-        except KeyError:
-            xhimass = self.set_zdir_grid(dlaind)
-            xslab = xhimass/10**self._load_dla_val(dla)
-        f.close()
-        self.dla_zdir = xslab
+        xslab = self._get_dla_zpos(dlaind,dla)
+        self.dla_zdir=xslab
         dla_cross = np.zeros_like(halo_mass)
         celsz = 1.*self.box/self.ngrid[0]
-        yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
-        zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
+        yslab = (dlaind[1]+0.5)*celsz
+        zslab = (dlaind[2]+0.5)*celsz
         assigned_halo = np.zeros_like(yslab, dtype=np.int32)
         assigned_halo-=1
         print "Starting find_halo_kernel"
@@ -409,6 +403,19 @@ class BoxHI(HaloHI):
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
         return (halo_mass, dla_cross, 100.*field_dla/np.shape(dlaind)[1],assigned_halo)
+
+    def _get_dla_zpos(self,dlaind,dla=True):
+        """Load or compute the depth of the DLAs"""
+        if dla == False:
+            raise NotImplementedError("Does not work for LLS")
+        f=h5py.File(self.savefile,'r')
+        try:
+            xslab = np.array(f["CrossSection"]["DLAzdir"])
+        except KeyError:
+            xhimass = self.set_zdir_grid(dlaind)
+            xslab = xhimass/10**self._load_dla_val(dla)
+        f.close()
+        return xslab
 
     def _load_dla_index(self, dla=True):
         """Load the positions of DLAs or LLS from savefile"""
@@ -573,3 +580,56 @@ class BoxHI(HaloHI):
         aloq=amed - calc_binned_percentile(mass, self.real_sub_mass[aind], sigs[aind],100-sigma)
         return (amed, aloq, aupq)
 
+    def _get_sigma_DLA(self, minpart, dist):
+        """Helper for halo_hist to correctly populate sigDLA, from a savefile if possible"""
+        if minpart == 0 and dist == 2.:
+            try:
+                self.sigDLA
+            except AttributeError:
+                try:
+                    self.load_sigDLA()
+                except KeyError:
+                    self.save_sigDLA()
+        else:
+            (self.real_sub_mass, self.sigDLA, self.field_dla, self.dla_halo) = self.find_cross_section(True, minpart, dist)
+
+    def _get_sigma_LLS(self, minpart, dist):
+        """Helper for halo_hist to correctly populate sigLLS, from a savefile if possible"""
+        if minpart == 0 and dist == 2.:
+            try:
+                self.sigLLS
+            except AttributeError:
+                try:
+                    self.load_sigLLS()
+                except KeyError:
+                    self.save_sigLLS()
+        else:
+            (self.real_sub_mass, self.sigLLS, self.field_lls, self.lls_halo) = self.find_cross_section(False, minpart, dist)
+
+    def get_dla_impact_parameter(self, minM, maxM):
+        """Get the distance from the parent halo as a fraction of rvir for each DLA"""
+        (halo_mass, halo_cofm, halo_radii) = self._load_halo(0)
+        self._get_sigma_DLA(0,2)
+        dlaind = self._load_dla_index(True)
+        #Halo positions
+        ind = np.where(self.dla_halo > 0)
+        halopos = halo_cofm[self.dla_halo[ind]]
+        #Computing z distances
+        xslab = self._get_dla_zpos(dlaind,True)
+        yslab = (dlaind[1]+0.5)*self.box*1./self.ngrid[0]
+        zslab = (dlaind[2]+0.5)*self.box*1./self.ngrid[0]
+        #Total distance
+        xdist = np.abs(xslab[ind]-halopos[:,0])
+        ydist = np.abs(yslab[ind]-halopos[:,1])
+        zdist = np.abs(zslab[ind]-halopos[:,2])
+        #Deal with periodics
+        ii = np.where(xdist > self.box/2.)
+        xdist[ii] = self.box-xdist[ii]
+        ii = np.where(ydist > self.box/2.)
+        ydist[ii] = self.box-ydist[ii]
+        ii = np.where(zdist > self.box/2.)
+        zdist[ii] = self.box-zdist[ii]
+        distance = np.sqrt(xdist**2 + ydist**2 + zdist**2)
+
+        ind2 = np.where((halo_mass[self.dla_halo[ind]] > minM)*(halo_mass[self.dla_halo[ind]] < maxM))
+        return (distance/halo_radii[self.dla_halo[ind]])[ind2]

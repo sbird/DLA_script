@@ -329,32 +329,6 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.xlabel(r"Halo Mass ($M_\odot$)")
         plt.ylabel(r"$\sigma_\mathrm{T}$ (Mpc/h)$^2$")
 
-    def _get_sigma_DLA(self, minpart, dist):
-        """Helper for above to correctly populate sigDLA, from a savefile if possible"""
-        if minpart == 0 and dist == 2.:
-            try:
-                self.sigDLA
-            except AttributeError:
-                try:
-                    self.load_sigDLA()
-                except KeyError:
-                    self.save_sigDLA()
-        else:
-            (self.real_sub_mass, self.sigDLA, self.field_dla, self.dla_halo) = self.find_cross_section(True, minpart, dist)
-
-    def _get_sigma_LLS(self, minpart, dist):
-        """Helper for above to correctly populate sigLLS, from a savefile if possible"""
-        if minpart == 0 and dist == 2.:
-            try:
-                self.sigLLS
-            except AttributeError:
-                try:
-                    self.load_sigLLS()
-                except KeyError:
-                    self.save_sigLLS()
-        else:
-            (self.real_sub_mass, self.sigLLS, self.field_lls, self.lls_halo) = self.find_cross_section(False, minpart, dist)
-
     def plot_sigma_DLA_model(self,color="red"):
         """Plot my analytic model for the DLAs"""
         mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=100)
@@ -411,6 +385,17 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         ion_met = self.get_ion_metallicity(species, ion, dla)
         print 10**np.max(ion_met-met), 10**np.min(ion_met-met), 10**np.median(ion_met-met)
         return self._plot_metallicity(ion_met-met, nbins=nbins,color=color,ls=ls,upper=1.5,lower=-1)
+
+    def plot_impact_param(self, minM = 1e6, maxM=1e20, nbins=40,color="blue",ls="-"):
+        """Plot the distribution of metallicities above"""
+        impact = self.get_dla_impact_parameter(minM,maxM)
+        bins=np.linspace(0,2,nbins)
+        mbin = np.array([(bins[i]+bins[i+1])/2. for i in range(0,np.size(bins)-1)])
+        #Abs. distance for entire spectrum
+        hist = np.histogram(impact,bins,density=True)[0]
+        plt.plot(mbin,hist,color=color,ls=ls, label=self.label)
+        plt.xlabel(r"distance to halo ($R_\mathrm{vir}$)")
+        return (mbin,hist)
 
 
 import halomet
