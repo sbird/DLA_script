@@ -98,6 +98,12 @@ class HaloHI:
         self.hy_mass=0.76
         #For printing
         self.once=False
+        #Solar abundances from Asplund 2009 / Grevasse 2010 (which is used in Cloudy 13, Hazy Table 7.3).
+        self.solar = {"H":1, "He":0.1, "C":3.55e-4,"N":9.33e-4,"O":7.41e-5,"Ne":1.17e-4,"Mg":3.8e-5,"Si":3.55e-5,"Fe":3.24e-5}
+        self.amasses = {'H': 1.00794,'He': 4.002602,'C': 12.011,'N': 14.00674,'O': 15.9994,'Ne': 20.18,'Mg': 24.3050,'Si': 28.0855,'Fe': 55.847 }
+        self.species = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Mg', 'Si', 'Fe', 'Z']
+        #Total solar metallicity is from Asplund 2009 0909.0948
+        self.solarz = 0.0134
 
     def load_header(self):
         """Load the header and halo data from a snapshot set"""

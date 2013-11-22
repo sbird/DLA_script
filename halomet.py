@@ -278,7 +278,6 @@ class FastBoxMet(bi.BoxHI):
     Inherits from BoxHI
     """
     def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384, cdir=None):
-        self.species = ['H', 'He', 'C', 'N', 'O', 'Ne', 'Mg', 'Si', 'Fe', 'Z']
         bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
         if cdir != None:
             self.cloudy_table = convert_cloudy.CloudyTable(self.redshift, cdir)
@@ -333,8 +332,7 @@ class FastBoxMet(bi.BoxHI):
             met = np.array(bar["GFM_Metals"][:,nelem])[ind]
             #What is saved is the column density in amu, we want the column density,
             #which is in atoms. So there is a factor of mass.
-            masses = {'H': 1.00794,'He': 4.002602,'C': 12.011,'N': 14.00674,'O': 15.9994,'Ne': 20.18,'Mg': 24.3050,'Si': 28.0855,'Fe': 55.847 }
-            met /= masses[elem]
+            met /= self.amasses[elem]
             if ion != -1:
                 star=cold_gas.RahmatiRT(self.redshift, self.hubble)
                 den=star.get_code_rhoH(bar)

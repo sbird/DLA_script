@@ -518,17 +518,16 @@ class BoxHI(HaloHI):
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 
-    def get_dla_metallicity(self, solar=0.0134):
+    def get_dla_metallicity(self):
         """Get the DLA metallicities from the save file, as Z/Z_sun.
-        Default solar metallicity is from Asplund 2009 0909.0948
         """
         try:
-            return self.dla_metallicity-np.log10(solar)
+            return self.dla_metallicity-np.log10(self.solarz)
         except AttributeError:
             ff = h5py.File(self.savefile,"r")
             self.dla_metallicity = np.array(ff["Metallicities"]["DLA"])
             ff.close()
-            return self.dla_metallicity-np.log10(solar)
+            return self.dla_metallicity-np.log10(self.solarz)
 
     def get_ion_metallicity(self, species,ion, dla=True):
         """Get the metallicity derived from an ionic species"""
@@ -542,21 +541,19 @@ class BoxHI(HaloHI):
         f.close()
         #Divide by H column density
         hi = self._load_dla_val(dla)
-        #Solar abundances from Asplund 2009 / Grevasse 2010 (which is used in Cloudy 13, Hazy Table 7.3).
-        solar = {"H":1, "He":0.1, "C":3.55e-4,"N":9.33e-4,"O":7.41e-5,"Ne":1.17e-4,"Mg":3.8e-5,"Si":3.55e-5,"Fe":3.24e-5}
-        met = np.log10(spec+0.01)-hi-np.log10(solar[species])
+        met = np.log10(spec+0.01)-hi-np.log10(self.solar[species])
         return met
 
-    def get_lls_metallicity(self, solar=0.0134):
+    def get_lls_metallicity(self):
         """Get the LLS metallicities from the save file, as Z/Z_solar
-        Default solar metallicity is from Asplund 2009 0909.0948"""
+        """
         try:
-            return self.lls_metallicity-np.log10(solar)
+            return self.lls_metallicity-np.log10(self.solarz)
         except AttributeError:
             ff = h5py.File(self.savefile,"r")
             self.lls_metallicity = np.array(ff["Metallicities"]["LLS"])
             ff.close()
-            return self.lls_metallicity-np.log10(solar)
+            return self.lls_metallicity-np.log10(self.solarz)
 
     def get_sDLA_fit(self):
         """Fit an broken power law profile based function to sigma_DLA as binned."""
