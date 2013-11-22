@@ -45,11 +45,14 @@ def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True):
     """Plot metallicity from GFM_Metallicity vs from a single species for computing ionisation corrections"""
     halo = myname.get_name(sim)
     ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
-    ahalo.plot_dla_metallicity()
-    ahalo.plot_species_fraction(species, ion, dla, color="red", ls="--")
+    ahalo.plot_dla_metallicity(color="red",ls="--")
+    ahalo.plot_species_fraction(species, ion, dla, color="blue", ls="-")
+    ahalo_no_atten = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim],savefile="/home/spb/data/Cosmo/Cosmo7_V6/L25n512/output/snapdir_003/boxhi_grid_H2_no_atten.hdf5")
+    ahalo_no_atten.plot_species_fraction(species, ion, dla, color="green", ls="-.")
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_ion_corr"+str(snap)))
     plt.clf()
     ahalo.plot_ion_corr(species, ion, dla)
+    ahalo_no_atten.plot_ion_corr(species, ion, dla,color="green",ls="--")
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_rel_ion_corr"+str(snap)))
     plt.clf()
     del ahalo
@@ -112,19 +115,23 @@ def plot_cutoff():
 
 def plot_grid_res():
     """The effect of a finer grid"""
-    halo = myname.get_name(5, True)
-    savefile = path.join(halo,"snapdir_003/boxhi_grid_10240.hdf5")
-    ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
+    halo = myname.get_name(7, True)
+    savefile = path.join(halo,"snapdir_005/boxhi_grid_cutoff_H2_32678.hdf5")
+    ahalo = dp.PrettyBox(halo, 5, nslice=30, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
 #     savefile = path.join(halo,"snapdir_003/boxhi_grid_16384.hdf5")
-    ahalo2 = dp.PrettyBox(halo, 3, nslice=10)
+    ahalo2 = dp.PrettyBox(halo, 5, nslice=10)
 
     ahalo2.plot_column_density(color="red",moment=True, ls="-.")
     dla_data.column_density_data(moment=True)
-    save_figure(path.join(outdir, "cosmo5_grid_3"))
+    save_figure(path.join(outdir, "cosmo7_grid_5"))
     plt.clf()
-    ahalo.plot_halo_hist(color=colors[sim])
-    ahalo2.plot_halo_hist(color=colors[sim])
+    cdf1 = ahalo.column_density_function()
+    cdf2 = ahalo2.column_density_function()
+    plt.semilogx(cdf1[0], cdf1[1]/cdf2[1], color="red", ls="-")
+    save_figure(path.join(outdir, "cosmo7_grid_5_rel"))
+    plt.clf()
+
 
 def plot_covering_frac(sim, snap, ff=True):
     """Load a simulation and plot its cddf"""
@@ -408,7 +415,7 @@ if __name__ == "__main__":
 #     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
 #     plt.clf()
 #
-    plot_breakdown()
+#     plot_breakdown()
     plot_metal_ion_corr(7,3)
     plot_cddf_a_halo(7, 3)
 
@@ -420,6 +427,7 @@ if __name__ == "__main__":
 
     plot_H2_effect(7,4)
 #     plot_rel_res(5)
+    plot_grid_res()
 #     plot_UVB_effect()
     plot_all_rho()
 #     plot_cutoff()
