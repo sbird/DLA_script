@@ -518,8 +518,10 @@ class BoxHI(HaloHI):
         tot_f_N=(tot_f_N)/(width*dX*tot_cells)
         return (center, tot_f_N)
 
-    def get_dla_metallicity(self, solar=0.0133):
-        """Get the DLA metallicities from the save file, as [M/H]"""
+    def get_dla_metallicity(self, solar=0.0134):
+        """Get the DLA metallicities from the save file, as Z/Z_sun.
+        Default solar metallicity is from Asplund 2009 0909.0948
+        """
         try:
             return self.dla_metallicity-np.log10(solar)
         except AttributeError:
@@ -528,7 +530,7 @@ class BoxHI(HaloHI):
             ff.close()
             return self.dla_metallicity-np.log10(solar)
 
-    def get_ion_metallicity(self, species,ion, dla=True, solarz=0.0133):
+    def get_ion_metallicity(self, species,ion, dla=True):
         """Get the metallicity derived from an ionic species"""
         f=h5py.File(self.savefile,'r')
         grp = f[species][str(ion)]
@@ -538,15 +540,16 @@ class BoxHI(HaloHI):
         else:
             spec = np.array(grp["LLS"])
         f.close()
-        #Divide by H mass fraction
+        #Divide by H column density
         hi = self._load_dla_val(dla)
-        #Solar abundances from Hazy table 7.1 as Z = n/n(H)
-        solar = {"C":2.45e-4, "N":8.51e-5, "O":4.9e-4, "Ne":1.e-4, "Mg":3.47e-5, "Si":3.47e-5, "Fe":2.82e-5}
-        met = np.log10(spec+0.1)-hi-np.log10(solar[species]*0.76/solarz)
+        #Solar abundances from Asplund 2009 / Grevasse 2010 (which is used in Cloudy 13, Hazy Table 7.3).
+        solar = {"H":1, "He":0.1, "C":3.55e-4,"N":9.33e-4,"O":7.41e-5,"Ne":1.17e-4,"Mg":3.8e-5,"Si":3.55e-5,"Fe":3.24e-5}
+        met = np.log10(spec+0.01)-hi-np.log10(solar[species])
         return met
 
-    def get_lls_metallicity(self, solar=0.0133):
-        """Get the LLS metallicities from the save file, as [M/H]"""
+    def get_lls_metallicity(self, solar=0.0134):
+        """Get the LLS metallicities from the save file, as Z/Z_solar
+        Default solar metallicity is from Asplund 2009 0909.0948"""
         try:
             return self.lls_metallicity-np.log10(solar)
         except AttributeError:

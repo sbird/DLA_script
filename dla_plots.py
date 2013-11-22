@@ -368,7 +368,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         #Abs. distance for entire spectrum
         hist = np.histogram(met,np.log10(bins),density=True)[0]
         plt.plot(np.log10(mbin),hist,color=color,ls=ls, label=self.label)
-        plt.xlabel(r"[X/H]")
+        plt.xlabel(r"log $(Z / Z_\odot)$")
         return (mbin,hist)
 
     def plot_species_fraction(self, species, ion, dla=True, nbins=40, color="blue", ls="-"):

@@ -324,12 +324,17 @@ class FastBoxMet(bi.BoxHI):
 
     def _get_secondary_array(self, ind, bar, elem="", ion=-1):
         """Get the array whose HI weighted amount we want to compute. Throws ValueError
-        if key is not a desired species."""
+        if key is not a desired species. Note this saves the total projected mass of each species in
+        atoms of that species / cm ^2. If you want the total mass in the species, multiply by its atomic mass."""
         if elem == "met":
             met = np.array(bar["GFM_Metallicity"])[ind]
         else:
             nelem = self.species.index(elem)
             met = np.array(bar["GFM_Metals"][:,nelem])[ind]
+            #What is saved is the column density in amu, we want the column density,
+            #which is in atoms. So there is a factor of mass.
+            masses = {'H': 1.00794,'He': 4.002602,'C': 12.011,'N': 14.00674,'O': 15.9994,'Ne': 20.18,'Mg': 24.3050,'Si': 28.0855,'Fe': 55.847 }
+            met /= masses[elem]
             if ion != -1:
                 star=cold_gas.RahmatiRT(self.redshift, self.hubble)
                 den=star.get_code_rhoH(bar)
