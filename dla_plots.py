@@ -376,7 +376,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         met = self.get_ion_metallicity(species, ion, dla)
         return self._plot_metallicity(met, nbins=nbins,color=color,ls=ls)
 
-    def plot_ion_corr(self, species, ion, dla=True,nbins=80,color="blue",ls="-"):
+    def plot_ion_corr(self, species, ion, dla=True,nbins=80,color="blue",ls="-",upper=1,lower=-1):
         """Plot the difference between the single-species ionisation and the metallicity from GFM_Metallicity"""
         if dla:
             met = self.get_dla_metallicity()
@@ -384,7 +384,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             met = self.get_lls_metallicity()
         ion_met = self.get_ion_metallicity(species, ion, dla)
         print 10**np.max(ion_met-met), 10**np.min(ion_met-met), 10**np.median(ion_met-met)
-        return self._plot_metallicity(ion_met-met, nbins=nbins,color=color,ls=ls,upper=1.5,lower=-1)
+        return self._plot_metallicity(ion_met-met, nbins=nbins,color=color,ls=ls,upper=upper,lower=lower)
 
     def plot_impact_param(self, minM = 1e6, maxM=1e20, nbins=40,color="blue",ls="-"):
         """Plot the distribution of metallicities above"""
