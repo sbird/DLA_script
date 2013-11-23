@@ -32,9 +32,8 @@ class BoxHI(HaloHI):
         self.start = int(start)
         self.end = int(end)
         if savefile==None:
-            self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),"boxhi_grid_H2.hdf5")
-        else:
-            self.savefile = savefile
+            savefile = "boxhi_grid_H2.hdf5"
+        self.savefile = path.join(snap_dir,"snapdir_"+str(snapnum).rjust(3,'0'),savefile)
         self.tmpfile = self.savefile+"."+str(self.start)+".tmp"
         if gas:
             self.tmpfile+=".gas"

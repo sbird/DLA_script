@@ -47,12 +47,13 @@ def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True):
     ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
     ahalo.plot_dla_metallicity(color="red",ls="--")
     ahalo.plot_species_fraction(species, ion, dla, color="blue", ls="-")
-    ahalo_no_atten = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim],savefile="/home/spb/data/Cosmo/Cosmo7_V6/L25n512/output/snapdir_003/boxhi_grid_H2_no_atten.hdf5")
+    ahalo_no_atten = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim],savefile="boxhi_grid_H2_no_atten.hdf5")
     ahalo_no_atten.plot_species_fraction(species, ion, dla, color="green", ls="-.")
+    vel_data.plot_alpha_metal_data((3.5,2.5))
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_ion_corr"+str(snap)))
     plt.clf()
-    ahalo.plot_ion_corr(species, ion, dla)
-    ahalo_no_atten.plot_ion_corr(species, ion, dla,color="green",ls="--")
+    ahalo.plot_ion_corr(species, ion, dla,upper=1,lower=-0.5)
+    ahalo_no_atten.plot_ion_corr(species, ion, dla,color="green",ls="--",upper=1,lower=-0.5)
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_rel_ion_corr"+str(snap)))
     plt.clf()
     del ahalo
@@ -60,10 +61,10 @@ def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True):
 def plot_H2_effect(sim, snap):
     """Load a simulation and plot its cddf"""
     halo = myname.get_name(sim, True)
-    savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_noH2.hdf5")
+    savefile = "boxhi_grid_noH2.hdf5"
     ahalo = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile, label=r"No $H_2$")
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
-    savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2.hdf5")
+    savefile = "boxhi_grid_H2.hdf5"
     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile, label=r"$H_2$")
     ahalo2.plot_column_density(color="red",moment=True)
 #     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2-old.hdf5")
@@ -97,13 +98,13 @@ def plot_UVB_effect():
 def plot_cutoff():
     """Plot effect with a cutoff self-shielding"""
     halo = myname.get_name(0, True)
-    savefile = path.join(halo,"snapdir_003/boxhi_grid_cutoff_H2.hdf5")
+    savefile = "boxhi_grid_cutoff_H2.hdf5"
     ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
     cutoff0 = ahalo.column_density_function()
     ahalo = dp.PrettyBox(halo, 3, nslice=10)
     normal0 = ahalo.column_density_function()
     halo = myname.get_name(1, True)
-    savefile = path.join(halo,"snapdir_003/boxhi_grid_cutoff_H2.hdf5")
+    savefile = "boxhi_grid_cutoff_H2.hdf5"
     ahalo = dp.PrettyBox(halo, 3, nslice=10, savefile=savefile)
     cutoff1 = ahalo.column_density_function()
     ahalo = dp.PrettyBox(halo, 3, nslice=10)
@@ -116,7 +117,7 @@ def plot_cutoff():
 def plot_grid_res():
     """The effect of a finer grid"""
     halo = myname.get_name(7, True)
-    savefile = path.join(halo,"snapdir_005/boxhi_grid_cutoff_H2_32678.hdf5")
+    savefile = "boxhi_grid_cutoff_H2_32678.hdf5"
     ahalo = dp.PrettyBox(halo, 5, nslice=30, savefile=savefile)
     ahalo.plot_column_density(color="blue", ls="--", moment=True)
 #     savefile = path.join(halo,"snapdir_003/boxhi_grid_16384.hdf5")
@@ -251,10 +252,10 @@ def plot_rel_res(sim):
             save_figure(path.join(outdir,"cosmo_res_halohist"))
             plt.clf()
             plt.figure(1)
-    savefile = path.join(basel,"snapdir_003","boxhi_grid_noH2.hdf5")
+    savefile = "boxhi_grid_noH2.hdf5"
     base = dp.PrettyBox(basel, 3, nslice=10,savefile=savefile)
     cddf_base = base.column_density_function()
-    savefile = path.join(bases,"snapdir_003","boxhi_grid_noH2.hdf5")
+    savefile = "boxhi_grid_noH2.hdf5"
     ahalo2 = dp.PrettyBox(bases, 3, nslice=10,savefile=savefile)
     cddf = ahalo2.column_density_function()
     plt.semilogx(cddf_base[0], np.log10(cddf[1]/cddf_base[1]), color=colors[0], ls=lss[0])
