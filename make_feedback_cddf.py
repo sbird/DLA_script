@@ -41,19 +41,19 @@ def plot_metal_halo(sim, snap, ff=True, lls=False):
         ahalo.plot_dla_metallicity(color=colors[sim], ls=lss[sim])
     del ahalo
 
-def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True):
+def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True, othersave="boxhi_grid_H2_no_atten.hdf5"):
     """Plot metallicity from GFM_Metallicity vs from a single species for computing ionisation corrections"""
     halo = myname.get_name(sim)
     ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
     ahalo.plot_dla_metallicity(color="red",ls="--")
     ahalo.plot_species_fraction(species, ion, dla, color="blue", ls="-")
-    ahalo_no_atten = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim],savefile="boxhi_grid_H2_no_atten.hdf5")
+    ahalo_no_atten = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim],savefile=othersave)
     ahalo_no_atten.plot_species_fraction(species, ion, dla, color="green", ls="-.")
     vel_data.plot_alpha_metal_data((3.5,2.5))
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_ion_corr"+str(snap)))
     plt.clf()
-    ahalo.plot_ion_corr(species, ion, dla,upper=1,lower=-0.5)
-    ahalo_no_atten.plot_ion_corr(species, ion, dla,color="green",ls="--",upper=1,lower=-0.5)
+    ahalo.plot_ion_corr(species, ion, dla,upper=1,lower=-1)
+    ahalo_no_atten.plot_ion_corr(species, ion, dla,color="green",ls="--",upper=1,lower=-1)
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_rel_ion_corr"+str(snap)))
     plt.clf()
     del ahalo
