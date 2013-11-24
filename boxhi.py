@@ -192,10 +192,7 @@ class BoxHI(HaloHI):
             if key == "zpos":
                 mass*=ipos[:,0]
             elif key != "":
-                try:
-                    mass *= self._get_secondary_array(ind,bar,key, ion)
-                except NotImplementedError:
-                    pass
+                mass *= self._get_secondary_array(ind,bar,key, ion)
             smooth = hsml.get_smooth_length(bar)[ind]
             for slab in xrange(self.nhalo):
                 ind = np.where(dlaind[0] == slab)
