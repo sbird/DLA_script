@@ -2,11 +2,11 @@
 PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
 
 GCCV:=$(shell gcc --version)
-ifeq (/4.8,$(findstring /4.8,${GCCV}))
+ifeq (4.8,$(findstring 4.8,${GCCV}))
 	CC = gcc
 	CXX = g++
 endif
-ifeq ($(CXX),cc)
+ifeq ($(CC),cc)
   ICC:=$(shell which icc --tty-only 2>&1)
   #Can we find icc?
   ifeq (/icc,$(findstring /icc,${ICC}))
