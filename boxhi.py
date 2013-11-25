@@ -158,7 +158,7 @@ class BoxHI(HaloHI):
         return
 
     def load_fast_tmp(self,start,key):
-        return
+        return start
     def save_fast_tmp(self,location,key):
         return
 
