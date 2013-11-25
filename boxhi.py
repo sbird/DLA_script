@@ -221,6 +221,8 @@ class BoxHI(HaloHI):
         """Like sub_gridize_single_file for set_zdir_grid
         """
         (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
+        if coords == None:
+            return np.zeros_like(yslab)
 
         slablist = yslab*int(self.ngrid[0])+zslab
         xslab = _Discard_SPH_Fieldize(slablist, coords, ismooth, mHI, np.array([0.]),True,int(self.ngrid[0]))
