@@ -157,6 +157,11 @@ class BoxHI(HaloHI):
             self.sub_star_grid[ii]*=(massg/epsilon**2)
         return
 
+    def load_fast_tmp(self,start,key):
+        return
+    def save_fast_tmp(self,location,key):
+        return
+
     def set_zdir_grid(self, dlaind, gas=False, key="zpos", ion=-1):
         """Set up the grid around each halo where the HI is calculated.
         """
@@ -166,9 +171,13 @@ class BoxHI(HaloHI):
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
-        xslab = np.zeros_like(dlaind[0], dtype=np.float64)
+        self.xslab = np.zeros_like(dlaind[0], dtype=np.float64)
+        try:
+            start = self.load_fast_tmp(self.start, key)
+        except IOError:
+            start = self.start
         end = np.min([np.size(files),self.end])
-        for xx in xrange(end):
+        for xx in xrange(start,end):
             ff = files[xx]
             f = h5py.File(ff,"r")
             print "Starting file ",ff
@@ -196,21 +205,22 @@ class BoxHI(HaloHI):
             smooth = hsml.get_smooth_length(bar)[ind]
             for slab in xrange(self.nhalo):
                 ind = np.where(dlaind[0] == slab)
-                xslab[ind] += self.sub_list_grid_file(slab,ipos,smooth,mass,dlaind[1][ind], dlaind[2][ind])
+                self.xslab[ind] += self.sub_list_grid_file(slab,ipos,smooth,mass,dlaind[1][ind], dlaind[2][ind])
 
             f.close()
             #Explicitly delete some things.
             del ipos
             del mass
             del smooth
+            self.save_fast_tmp(start,key)
 
         #Fix the units:
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         massg=self.UnitMass_in_g/self.hubble/self.protonmass
         epsilon=2.*self.sub_radii[0]/(self.ngrid[0])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
-        xslab*=(massg/epsilon**2)
-        return xslab
+        self.xslab*=(massg/epsilon**2)
+        return self.xslab
 
     def _get_secondary_array(self, ind, bar, key, ion=1):
         """Get the array whose HI weighted amount we want to compute. Throws ValueError
