@@ -283,7 +283,7 @@ class BoxHI(HaloHI):
         #Avg density in g/cm^3 (comoving)
         return HImass/length
 
-    def get_omega_hi_mass_breakdown(self):
+    def get_omega_hi_mass_breakdown(self, rhohi=True):
         """Get the total HI mass density in DLAs in each halo mass bin.
         Returns Omega_DLA in each mass bin."""
         (halo_mass, _, _) = self._load_halo(0)
@@ -292,23 +292,33 @@ class BoxHI(HaloHI):
         find = np.where(self.dla_halo < 0)
         masses = halo_mass[self.dla_halo[ind]]
         dlaval = self._load_dla_val(True)
-        massbins = 10**np.arange(9,14)
+        massbins = 10**np.arange(9,13)
         massbins[0] = 10**8
+        massbins[-1] = 10**13
         nmassbins = np.size(massbins)-1
         fractions = np.zeros(nmassbins+2)
         for mm in xrange(nmassbins):
             mind = np.where((masses > massbins[mm])*(masses <= massbins[mm+1]))
-            fractions[mm+1] = np.sum(10**dlaval[ind][mind])
+            if rhohi:
+                fractions[mm+1] = np.sum(10**dlaval[ind][mind])
+            else:
+                fractions[mm+1] = np.size(mind)
         #Field DLAs
-        fractions[nmassbins+1] = np.sum(10**dlaval[find])
+        if rhohi:
+            fractions[nmassbins+1] = np.sum(10**dlaval[find])
+        else:
+            fractions[nmassbins+1] = np.size(find)
         #Divide by total number of sightlines
         fractions /= (self.nhalo*self.ngrid[0]**2)
-        #Avg. Column density of HI in g cm^-2 (comoving)
-        fractions = self.protonmass * fractions/(1+self.redshift)**2
-        #Length of column in comoving cm
-        length = (self.box*self.UnitLength_in_cm/self.hubble/self.nhalo)
-        #Avg Density in g/cm^3 (comoving) divided by rho_crit
-        fractions = 1000*fractions/length/self.rho_crit()
+        if rhohi:
+            #Avg. Column density of HI in g cm^-2 (comoving)
+            fractions = self.protonmass * fractions/(1+self.redshift)**2
+            #Length of column in comoving cm
+            length = (self.box*self.UnitLength_in_cm/self.hubble/self.nhalo)
+            #Avg Density in g/cm^3 (comoving) divided by rho_crit
+            fractions = 1000*fractions/length/self.rho_crit()
+        else:
+            fractions /= self.absorption_distance()
         return (massbins, fractions)
 
     def rho_DLA(self, thresh=20.3):
