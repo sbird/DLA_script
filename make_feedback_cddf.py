@@ -228,6 +228,35 @@ def get_rhohi_dndx(sim, ff=True, box=25):
             continue
     return (zzz, dndx, rhohi)
 
+def plot_omegahi_breakdown(sim):
+    """Make the rho_HI plot with labels etc"""
+    halo = myname.get_name(sim, True, 25)
+    snaps = {4:1, 3.5:2, 3:3, 2.5:4, 2:5}
+    fractions=[]
+    zzz = []
+    omegadla = []
+    for zzzz in (4, 3.5, 3, 2.5, 2):
+        ahalo = dp.PrettyBox(halo, snaps[zzzz], nslice=10)
+        (massbins, fracs) = ahalo.get_omega_hi_mass_breakdown()
+        fractions.append(fracs)
+        zzz.append(zzzz)
+        omegadla.append(ahalo.omega_DLA())
+    fractions = np.array(fractions)
+    for i in xrange(np.size(fractions[0,:])-2):
+        plt.plot(zzz,fractions[:,i+1], color=colors[i], ls=lss[i], label=dp.pr_num(np.log10(massbins[i]))+" - "+dp.pr_num(np.log10(massbins[i+1])))
+    plt.plot(zzz,fractions[:,-1], color=colors[6], ls=lss[6], label="Field")
+    plt.plot(zzz,omegadla, color=colors[sim], ls=lss[sim], label="Total")
+#     plt.plot(zzz,dndx, 'o', color=colors[sim], ls=lss[sim])
+    plt.xlabel("z")
+    plt.ylabel(r"$10^3 \Omega_\mathrm{DLA}$")
+    dla_data.omegahi_not()
+    plt.xlim(2,4)
+    plt.ylim(0,2.5)
+    plt.legend(loc=1, ncol=2)
+    tight_layout_wrapper()
+    save_figure(path.join(outdir,"cosmo_rhohi_break"+str(sim)))
+    plt.clf()
+
 def plot_rel_res(sim):
     """Load and make a plot of the difference between two simulations"""
     basel = myname.get_name(sim)
@@ -417,7 +446,8 @@ if __name__ == "__main__":
 #     plt.clf()
 #
 #     plot_breakdown()
-    plot_metal_ion_corr(7,3)
+    plot_omegahi_breakdown(7)
+    plot_metal_ion_corr(0,3)
     plot_cddf_a_halo(7, 3)
 
     dla_data.column_density_data()

@@ -412,7 +412,6 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 #         massbins = np.logspace(np.log10(np.min(masses))-0.1,np.log10(np.max(masses))+0.1,nmassbins+1)
         fractions = np.zeros([nmassbins+2,ncdbins])
         for cc in xrange(ncdbins):
-            cind = np.where((dlaval > cdbins[cc])*(dlaval <= cdbins[cc+1]))
             cind = np.where((dlaval[ind] > cdbins[cc])*(dlaval[ind] <= cdbins[cc+1]))
             for mm in xrange(nmassbins):
                 mind = np.where((masses[cind] > massbins[mm])*(masses[cind] <= massbins[mm+1]))
@@ -430,7 +429,6 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
             plt.bar(cdbins[:-1],fractions[mm+1,:],bottom=cumfrac[mm,:],width=width, color=colors[mm],label=pr_num(np.log10(massbins[mm]))+" - "+pr_num(np.log10(massbins[mm+1])), linewidth=0)
         plt.bar(cdbins[:-1],fractions[nmassbins+1,:],bottom=cumfrac[nmassbins,:],width=width, label="Field",color=colors[-1],linewidth=0)
         return (cdbins, massbins, fractions)
-
 
 import halomet
 

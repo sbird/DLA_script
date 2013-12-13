@@ -283,6 +283,34 @@ class BoxHI(HaloHI):
         #Avg density in g/cm^3 (comoving)
         return HImass/length
 
+    def get_omega_hi_mass_breakdown(self):
+        """Get the total HI mass density in DLAs in each halo mass bin.
+        Returns Omega_DLA in each mass bin."""
+        (halo_mass, _, _) = self._load_halo(0)
+        self._get_sigma_DLA(0,2)
+        ind = np.where(self.dla_halo >= 0)
+        find = np.where(self.dla_halo < 0)
+        masses = halo_mass[self.dla_halo[ind]]
+        dlaval = self._load_dla_val(True)
+        massbins = 10**np.arange(9,14)
+        massbins[0] = 10**8
+        nmassbins = np.size(massbins)-1
+        fractions = np.zeros(nmassbins+2)
+        for mm in xrange(nmassbins):
+            mind = np.where((masses > massbins[mm])*(masses <= massbins[mm+1]))
+            fractions[mm+1] = np.sum(10**dlaval[ind][mind])
+        #Field DLAs
+        fractions[nmassbins+1] = np.sum(10**dlaval[find])
+        #Divide by total number of sightlines
+        fractions /= (self.nhalo*self.ngrid[0]**2)
+        #Avg. Column density of HI in g cm^-2 (comoving)
+        fractions = self.protonmass * fractions/(1+self.redshift)**2
+        #Length of column in comoving cm
+        length = (self.box*self.UnitLength_in_cm/self.hubble/self.nhalo)
+        #Avg Density in g/cm^3 (comoving) divided by rho_crit
+        fractions = 1000*fractions/length/self.rho_crit()
+        return (massbins, fractions)
+
     def rho_DLA(self, thresh=20.3):
         """Compute rho_DLA, the sum of the mass in DLAs. This is almost the same as the total mass in HI.
            Units are 10^8 M_sun / Mpc^3 (comoving), like 0811.2003
