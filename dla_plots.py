@@ -397,13 +397,19 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.xlabel(r"distance to halo ($R_\mathrm{vir}$)")
         return (mbin,hist)
 
-    def plot_dla_mass_metallicity(self, color="blue", ls="-"):
+    def plot_dla_mass_metallicity(self, color="blue"):
         """Plot host halo mass vs metallicity for DLAs"""
+        (halo_mass, _, _) = self._load_halo(0)
+        self._get_sigma_DLA(0,2)
         ind = np.where(self.dla_halo >= 0)
         masses = halo_mass[self.dla_halo[ind]]
-        met = self.get_dla_metallicity()
-        plt.plot(np.log10(met[ind]), np.log10(masses),color=color, ls=ls)
-        return (met[ind], masses)
+        met = self.get_dla_metallicity()[ind]
+        ind2 = np.where((met > -2.7)*(met < 0.)*(masses > 10**9))
+        (H, xedges, yedges) = np.histogram2d(met[ind2], np.log10(masses[ind2]), bins=20,normed=True)
+        xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
+        ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
+        plt.contourf(xbins,ybins,H.T,[0.1,1],colors=(color,"black"),alpha=0.5)
+        return (met[ind2], masses[ind2])
 
     def plot_colden_mass_breakdown(self,ncdbins=30):
         """Find the proportion of DLAs in each column density bin with various halo masses"""

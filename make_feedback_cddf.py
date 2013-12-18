@@ -41,12 +41,24 @@ def plot_metal_halo(sim, snap, ff=True, lls=False):
         ahalo.plot_dla_metallicity(color=colors[sim], ls=lss[sim])
     del ahalo
 
-def plot_mass_metal(sim, snap, ff=True):
+def plot_mass_metal(sims, snap, ff=True):
     """Load a simulation and plot its cddf"""
-    halo = myname.get_name(sim, ff)
-    ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
-    ahalo.plot_dla_mass_metallicity(color=colors[sim], ls=lss[sim])
-    del ahalo
+    if np.size(sims) > 1:
+        for sim in sims:
+            halo = myname.get_name(sim, ff)
+            ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
+            ahalo.plot_dla_mass_metallicity(color=colors[sim])
+            del ahalo
+        save_figure(path.join(outdir, "cosmo_mass_metal"+str(snap)))
+    else:
+        for sn in snap:
+            halo = myname.get_name(sims, ff)
+            ahalo = dp.PrettyBox(halo, sn, nslice=10, label=labels[sn])
+            ahalo.plot_dla_mass_metallicity(color=colors[sn])
+            del ahalo
+        save_figure(path.join(outdir, "cosmo_"+str(sims)+"mass_metal"))
+    plt.clf()
+
 
 def plot_metal_ion_corr(sim, snap,species="Si",ion=2, dla=True, othersave="boxhi_grid_H2_no_atten.hdf5"):
     """Plot metallicity from GFM_Metallicity vs from a single species for computing ionisation corrections"""
@@ -496,7 +508,9 @@ if __name__ == "__main__":
     save_figure(path.join(outdir,"cosmo_cddf_lone"))
     plt.clf()
 
-    plot_mass_metal(7,3)
+    for ss in (1,3,5):
+        plot_mass_metal((0,1,3),ss)
+    plot_mass_metal(7,(1,3,5))
     plot_H2_effect(7,4)
 #     plot_rel_res(5)
     plot_grid_res()
