@@ -397,6 +397,14 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.xlabel(r"distance to halo ($R_\mathrm{vir}$)")
         return (mbin,hist)
 
+    def plot_dla_mass_metallicity(self, color="blue", ls="-"):
+        """Plot host halo mass vs metallicity for DLAs"""
+        ind = np.where(self.dla_halo >= 0)
+        masses = halo_mass[self.dla_halo[ind]]
+        met = self.get_dla_metallicity()
+        plt.plot(np.log10(met[ind]), np.log10(masses),color=color, ls=ls)
+        return (met[ind], masses)
+
     def plot_colden_mass_breakdown(self,ncdbins=30):
         """Find the proportion of DLAs in each column density bin with various halo masses"""
         (halo_mass, _, _) = self._load_halo(0)
