@@ -336,7 +336,7 @@ class FastBoxMet(bi.BoxHI):
             if ion != -1:
                 star=cold_gas.RahmatiRT(self.redshift, self.hubble)
                 den=star.get_code_rhoH(bar)
-                temp = star.get_temp(den, bar)
+                temp = star.get_temp(bar)
                 temp = temp[ind]
                 den = den[ind]
                 met *= self.cloudy_table.ion(elem, ion, den, temp)
