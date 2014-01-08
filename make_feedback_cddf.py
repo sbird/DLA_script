@@ -22,7 +22,7 @@ outdir = myname.base + "plots/grid"
 #Colors and linestyles for the simulations
 colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
-labels = {0:"REF",1:"HVEL", 2:"HVNA",3:"NOSN", 4:"NAWW", 5:"MVEL",6:"METAL",7:"TUV"}
+labels = {0:"ILLUS",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WARMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -482,16 +482,16 @@ if __name__ == "__main__":
 #     plt.clf()
 #
 #     plot_breakdown()
-    plot_omegahi_breakdown(7)
-    plot_dndx_breakdown(7)
-    plot_metal_ion_corr(0,3)
-    plot_cddf_a_halo(7, 3)
+#     plot_omegahi_breakdown(7)
+#     plot_dndx_breakdown(7)
+#     plot_metal_ion_corr(0,3)
+#     plot_cddf_a_halo(7, 3)
 
-    dla_data.column_density_data()
-    ax = plt.gca()
-    ylab = ax.set_ylabel(r"$f(N)$")
-    save_figure(path.join(outdir,"cosmo_cddf_lone"))
-    plt.clf()
+#     dla_data.column_density_data()
+#     ax = plt.gca()
+#     ylab = ax.set_ylabel(r"$f(N)$")
+#     save_figure(path.join(outdir,"cosmo_cddf_lone"))
+#     plt.clf()
 
     for ss in (1,3,5):
         for sim in (1,5,6,7):
