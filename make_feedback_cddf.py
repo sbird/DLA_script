@@ -331,10 +331,10 @@ def plot_rel_res(sim):
 
 def plot_rel_cddf(snap):
     """Load and make a plot of the difference between two simulations"""
-    basen = myname.get_name(5)
+    basen = myname.get_name(7)
     base = dp.PrettyBox(basen, snap, nslice=10)
     cddf_base = base.column_density_function()
-    for xx in (0,1,2,3,4,7):
+    for xx in (0,1,2,3,4,5):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
