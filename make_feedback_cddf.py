@@ -22,7 +22,7 @@ outdir = myname.base + "plots/grid"
 #Colors and linestyles for the simulations
 colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
-labels = {0:"ILLUS",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WARMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
+labels = {0:"ILLUS",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -152,7 +152,7 @@ def plot_covering_frac(sim, snap, ff=True):
 
 def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
-    for sim in (0,1,2,3,4,5,7):   #xrange(8):
+    for sim in (0,4,2,1,3,5,7):   #xrange(8):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
         plt.figure(1)
@@ -178,7 +178,10 @@ def plot_halohist(snap, dla=True):
             save_figure(path.join(outdir, "halos/cosmo"+str(sim)+"_sigmaLLS_z"+str(snap)))
         plt.clf()
     plt.figure(1)
-    plt.legend(loc=1)
+    if snap == 5:
+        plt.legend(loc=1,ncol=2)
+    else:
+        plt.legend(loc=1)
     if dla:
         plt.xlim(1e8,1e13)
         plt.ylim(0,1.3)
@@ -334,15 +337,15 @@ def plot_rel_cddf(snap):
     basen = myname.get_name(7)
     base = dp.PrettyBox(basen, snap, nslice=10)
     cddf_base = base.column_density_function()
-    for xx in (0,1,2,3,4,5):
+    for xx in (0,4,2,1,3,5):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
         plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[xx], ls=lss[xx], label=labels[xx])
-    plt.legend(loc=2, ncol=2)
+    plt.legend(loc=3, ncol=2)
     plt.xlabel(r"$N_\mathrm{HI}$ (cm$^{-2}$)")
     plt.ylabel(r"$f(N)/f_\mathrm{MVEL}(N)$")
-    plt.ylim(0.3,1.9)
+    plt.ylim(-0.2,1.8)
     plt.xlim(1e17, 1e22)
     tight_layout_wrapper()
     save_figure(path.join(outdir,"cosmo_rel_cddf_z"+str(snap)))
