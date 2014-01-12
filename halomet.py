@@ -348,14 +348,14 @@ class BoxCIV(bi.BoxHI):
     Class to find omega_CIV for a box.
     Inherits from BoxHI
     """
-    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384):
-        self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
-        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
+    def __init__(self,snap_dir,snapnum,nslice=1,reload_file=True, savefile=None, start=0, end=3000, ngrid=16384):
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, reload_file=reload_file, savefile=savefile, start=start, end=end,ngrid=ngrid)
 
     def set_nHI_grid(self, gas=False, start=0):
         """Set up the grid around each halo where the HI is calculated.
         """
         star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
+        self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
         self.once=True
         #Now grid the HI for each halo
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
@@ -371,14 +371,16 @@ class BoxCIV(bi.BoxHI):
             ipos=np.array(bar["Coordinates"])
             #Get HI mass in internal units
             mass=np.array(bar["Masses"])
-            if not gas:
-                #Carbon mass fraction
-                den = star.get_code_rhoH(bar)
-                temp = star.get_temp(bar)
-                mass *= np.array(bar["GFM_Metals"][:,2])
-                ind = np.where(mass > 0)
-                mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
-            smooth = hsml.get_smooth_length(bar)
+            #Carbon mass fraction
+            den = star.get_code_rhoH(bar)
+            temp = star.get_temp(bar)
+            mass_frac = np.array(bar["GFM_Metals"][:,2])
+            #Floor on the mass fraction of the metal
+            ind = np.where(mass_frac > 1e-10)
+            mass = mass[ind]*mass_frac[ind]
+            mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
+            smooth = hsml.get_smooth_length(bar)[ind]
+            ipos = ipos[ind,:][0]
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
             f.close()
             #Explicitly delete some things.
@@ -390,9 +392,29 @@ class BoxCIV(bi.BoxHI):
         #we calculated things in internal gadget /cell and we want atoms/cm^2
         #So the conversion is mass/(cm/cell)^2
         for ii in xrange(0,self.nhalo):
-            massg=self.UnitMass_in_g/self.hubble/self.protonmass
+            massg=self.UnitMass_in_g/self.hubble/(self.protonmass*12.011)
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_nHI_grid[ii]*=(massg/epsilon**2)
             self.sub_nHI_grid[ii]+=0.1
             np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
+
+    def _rho_DLA(self, thresh=14):
+        """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
+        #Average column density of HI in atoms cm^-2 (physical)
+        try:
+            self.sub_nHI_grid
+        except AttributeError:
+            self.load_hi_grid()
+        if thresh > 0:
+            grids=self.sub_nHI_grid
+            HImass = np.sum(10**grids[np.where(grids > thresh)])/np.size(grids)
+        else:
+            HImass = np.mean(10**self.sub_nHI_grid)
+        #Avg. Column density of HI in g cm^-2 (comoving)
+        HImass = 12.011*self.protonmass * HImass/(1+self.redshift)**2
+        #Length of column in comoving cm
+        length = (self.box*self.UnitLength_in_cm/self.hubble/self.nhalo)
+        #Avg density in g/cm^3 (comoving)
+        return HImass/length
+
