@@ -343,3 +343,56 @@ class FastBoxMet(bi.BoxHI):
         met[np.where(met <=0)] = 1e-50
         return met
 
+class BoxCIV(bi.BoxHI):
+    """
+    Class to find omega_CIV for a box.
+    Inherits from BoxHI
+    """
+    def __init__(self,snap_dir,snapnum,nslice=1,savefile=None, start=0, end=3000, ngrid=16384):
+        self.cloudy_table = convert_cloudy.CloudyTable(self.redshift)
+        bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, False, savefile, False,start=start, end=end,ngrid=ngrid)
+
+    def set_nHI_grid(self, gas=False, start=0):
+        """Set up the grid around each halo where the HI is calculated.
+        """
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble, molec=self.molec)
+        self.once=True
+        #Now grid the HI for each halo
+        files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
+        #Larger numbers seem to be towards the beginning
+        files.reverse()
+        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
+        end = np.min([np.size(files),self.end])
+        for xx in xrange(start, end):
+            ff = files[xx]
+            f = h5py.File(ff,"r")
+            print "Starting file ",ff
+            bar=f["PartType0"]
+            ipos=np.array(bar["Coordinates"])
+            #Get HI mass in internal units
+            mass=np.array(bar["Masses"])
+            if not gas:
+                #Carbon mass fraction
+                den = star.get_code_rhoH(bar)
+                temp = star.get_temp(bar)
+                mass *= np.array(bar["GFM_Metals"][:,2])
+                ind = np.where(mass > 0)
+                mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
+            smooth = hsml.get_smooth_length(bar)
+            [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
+            f.close()
+            #Explicitly delete some things.
+            del ipos
+            del mass
+            del smooth
+        #Deal with zeros: 0.1 will not even register for things at 1e17.
+        #Also fix the units:
+        #we calculated things in internal gadget /cell and we want atoms/cm^2
+        #So the conversion is mass/(cm/cell)^2
+        for ii in xrange(0,self.nhalo):
+            massg=self.UnitMass_in_g/self.hubble/self.protonmass
+            epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
+            self.sub_nHI_grid[ii]*=(massg/epsilon**2)
+            self.sub_nHI_grid[ii]+=0.1
+            np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
+        return
