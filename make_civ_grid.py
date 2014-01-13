@@ -6,6 +6,7 @@ from os.path import expanduser
 
 sim = "Cosmo"+str(sys.argv[2])+"_V6"
 base=expanduser("~/data/Cosmo/"+sim+"/L25n512/output/")
+#base=expanduser("~/data/Cosmo/"+sim+"/L25n256/")
 
 snapnum=sys.argv[1]
 outdir = base+"/snapdir_"+str(snapnum).rjust(3,'0')
@@ -13,7 +14,7 @@ outdir = base+"/snapdir_"+str(snapnum).rjust(3,'0')
 # 91,
 # 124,
 #]
-ahalo=hm.BoxCIV(base,snapnum, reload_file=True, nslice=30,savefile=outdir+"/boxciv_grid_big.hdf5",ngrid=10000)
+ahalo=hm.BoxCIV(base,snapnum, reload_file=True, nslice=30,savefile=outdir+"/boxciv_grid.hdf5",ngrid=5000)
 ahalo.column_density_function()
 ahalo.rho_DLA(14.)
 ahalo.line_density(14.)

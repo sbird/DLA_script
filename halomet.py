@@ -378,6 +378,11 @@ class BoxCIV(bi.BoxHI):
             #Floor on the mass fraction of the metal
             ind = np.where(mass_frac > 1e-10)
             mass = mass[ind]*mass_frac[ind]
+            #High densities will have no CIV anyway.
+            den[np.where(den > 1e4)] = 9999.
+            den[np.where(den < 1e-7)] = 1.01e-7
+            temp[np.where(temp > 3e8)] = 3e8
+            temp[np.where(temp < 1e4)] = 1e4
             mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
             smooth = hsml.get_smooth_length(bar)[ind]
             ipos = ipos[ind,:][0]
