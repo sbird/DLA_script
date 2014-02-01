@@ -404,7 +404,7 @@ class BoxCIV(bi.BoxHI):
             np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
 
-    def _rho_DLA(self, thresh=14):
+    def _rho_DLA(self, thresh=14, upthresh=50.):
         """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
         #Average column density of HI in atoms cm^-2 (physical)
         try:
@@ -413,7 +413,7 @@ class BoxCIV(bi.BoxHI):
             self.load_hi_grid()
         if thresh > 0:
             grids=self.sub_nHI_grid
-            HImass = np.sum(10**grids[np.where(grids > thresh)])/np.size(grids)
+            HImass = np.sum(10**grids[np.where((grids < upthresh)*(grids > thresh))])/np.size(grids)
         else:
             HImass = np.mean(10**self.sub_nHI_grid)
         #Avg. Column density of HI in g cm^-2 (comoving)

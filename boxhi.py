@@ -249,7 +249,7 @@ class BoxHI(HaloHI):
         return h100/light*(1+self.redshift)**2*(self.box/self.nhalo)*self.UnitLength_in_cm
 
 
-    def omega_DLA(self, thresh=20.3):
+    def omega_DLA(self, thresh=20.3, upthresh=50., fact=1000):
         """Compute Omega_DLA, the sum of the neutral gas in DLAs, divided by the critical density.
             Ω_DLA =  m_p * avg. column density / (1+z)^2 / length of column / rho_c / X_H
             Note: If we want the neutral hydrogen density rather than the gas hydrogen density, multiply by 0.76,
@@ -260,11 +260,11 @@ class BoxHI(HaloHI):
             return self.Omega_DLA
         except AttributeError:
             #Avg density in g/cm^3 (comoving) divided by critical density in g/cm^3
-            omega_DLA=1000*self._rho_DLA(thresh)/self.rho_crit()
+            omega_DLA=fact*self._rho_DLA(thresh, upthresh)/self.rho_crit()
             self.Omega_DLA = omega_DLA
             return omega_DLA
 
-    def _rho_DLA(self, thresh=20.3):
+    def _rho_DLA(self, thresh=20.3, upthresh=50.):
         """Find the average density in DLAs in g/cm^3 (comoving). Helper for omega_DLA and rho_DLA."""
         #Average column density of HI in atoms cm^-2 (physical)
         try:
@@ -273,7 +273,7 @@ class BoxHI(HaloHI):
             self.load_hi_grid()
         if thresh > 0:
             grids=self.sub_nHI_grid
-            HImass = np.sum(10**grids[np.where(grids > thresh)])/np.size(grids)
+            HImass = np.sum(10**grids[np.where((grids < upthresh)*(grids > thresh))])/np.size(grids)
         else:
             HImass = np.mean(10**self.sub_nHI_grid)
         #Avg. Column density of HI in g cm^-2 (comoving)
