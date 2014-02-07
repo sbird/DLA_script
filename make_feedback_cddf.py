@@ -375,23 +375,23 @@ def plot_halos(sim,hh):
     """Plot the halo closest in mass and position in the given sim to the halo of the given number in sim 7."""
     ahalo = dp.PrettyHalo(myname.get_name(sim),3,20000)
     ahalo7 = dp.PrettyHalo(myname.get_name(7),3,20000)
-    (mass, cofm, radii) = _load_halo(ahalo, 100)
-    (mass7, cofm7, _) = _load_halo(ahalo7, 100)
-    mind = np.where( np.abs(np.log10(mass) - np.log10(mass7[hh])) < 0.5)
-    dist = np.sum((cofm7[hh] - cofm[mind])**2, axis=1)
+    (mass, cofm, radii) = _load_halo(ahalo, 30)
+    (mass7, cofm7, _) = _load_halo(ahalo7, 30)
+    dist = np.sum((cofm7[hh] - cofm)**2, axis=1)
     nn = np.where( dist == np.min(dist))
-    print "Requested: ",hh,"Got: ",mind[nn]," dist:",np.sqrt(dist[nn])," mass:",mass[mind][nn]
-    hh = mind[nn]
-    plt.title(r"Central Halo: $"+dp.pr_num(ahalo.sub_mass[hh]/0.76/1e11)+r"\times 10^{11} M_\odot$")
+    rhh = hh
+    hh = np.ravel(nn)[0]
+    print "Requested: ",rhh,"Got: ",hh," dist:",np.sqrt(dist[nn])," r-mass:",mass[hh]/mass7[rhh], "ormass: ",mass7[rhh]
+    plt.title(r"Central Halo: $"+dp.pr_num(ahalo.sub_mass[hh]/0.72/1e11)+r"\times 10^{11} M_\odot$")
     ahalo.plot_pretty_halo(hh)
     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
     dp.tight_layout_wrapper()
-    save_figure(path.join(outdir,"pretty_"+str(sim)+"_halo_"+str(hh)))
+    save_figure(path.join(outdir,"pretty_"+str(sim)+"_halo_"+str(rhh)))
     plt.clf()
     ahalo.plot_pretty_cut_halo(hh)
     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
     dp.tight_layout_wrapper()
-    save_figure(path.join(outdir,"pretty_cut_"+str(sim)+"_halo_"+str(hh)))
+    save_figure(path.join(outdir,"pretty_cut_"+str(sim)+"_halo_"+str(rhh)))
     plt.clf()
     del ahalo
 
@@ -419,6 +419,7 @@ def _load_halo(self, minpart=400):
     #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
     target_mass = self.box**3 * rhom / self.npart[0]
     min_mass = target_mass * minpart / 1e10
+    print "mass: ",min_mass
     (_, halo_mass, halo_cofm, halo_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, min_mass)
     return (halo_mass, halo_cofm, halo_radii)
 
@@ -474,14 +475,9 @@ def plot_breakdown():
 if __name__ == "__main__":
     plot_H2_effect(7,4)
 
-    plot_halos(3,15)
-    plot_halos(3,50)
-    plot_halos(7,15)
-    plot_halos(7,50)
-    plot_halos(7,80)
-    plot_halos(1,15)
-    plot_halos(1,50)
-    raise Exception
+    for sim in (1,3,7):
+        for halos in (15,17, 18,20,35,45,50):
+            plot_halos(sim, halos)
     zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
 #     halo = myname.get_name(0)
 #     ahalo = dp.PrettyBox(halo, 3, nslice=10, label=labels[0])
