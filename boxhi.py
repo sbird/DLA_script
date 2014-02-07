@@ -6,7 +6,7 @@ import os.path as path
 import fieldize
 import numexpr as ne
 import cold_gas
-import halocat
+import readsubfHDF5
 from halohi import HaloHI,calc_binned_median,calc_binned_percentile
 import hdfsim
 from brokenpowerfit import powerfit
@@ -158,8 +158,10 @@ class BoxHI(HaloHI):
         return
 
     def load_fast_tmp(self,start,key):
+        """Not supported"""
         return start
     def save_fast_tmp(self,location,key):
+        """Not supported"""
         return
 
     def set_zdir_grid(self, dlaind, gas=False, key="zpos", ion=-1):
@@ -430,11 +432,11 @@ class BoxHI(HaloHI):
             raise
         f.close()
 
-    def find_cross_section(self, dla=True, minpart=0, vir_mult=2):
+    def find_cross_section(self, dla=True, minpart=0, vir_mult=1):
         """Find the number of DLA cells within dist virial radii of
            each halo resolved with at least minpart particles.
            If within the virial radius of multiple halos, use the most massive one."""
-        (halo_mass, halo_cofm, halo_radii) = self._load_halo(minpart)
+        (halo_mass, halo_cofm, halo_radii, sub_pos, sub_radii, sub_index) = self._load_halo(minpart, True)
         dlaind = self._load_dla_index(dla)
         #Computing z distances
         xslab = self._get_dla_zpos(dlaind,dla)
@@ -446,7 +448,7 @@ class BoxHI(HaloHI):
         assigned_halo = np.zeros_like(yslab, dtype=np.int32)
         assigned_halo-=1
         print "Starting find_halo_kernel"
-        field_dla = _find_halo_kernel(self.box, halo_cofm,vir_mult*halo_radii,halo_mass, xslab, yslab, zslab,dla_cross, assigned_halo)
+        field_dla = _find_halo_kernel(self.box, halo_cofm,halo_radii,halo_mass, sub_pos, sub_radii, sub_index, xslab, yslab, zslab,dla_cross, assigned_halo)
         print "max = ",np.max(dla_cross)," field dlas: ",100.*field_dla/np.shape(dlaind)[1]
         #Convert from grid cells to kpc/h^2
         dla_cross*=celsz**2
@@ -491,15 +493,33 @@ class BoxHI(HaloHI):
         f.close()
         return nhi
 
-    def _load_halo(self, minpart=400):
-        """Load a halo catalogue"""
+    def _load_halo(self, minpart=0, subhalo=False):
+        """Load a halo catalogue:
+        minpart - all halos with more than minpart particles
+        subhalo - shall I load a subhalo catalogue"""
         #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
         rhom = 2.78e+11* self.omegam / (1e3**3)
         #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
         target_mass = self.box**3 * rhom / self.npart[0]
         min_mass = target_mass * minpart / 1e10
-        (_, halo_mass, halo_cofm, halo_radii) = halocat.find_all_halos(self.snapnum, self.snap_dir, min_mass)
-        return (halo_mass, halo_cofm, halo_radii)
+        # We might have the halo catalog stored in the new format, which is HDF5.
+        subs=readsubfHDF5.subfind_catalog(self.snap_dir, self.snapnum,long_ids=True)
+        #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
+        ind=np.where(subs.Group_M_Crit200 > min_mass)
+        #Store the indices of the halos we are using
+        #Get particle center of mass, use group catalogue.
+        halo_cofm=np.array(subs.GroupPos[ind])
+        #halo masses in M_sun/h: use M_200
+        halo_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        #r200 in kpc/h (comoving).
+        halo_radii = np.array(subs.Group_R_Crit200[ind])
+        if subhalo:
+            sub_radii =  np.array(subs.SubhaloHalfmassRad)
+            sub_pos =  np.array(subs.SubhaloPos)
+            sub_index = np.array(subs.SubhaloGrNr)
+            return (halo_mass, halo_cofm, halo_radii, sub_pos, sub_radii, sub_index)
+        else:
+            return (halo_mass, halo_cofm, halo_radii)
 
     def column_density_function(self,dlogN=0.1, minN=16, maxN=24., maxM=None,minM=None):
         """

@@ -120,7 +120,7 @@ extern "C" PyObject * Py_Discard_SPH_Fieldize(PyObject *self, PyObject *args)
 
 //Test whether a particle with position (xcoord, ycoord, zcoord)
 //is within the virial radius of halo j.
-inline bool is_halo_close(const int j, const double xcoord, const double ycoord, const double zcoord, const PyArrayObject * sub_cofm, const PyArrayObject * sub_radii, const double box)
+inline bool is_halo_close(const int j, const double xcoord, const double ycoord, const double zcoord, PyArrayObject * sub_cofm, PyArrayObject * sub_radii, const double box)
 {
             double xpos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,0) - xcoord);
             double ypos = fabs(*(double *) PyArray_GETPTR2(sub_cofm,j,1) - ycoord);
@@ -147,18 +147,19 @@ inline bool is_halo_close(const int j, const double xcoord, const double ycoord,
 
 extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 {
-    PyArrayObject *sub_cofm, *sub_radii, *sub_mass, *xcoords, *ycoords, *zcoords, *dla_cross, *assigned_halo;
+    PyArrayObject *sub_cofm, *sub_radii, *sub_mass, *xcoords, *ycoords, *zcoords, *dla_cross, *assigned_halo, *subsub_pos, *subsub_radii, *subsub_index;
     double box;
-    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &sub_mass, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross, &PyArray_Type, &assigned_halo) )
+    if(!PyArg_ParseTuple(args, "dO!O!O!O!O!O!O!O!O!O!O!",&box, &PyArray_Type, &sub_cofm, &PyArray_Type, &sub_radii, &PyArray_Type, &sub_mass, &PyArray_Type, &subsub_pos, &PyArray_Type, &subsub_radii, &PyArray_Type, &subsub_index, &PyArray_Type, &xcoords, &PyArray_Type, &ycoords,&PyArray_Type, &zcoords, &PyArray_Type, &dla_cross, &PyArray_Type, &assigned_halo) )
     {
-        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells, dla_cross, assigned_halo\n");
+        PyErr_SetString(PyExc_AttributeError, "Incorrect arguments: use box, halo_cofm, halo_radii, halo_mass, sub_pos, sub_radii, sub_index, xcells, ycells, zcells, dla_cross, assigned_halo\n");
         return NULL;
     }
-    if(check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE)
+    if(check_type(sub_mass, NPY_DOUBLE) || check_type(sub_cofm, NPY_DOUBLE) || check_type(sub_radii, NPY_DOUBLE) 
+            || check_type(subsub_radii, NPY_DOUBLE) || check_type(subsub_pos, NPY_DOUBLE) || check_type(subsub_index, NPY_INT32)
             || check_type(xcoords, NPY_DOUBLE) || check_type(ycoords, NPY_DOUBLE) || check_type(zcoords, NPY_DOUBLE) || check_type(dla_cross, NPY_DOUBLE)
             ||  check_type(assigned_halo, NPY_INT32))
     {
-          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double except assigned_halo.\n");
+          PyErr_SetString(PyExc_AttributeError, "Input arrays do not have appropriate type: all should be double except assigned_halo and sub index.\n");
           return NULL;
     }
 
@@ -170,6 +171,8 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
 
     const npy_intp ncells = PyArray_SIZE(xcoords);
     const npy_intp nhalo = PyArray_DIM(sub_cofm,0);
+    const npy_intp nsubhalo = PyArray_SIZE(subsub_radii);
+
     long int field_dlas = 0;
     //Store index in a map as the easiest way of sorting it
     std::map<const double, const int> sort_mass;
@@ -194,7 +197,16 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
                 break;
             }
         }
-        *(int32_t *) PyArray_GETPTR1(assigned_halo,i) = nearest_halo;
+        //If no halo found, loop over subhalos.
+        if (nearest_halo <= 0){
+         for (int i=0; i< nsubhalo; ++i){
+            //If close to a subhalo, assign to the parent halo.
+            if (is_halo_close(i, xcoord, ycoord, zcoord, subsub_pos, subsub_radii, box)) {
+                nearest_halo = *(int *) PyArray_GETPTR1(subsub_index,i);
+                break;
+            }
+          }
+        }
         if (nearest_halo >= 0){
             #pragma omp critical (_dla_cross_)
             {
@@ -205,6 +217,7 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
             #pragma omp atomic
             field_dlas++;
         }
+        *(int32_t *) PyArray_GETPTR1(assigned_halo,i) = nearest_halo;
     }
 
     return Py_BuildValue("l",field_dlas);
@@ -217,7 +230,7 @@ static PyMethodDef __fieldize[] = {
    "    "},
   {"_find_halo_kernel", Py_find_halo_kernel, METH_VARARGS,
    "Kernel for populating a field containing the mass of the nearest halo to each point"
-   "    Arguments: sub_cofm, sub_radii, sub_mass, xcells, ycells, zcells (output from np.where), dla_cross[nn], assigned_halo"
+   "    Arguments: halo_cofm, halo_radii, halo_mass, sub_pos, sub_radii, sub_index, xcells, ycells, zcells (output from np.where), dla_cross[nn], assigned_halo"
    "    "},
   {"_Discard_SPH_Fieldize", Py_Discard_SPH_Fieldize, METH_VARARGS,
    "Interpolate particles onto a grid using SPH interpolation."
