@@ -372,8 +372,16 @@ def plot_agn_rel_cddf(snap):
     plt.clf()
 
 def plot_halos(sim,hh):
+    """Plot the halo closest in mass and position in the given sim to the halo of the given number in sim 7."""
     ahalo = dp.PrettyHalo(myname.get_name(sim),3,20000)
+    ahalo7 = dp.PrettyHalo(myname.get_name(7),3,20000)
     (mass, cofm, radii) = _load_halo(ahalo, 100)
+    (mass7, cofm7, _) = _load_halo(ahalo7, 100)
+    mind = np.where( np.abs(np.log10(mass) - np.log10(mass7[hh])) < 0.5)
+    dist = np.sum((cofm7[hh] - cofm[mind])**2, axis=1)
+    nn = np.where( dist == np.min(dist))
+    print "Requested: ",hh,"Got: ",mind[nn]," dist:",np.sqrt(dist[nn])," mass:",mass[mind][nn]
+    hh = mind[nn]
     plt.title(r"Central Halo: $"+dp.pr_num(ahalo.sub_mass[hh]/0.76/1e11)+r"\times 10^{11} M_\odot$")
     ahalo.plot_pretty_halo(hh)
     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
