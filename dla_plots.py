@@ -141,7 +141,7 @@ class PrettyHalo(halohi.HaloHI):
         ind=np.where(cut_grid < cut_LLS)
         cut_grid[ind]=10
         ind2=np.where((cut_grid < cut_DLA)*(cut_grid > cut_LLS))
-        cut_grid[ind2]=16.
+        cut_grid[ind2]=12.
         ind3=np.where(cut_grid > cut_DLA)
         cut_grid[ind3]=20.3
         maxdist = self.sub_radii[num]

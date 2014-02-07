@@ -22,7 +22,7 @@ outdir = myname.base + "plots/grid"
 #Colors and linestyles for the simulations
 colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
-labels = {0:"ILLUS",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
+labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -284,7 +284,6 @@ def plot_dndx_breakdown(sim):
         plt.plot(zzz,fractions[:,i+1], color=colors[i], ls=lss[i], label=dp.pr_num(np.log10(massbins[i]))+" - "+dp.pr_num(np.log10(massbins[i+1])))
     plt.plot(zzz,fractions[:,-1], color=colors[6], ls=lss[6], label="Field")
     plt.plot(zzz,omegadla, color=colors[sim], ls=lss[sim], label="Total")
-#     raise Exception
     plt.xlabel("z")
     plt.ylabel(r"$dN/dX$")
     dla_data.dndx_not()
@@ -344,7 +343,7 @@ def plot_rel_cddf(snap):
         plt.semilogx(cddf_base[0], cddf[1]/cddf_base[1], color=colors[xx], ls=lss[xx], label=labels[xx])
     plt.legend(loc=3, ncol=2)
     plt.xlabel(r"$N_\mathrm{HI}$ (cm$^{-2}$)")
-    plt.ylabel(r"$f(N)/f_\mathrm{MVEL}(N)$")
+    plt.ylabel(r"$f(N)/f_\mathrm{"+labels[7]+"}(N)$")
     plt.ylim(-0.2,1.8)
     plt.xlim(1e17, 1e22)
     tight_layout_wrapper()
@@ -465,16 +464,17 @@ def plot_breakdown():
 
 
 if __name__ == "__main__":
-#     plot_H2_effect(5,3)
+    plot_H2_effect(7,4)
 
-#     plot_halos(3,15)
-#     plot_halos(3,50)
-#     plot_halos(7,15)
-#     plot_halos(7,50)
-#     plot_halos(7,80)
-#     plot_halos(1,15)
-#     plot_halos(1,50)
-#     zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
+    plot_halos(3,15)
+    plot_halos(3,50)
+    plot_halos(7,15)
+    plot_halos(7,50)
+    plot_halos(7,80)
+    plot_halos(1,15)
+    plot_halos(1,50)
+    raise Exception
+    zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
 #     halo = myname.get_name(0)
 #     ahalo = dp.PrettyBox(halo, 3, nslice=10, label=labels[0])
 #     ahalo.plot_dla_metallicity(color="blue", ls="-")
@@ -484,11 +484,11 @@ if __name__ == "__main__":
 #     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
 #     plt.clf()
 #
-#     plot_breakdown()
-#     plot_omegahi_breakdown(7)
-#     plot_dndx_breakdown(7)
-#     plot_metal_ion_corr(0,3)
-#     plot_cddf_a_halo(7, 3)
+    plot_breakdown()
+    plot_omegahi_breakdown(7)
+    plot_dndx_breakdown(7)
+    plot_metal_ion_corr(0,3)
+    plot_cddf_a_halo(7, 3)
 
 #     dla_data.column_density_data()
 #     ax = plt.gca()
@@ -508,7 +508,6 @@ if __name__ == "__main__":
     plot_mass_metal(7,3)
     save_figure(path.join(outdir, "cosmo_7mass_metal3"))
     plt.clf()
-    plot_H2_effect(7,4)
 #     plot_rel_res(5)
     plot_grid_res()
 #     plot_UVB_effect()
