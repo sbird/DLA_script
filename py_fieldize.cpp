@@ -181,6 +181,12 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
         sort_mass.insert(std::pair<const double, const int>(-1*(*(double *) PyArray_GETPTR1(sub_mass,i)),i));
     }
 
+    //Store index in a map as the easiest way of sorting it
+    std::multimap<const int, const int> sort_sub_index;
+    //Insert - the index into the map, so that the subhalos of the largest halo comes first.
+    for (int i=0; i< nsubhalo; ++i){
+        sort_sub_index.insert(std::pair<const int, const int>(-1*(*(int *) PyArray_GETPTR1(subsub_index,i)),i));
+    }
     #pragma omp parallel for
     for (npy_intp i=0; i< ncells; i++)
     {
@@ -199,10 +205,10 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
         }
         //If no halo found, loop over subhalos.
         if (nearest_halo <= 0){
-         for (int i=0; i< nsubhalo; ++i){
+          for (std::map<const int,const int>::const_iterator it = sort_sub_index.begin(); it != sort_sub_index.end(); ++it){
             //If close to a subhalo, assign to the parent halo.
-            if (is_halo_close(i, xcoord, ycoord, zcoord, subsub_pos, subsub_radii, box)) {
-                nearest_halo = *(int *) PyArray_GETPTR1(subsub_index,i);
+            if (is_halo_close(it->second, xcoord, ycoord, zcoord, subsub_pos, subsub_radii, box)) {
+                nearest_halo = -1*(it->first);
                 break;
             }
           }
