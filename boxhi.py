@@ -398,7 +398,7 @@ class BoxHI(HaloHI):
 
     def save_sigDLA(self):
         """Generate and save sigma_DLA to the savefile"""
-        (self.real_sub_mass, self.sigDLA, self.field_dla,self.dla_halo) = self.find_cross_section(True, 0, 2.)
+        (self.real_sub_mass, self.sigDLA, self.field_dla,self.dla_halo) = self.find_cross_section(True, 0, 1.)
         f=h5py.File(self.savefile,'r+')
         try:
             mgrp = f.create_group("CrossSection")
@@ -436,7 +436,7 @@ class BoxHI(HaloHI):
         """Find the number of DLA cells within dist virial radii of
            each halo resolved with at least minpart particles.
            If within the virial radius of multiple halos, use the most massive one."""
-        (halo_mass, halo_cofm, halo_radii, sub_pos, sub_radii, sub_index) = self._load_halo(minpart, True)
+        (halo_mass, halo_cofm, halo_radii, sub_pos, sub_radii, sub_index) = self._load_halo(0, True)
         dlaind = self._load_dla_index(dla)
         #Computing z distances
         xslab = self._get_dla_zpos(dlaind,dla)
@@ -495,24 +495,19 @@ class BoxHI(HaloHI):
 
     def _load_halo(self, minpart=0, subhalo=False):
         """Load a halo catalogue:
-        minpart - all halos with more than minpart particles
+        minpart - does nothing
         subhalo - shall I load a subhalo catalogue"""
         #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
         rhom = 2.78e+11* self.omegam / (1e3**3)
-        #Mass of an SPH particle, in units of M_sun, x omega_m/ omega_b.
-        target_mass = self.box**3 * rhom / self.npart[0]
-        min_mass = target_mass * minpart / 1e10
         # We might have the halo catalog stored in the new format, which is HDF5.
         subs=readsubfHDF5.subfind_catalog(self.snap_dir, self.snapnum,long_ids=True)
-        #Get list of halos resolved, using a mass cut; cuts off at about 2e9 for 512**3 particles.
-        ind=np.where(subs.Group_M_Crit200 > min_mass)
         #Store the indices of the halos we are using
         #Get particle center of mass, use group catalogue.
-        halo_cofm=np.array(subs.GroupPos[ind])
+        halo_cofm=np.array(subs.GroupPos)
         #halo masses in M_sun/h: use M_200
-        halo_mass=np.array(subs.Group_M_Crit200[ind])*self.UnitMass_in_g/self.SolarMass_in_g
+        halo_mass=np.array(subs.Group_M_Crit200)*self.UnitMass_in_g/self.SolarMass_in_g
         #r200 in kpc/h (comoving).
-        halo_radii = np.array(subs.Group_R_Crit200[ind])
+        halo_radii = np.array(subs.Group_R_Crit200)
         if subhalo:
             sub_radii =  np.array(subs.SubhaloHalfmassRad)
             sub_pos =  np.array(subs.SubhaloPos)
