@@ -169,6 +169,12 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
           return NULL;
     }
 
+    if(PyArray_NDIM(sub_cofm) != 2 || PyArray_NDIM(subsub_pos) != 2 )
+    {
+          PyErr_SetString(PyExc_AttributeError, "Halo positions coordinates are not 3D\n");
+          return NULL;
+    }
+
     const npy_intp ncells = PyArray_SIZE(xcoords);
     const npy_intp nhalo = PyArray_DIM(sub_cofm,0);
     const npy_intp nsubhalo = PyArray_SIZE(subsub_radii);
@@ -182,10 +188,10 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
     }
 
     //Store index in a map as the easiest way of sorting it
-    std::multimap<const int, const int> sort_sub_index;
+    std::multimap<const int32_t, const int> sort_sub_index;
     //Insert - the index into the map, so that the subhalos of the largest halo comes first.
     for (int i=0; i< nsubhalo; ++i){
-        sort_sub_index.insert(std::pair<const int, const int>(-1*(*(int *) PyArray_GETPTR1(subsub_index,i)),i));
+        sort_sub_index.insert(std::pair<const int32_t, const int>(*(int *) PyArray_GETPTR1(subsub_index,i),i));
     }
     #pragma omp parallel for
     for (npy_intp i=0; i< ncells; i++)
@@ -205,10 +211,10 @@ extern "C" PyObject * Py_find_halo_kernel(PyObject *self, PyObject *args)
         }
         //If no halo found, loop over subhalos.
         if (nearest_halo <= 0){
-          for (std::map<const int,const int>::const_iterator it = sort_sub_index.begin(); it != sort_sub_index.end(); ++it){
+          for (std::multimap<const int32_t,const int>::const_iterator it = sort_sub_index.begin(); it != sort_sub_index.end(); ++it){
             //If close to a subhalo, assign to the parent halo.
             if (is_halo_close(it->second, xcoord, ycoord, zcoord, subsub_pos, subsub_radii, box)) {
-                nearest_halo = -1*(it->first);
+                nearest_halo = it->first;
                 break;
             }
           }
