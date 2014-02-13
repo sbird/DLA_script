@@ -618,7 +618,8 @@ class BoxHI(HaloHI):
 
     def get_sDLA_fit(self):
         """Fit an broken power law profile based function to sigma_DLA as binned."""
-        minM = np.min(self.real_sub_mass)
+        ind = np.where(self.real_sub_mass > 0)
+        minM = np.min(self.real_sub_mass[ind])
         maxM = np.max(self.real_sub_mass)
         bins=30
         mass=np.logspace(np.log10(minM),np.log10(maxM),num=bins)

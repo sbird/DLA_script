@@ -282,7 +282,7 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         self.plot_sigma_DLA_median(color=color)
         self.plot_sigma_DLA_model(color=color)
         print "field dlas:",self.field_dla
-        ind = np.where(self.sigDLA > 0)
+        ind = np.where(np.logical_and(self.sigDLA > 0, self.real_sub_mass > 0))
         (hist,xedges, yedges)=np.histogram2d(np.log10(self.real_sub_mass[ind]),np.log10(self.sigDLA[ind]),bins=(30,30))
         xbins=np.array([(xedges[i+1]+xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         ybins=np.array([(yedges[i+1]+yedges[i])/2 for i in xrange(0,np.size(yedges)-1)])
@@ -332,7 +332,8 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def plot_sigma_DLA_model(self,color="red"):
         """Plot my analytic model for the DLAs"""
-        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=100)
+        ind = np.where(self.real_sub_mass > 0)
+        mass=np.logspace(8.5,12,num=100)
         #Plot Analytic Fit
         ap=self.get_sDLA_fit()
         mdiff=np.log10(mass)-ap[0]
@@ -343,9 +344,10 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
 
     def plot_sigma_DLA_median(self, DLA_cut=20.3,DLA_upper_cut=42.,color=acol):
         """Plot the median and scatter of sigma_DLA against mass."""
-        mass=np.logspace(np.log10(np.min(self.real_sub_mass)),np.log10(np.max(self.real_sub_mass)),num=7)
+        ind = np.where(self.real_sub_mass > 0)
+        mass=np.logspace(np.log10(np.min(self.real_sub_mass[ind])),np.log10(np.max(self.real_sub_mass[ind])),num=7)
         abin_mass = np.empty(np.size(mass)-1)
-        abin_mass = halohi.calc_binned_median(mass,self.real_sub_mass, self.real_sub_mass)
+        abin_mass = halohi.calc_binned_median(mass,self.real_sub_mass[ind], self.real_sub_mass[ind])
         (amed,aloq,aupq)=self.get_sigma_DLA_binned(mass,DLA_cut,DLA_upper_cut)
         #To avoid zeros
         aloq-=1e-2
