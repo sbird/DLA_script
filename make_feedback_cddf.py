@@ -23,6 +23,7 @@ outdir = myname.base + "plots/grid"
 colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
 lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
 labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
+redshifts = {1:4, 2:3.5, 3:3, 4:2.5, 5:2}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
     """Load a simulation and plot its cddf"""
@@ -82,6 +83,7 @@ def plot_H2_effect(sim, snap):
     plt.legend(loc=3)
     plt.xlim(1e20,1e23)
     plt.ylim(1e-5,0.1)
+    plt.title("CDDF for "+labels[sim]+" at z="+str(redshifts[snap]))
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
     cddf_base = ahalo.column_density_function()
@@ -169,6 +171,7 @@ def plot_halohist(snap, dla=True):
         if dla:
             print "sim:",sim,"snap: ",snap
             ahalo.plot_sigma_DLA()
+            plt.title(labels[sim]+" at z="+str(redshifts[snap]))
         else:
             print "sim:",sim,"snap: ",snap
             ahalo.plot_sigma_LLS()
@@ -185,6 +188,7 @@ def plot_halohist(snap, dla=True):
     else:
         plt.legend(loc=1)
     if dla:
+        plt.title("Redshift "+str(redshifts[snap]))
         plt.xlim(1e8,1e13)
         plt.ylim(0,1.3)
         save_figure(path.join(outdir, "halos/cosmo_halohist_z"+str(snap)))
@@ -346,6 +350,7 @@ def plot_rel_cddf(snap):
     plt.legend(loc=3, ncol=2)
     plt.xlabel(r"$N_\mathrm{HI}$ (cm$^{-2}$)")
     plt.ylabel(r"$f(N)/f_\mathrm{"+labels[7]+"}(N)$")
+    plt.title("CDDF relative to "+labels[7]+" at z="+str(redshifts[snap]))
     plt.ylim(-0.2,1.8)
     plt.xlim(1e17, 1e22)
     tight_layout_wrapper()
@@ -392,6 +397,7 @@ def plot_halos(sim,hh):
     plt.clf()
     ahalo.plot_pretty_cut_halo(hh)
     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
+    plt.title(labels[sim]+" at z=3")
     dp.tight_layout_wrapper()
     save_figure(path.join(outdir,"pretty_cut_"+str(sim)+"_halo_"+str(rhh)))
     plt.clf()
@@ -502,18 +508,18 @@ if __name__ == "__main__":
 #     save_figure(path.join(outdir,"cosmo_cddf_lone"))
 #     plt.clf()
 
-    for ss in (1,3,5):
-        for sim in (1,5,6,7):
-            plot_mass_metal(sim,ss)
-        save_figure(path.join(outdir, "cosmo_mass_metal"+str(ss)))
-        plt.clf()
-    for ss in (1,3,5):
-        plot_mass_metal(7,ss)
-    save_figure(path.join(outdir, "cosmo_7mass_metal"))
-    plt.clf()
-    plot_mass_metal(7,3)
-    save_figure(path.join(outdir, "cosmo_7mass_metal3"))
-    plt.clf()
+#     for ss in (1,3,5):
+#         for sim in (1,5,6,7):
+#             plot_mass_metal(sim,ss)
+#         save_figure(path.join(outdir, "cosmo_mass_metal"+str(ss)))
+#         plt.clf()
+#     for ss in (1,3,5):
+#         plot_mass_metal(7,ss)
+#     save_figure(path.join(outdir, "cosmo_7mass_metal"))
+#     plt.clf()
+#     plot_mass_metal(7,3)
+#     save_figure(path.join(outdir, "cosmo_7mass_metal3"))
+#     plt.clf()
 #     plot_rel_res(5)
     plot_grid_res()
 #     plot_UVB_effect()
@@ -588,6 +594,7 @@ if __name__ == "__main__":
         plt.legend(loc=2)
         plt.ylim(0,1.45)
         plt.xlim(-3,0)
+        plt.title("DLA metallicity at z="+str(redshifts[zz]))
         save_figure(path.join(outdir,"cosmo_metal_z"+str(zz)))
         plt.clf()
 
