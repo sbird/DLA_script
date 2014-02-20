@@ -1,6 +1,8 @@
 #Python include path
 PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
 
+# CC = /usr/bin/gcc
+# CXX = /usr/bin/g++
 GCCV:=$(shell gcc --version)
 ifeq (4.8,$(findstring 4.8,${GCCV}))
 	CC = gcc
@@ -27,7 +29,7 @@ ifeq (icpc,$(findstring icpc,${CXX}))
   CFLAGS +=-O2 -g -c -w1 -openmp -fpic
   LINK +=${CXX} -openmp
 else
-  CFLAGS +=-O2 -g -c -Wall -fopenmp -fPIC
+  CFLAGS +=-O3 -g -c -Wall -fopenmp -fPIC -ffast-math
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif
