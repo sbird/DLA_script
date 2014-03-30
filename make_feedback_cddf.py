@@ -20,9 +20,9 @@ from save_figure import save_figure
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"gold", 5:"orange", 7:"blue", 6:"grey"}
-lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"-",6:"--",7:"-"}
-labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV"}
+colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"darkslateblue", 5:"pink", 7:"blue", 6:"grey",8:"pink", 9:"orange"}
+lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"--",6:"--",7:"-",8:"--", 9:"-"}
+labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV", 8:"FAST", 9:"FAST"}
 redshifts = {1:4, 2:3.5, 3:3, 4:2.5, 5:2}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
@@ -83,7 +83,7 @@ def plot_H2_effect(sim, snap):
     plt.legend(loc=3)
     plt.xlim(1e20,1e23)
     plt.ylim(1e-5,0.1)
-    plt.title("CDDF for "+labels[sim]+" at z="+str(redshifts[snap]))
+#     plt.title("CDDF for "+labels[sim]+" at z="+str(redshifts[snap]))
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
     plt.clf()
     cddf_base = ahalo.column_density_function()
@@ -156,7 +156,7 @@ def plot_covering_frac(sim, snap, ff=True):
 
 def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
-    for sim in (0,4,2,1,3,5,7):   #xrange(8):
+    for sim in (0,4,2,1,3,7,9):   #xrange(8):
         halo = myname.get_name(sim, True)
         ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
         plt.figure(1)
@@ -342,7 +342,7 @@ def plot_rel_cddf(snap):
     basen = myname.get_name(7)
     base = dp.PrettyBox(basen, snap, nslice=10)
     cddf_base = base.column_density_function()
-    for xx in (0,4,2,1,3,5):
+    for xx in (0,4,2,1,3,9):
         halo2 = myname.get_name(xx)
         ahalo2 = dp.PrettyBox(halo2, snap, nslice=10)
         cddf = ahalo2.column_density_function()
@@ -439,10 +439,10 @@ def _load_halo(self, minpart=400):
     return (halo_mass, halo_cofm, halo_radii)
 
 
-def plot_all_rho():
+def plot_all_rho(simlist):
     """Make the rho_HI plot with labels etc"""
     #Cosmo0
-    for i in (0,1,3,5,7):   #xrange(8):
+    for i in simlist:   #xrange(8):
         (zzz,dndx,omegadla) = get_rhohi_dndx(i)
         plt.figure(1)
         plt.plot(zzz,dndx, 'o', color=colors[i], ls=lss[i], label=labels[i])
@@ -472,9 +472,9 @@ def plot_all_rho():
     save_figure(path.join(outdir,"cosmo_rhohi"))
     plt.clf()
 
-def plot_breakdown():
+def plot_breakdown(simlist):
     """Make a plot of the column density function, broken down by halo mass."""
-    for sss in (0,1,2,3,4,5,6,7):
+    for sss in simlist:
         halo = myname.get_name(sss, True)
         for nn in (1,3,5):
             ahalo = dp.PrettyBox(halo, nn, nslice=10)
@@ -489,8 +489,9 @@ def plot_breakdown():
 
 if __name__ == "__main__":
     plot_H2_effect(7,4)
+    simlist = (0,1,3,7,9)
 
-    for sim in (1,3,7):
+    for sim in simlist:
         for halos in (15,17, 18,20,35,45,50):
             plot_halos(sim, halos)
     zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
@@ -502,8 +503,8 @@ if __name__ == "__main__":
 #     plt.xlim(-3,0)
 #     save_figure(path.join(outdir,"cosmo_metal_z3_lone"))
 #     plt.clf()
-#
-    plot_breakdown()
+
+    plot_breakdown(simlist)
     plot_omegahi_breakdown(7)
     plot_dndx_breakdown(7)
     plot_metal_ion_corr(0,3)
@@ -530,10 +531,10 @@ if __name__ == "__main__":
 #     plot_rel_res(5)
     plot_grid_res()
 #     plot_UVB_effect()
-    plot_all_rho()
+    plot_all_rho(simlist)
 #     plot_cutoff()
     #Make a plot of the column density functions.
-    for ss in (0,1,3,5,7):   #xrange(6):
+    for ss in simlist:   #xrange(6):
         plot_cddf_a_halo(ss, 3)
 
     plt.legend(loc=3)
@@ -547,7 +548,7 @@ if __name__ == "__main__":
 
     #Plot first moment
     for zz in (1,3,4,5):
-        for ss in (0,1,3,5,7):   #xrange(6):
+        for ss in simlist:   #xrange(6):
             if zz == 4 and ss == 3:
                 plot_cddf_a_halo(3, 3, moment=True)
             else:
@@ -555,6 +556,11 @@ if __name__ == "__main__":
 
         if zz==3 :
             dla_data.column_density_data(moment=True)
+        if zz == 4:
+            dla_data.noterdaeme_12_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
+            plt.xlim(1e20,1e23)
+            plt.ylim(ymax=0.1)
+#             dla_data.zafar_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
 
         plt.legend(loc=3)
         ax = plt.gca()
@@ -594,7 +600,7 @@ if __name__ == "__main__":
     #Metallicity
     for zz in (1,3,5):
         zrange = {1:(7,3.5), 3:(3.5,2.5), 5:(2.5,1.5)}
-        for ss in (0,1,3,5,6,7):   #xrange(6):
+        for ss in simlist:   #xrange(6):
             plot_metal_halo(ss, zz)
 
         vel_data.plot_alpha_metal_data(zrange[zz])
