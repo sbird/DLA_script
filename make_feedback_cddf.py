@@ -391,12 +391,19 @@ def plot_halos(sim,hh):
     print "Requested: ",rhh,"Got: ",hh," dist:",np.sqrt(dist[nn])," r-mass:",mass[hh]/mass7[rhh], "ormass: ",mass7[rhh]
     plt.title(r"Central Halo: $"+dp.pr_num(ahalo.sub_mass[hh]/0.72/1e11)+r"\times 10^{11} M_\odot$")
     ahalo.plot_pretty_halo(hh)
-    plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
+    #Backwards because someone is a fortran programmer
+    circle=plt.Circle((0,0),radii[hh],color="black",fill=False)
+    ax = plt.gca()
+    ax.add_artist(circle)
+#     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
     dp.tight_layout_wrapper()
     save_figure(path.join(outdir,"pretty_"+str(sim)+"_halo_"+str(rhh)))
     plt.clf()
     ahalo.plot_pretty_cut_halo(hh)
-    plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh])
+    circle=plt.Circle((0,0),radii[hh],color="black",fill=False)
+    ax = plt.gca()
+    ax.add_artist(circle)
+#     plot_rvir(ahalo.sub_cofm[hh], cofm, radii,ahalo.sub_radii[hh]/)
     plt.title(labels[sim]+" at z=3")
     dp.tight_layout_wrapper()
     save_figure(path.join(outdir,"pretty_cut_"+str(sim)+"_halo_"+str(rhh)))
@@ -412,7 +419,7 @@ def plot_rvir(apos, cofm, radii, maxdist):
     #rel_r = np.sqrt(np.sum((zcofm - apos[1:])**2,1))
     #rr = np.where(rel_r < 400)
     dist = np.abs(zcofm-apos[1:])
-    rr = np.where(np.logical_and(dist[:,0]< 2*maxdist, dist[:,1] < 2*maxdist))
+    rr = np.where(np.logical_and(dist[:,0]< 2.*maxdist, dist[:,1] < 2.*maxdist))
     for r in rr[0]:
       pos = zcofm[r]-apos[1:]
       #Backwards because someone is a fortran programmer
