@@ -347,7 +347,7 @@ class HaloHI:
             indj = np.where(ne.evaluate("(abs(jjpos-jpos) < grid_radius+ismooth) | (abs(jjpos-jpos+box) < grid_radius+ismooth) | (abs(jjpos-jpos-box) < grid_radius+ismooth)"))
 
             if np.size(indj) == 0:
-                return
+                return (np.array([]), np.array([]), np.array([]))
 
             ipos = ipos[indj]
 
