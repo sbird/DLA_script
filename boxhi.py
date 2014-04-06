@@ -6,7 +6,7 @@ import os.path as path
 import fieldize
 import numexpr as ne
 import cold_gas
-import readsubfHDF5
+import subfindhdf
 from halohi import HaloHI,calc_binned_median,calc_binned_percentile
 import hdfsim
 from brokenpowerfit import powerfit
@@ -499,19 +499,19 @@ class BoxHI(HaloHI):
         subhalo - shall I load a subhalo catalogue"""
         #This is rho_c in units of h^-1 M_sun (kpc/h)^-3
         rhom = 2.78e+11* self.omegam / (1e3**3)
-        # We might have the halo catalog stored in the new format, which is HDF5.
-        subs=readsubfHDF5.subfind_catalog(self.snap_dir, self.snapnum,long_ids=True)
+        #Open subfind catalogue
+        subs=subfindhdf.SubFindHDF5(self.snap_dir, self.snapnum)
         #Store the indices of the halos we are using
         #Get particle center of mass, use group catalogue.
-        halo_cofm=np.array(subs.GroupPos)
+        halo_cofm=subs.get_grp("GroupPos")
         #halo masses in M_sun/h: use M_200
-        halo_mass=np.array(subs.Group_M_Crit200)*self.UnitMass_in_g/self.SolarMass_in_g
+        halo_mass=subs.get_grp("Group_M_Crit200")*self.UnitMass_in_g/self.SolarMass_in_g
         #r200 in kpc/h (comoving).
-        halo_radii = np.array(subs.Group_R_Crit200)
+        halo_radii = subs.get_grp("Group_R_Crit200")
         if subhalo:
-            sub_radii =  np.array(subs.SubhaloHalfmassRad)
-            sub_pos =  np.array(subs.SubhaloPos)
-            sub_index = np.array(subs.SubhaloGrNr)
+            sub_radii =  subs.get_sub("SubhaloHalfmassRad")
+            sub_pos =  subs.get_sub("SubhaloPos")
+            sub_index = subs.get_sub("SubhaloGrNr")
             return (halo_mass, halo_cofm, halo_radii, sub_pos, sub_radii, sub_index)
         else:
             return (halo_mass, halo_cofm, halo_radii)
