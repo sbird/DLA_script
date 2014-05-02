@@ -20,9 +20,9 @@ from save_figure import save_figure
 outdir = myname.base + "plots/grid"
 
 #Colors and linestyles for the simulations
-colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"darkslateblue", 5:"pink", 7:"blue", 6:"grey",8:"pink", 9:"orange"}
-lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"--",6:"--",7:"-",8:"--", 9:"-"}
-labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV", 8:"FAST", 9:"FAST"}
+colors = {0:"red", 1:"purple", 2:"cyan", 3:"green", 4:"darkslateblue", 5:"pink", 7:"blue", 6:"grey",8:"pink", 9:"orange",'A':'grey'}
+lss = {0:"--",1:":", 2:":",3:"-.", 4:"--", 5:"--",6:"--",7:"-",8:"--", 9:"-",'A':"-"}
+labels = {0:"DEF",1:"HVEL", 2:"HVNOAGN",3:"NOSN", 4:"WMNOAGN", 5:"MVEL",6:"METAL",7:"2xUV", 8:"FAST", 9:"FAST", 'A':"MOM"}
 redshifts = {1:4, 2:3.5, 3:3, 4:2.5, 5:2}
 
 def plot_cddf_a_halo(sim, snap, ff=True, moment=False):
@@ -78,10 +78,10 @@ def plot_H2_effect(sim, snap):
 #     savefile = path.join(halo,"snapdir_"+str(snap).rjust(3,'0'),"boxhi_grid_H2-old.hdf5")
 #     ahalo2 = dp.PrettyBox(halo, snap, nslice=10, savefile=savefile)
 #     ahalo2.plot_column_density(color="green",moment=True)
-#     dla_data.column_density_data(moment=True)
-    dla_data.noterdaeme_12_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
+    dla_data.column_density_data(moment=True)
+#     dla_data.noterdaeme_12_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
     plt.legend(loc=3)
-    plt.xlim(1e20,1e23)
+    plt.xlim(1e20,2e22)
     plt.ylim(1e-5,0.1)
 #     plt.title("CDDF for "+labels[sim]+" at z="+str(redshifts[snap]))
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_H2_"+str(snap)))
@@ -488,7 +488,7 @@ def plot_breakdown(simlist):
 
 
 if __name__ == "__main__":
-    plot_H2_effect(7,4)
+    plot_H2_effect(7,3)
     simlist = (0,1,3,7,9)
 
     for sim in simlist:
@@ -558,7 +558,7 @@ if __name__ == "__main__":
             dla_data.column_density_data(moment=True)
         if zz == 4:
             dla_data.noterdaeme_12_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
-            plt.xlim(1e20,1e23)
+            plt.xlim(1e20,5e22)
             plt.ylim(ymax=0.1)
 #             dla_data.zafar_data(path.join(path.dirname(__file__),"../dla_data"), moment=True)
 
@@ -613,13 +613,15 @@ if __name__ == "__main__":
 
 
     #LLS Metallicity
-#     for zz in (1,3,5):
-#         for ss in (0,1,3,5,6,7):   #xrange(6):
-#             plot_metal_halo(ss, zz, lls=True)
-#
-#         save_figure(path.join(outdir,"cosmo_lls_metal_z"+str(zz)))
-#         plt.clf()
-#
+    for zz in (1,3,5):
+        for ss in simlist+(4,6):
+            plot_metal_halo(ss, zz, lls=True)
+        plt.legend(loc=2, ncol=3)
+        plt.ylim(0,1.2)
+        save_figure(path.join(outdir,"cosmo_lls_metal_z"+str(zz)))
+        plt.clf()
+
+
 #     #At z=0.55
 #     plot_metal_halo(0, 101,lls=True)
 #     vel_data.plot_lls_metal_data()
