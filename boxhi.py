@@ -518,8 +518,8 @@ class BoxHI(HaloHI):
         #Store the indices of the halos we are using
         #Get particle center of mass, use group catalogue.
         halo_cofm=subs.get_grp("GroupPos")
-        #halo masses in M_sun/h: use M_200
-        halo_mass=subs.get_grp("Group_M_Crit200")*self.UnitMass_in_g/self.SolarMass_in_g
+        #halo masses in M_sun/h
+        halo_mass=subs.get_grp("GroupMass")*self.UnitMass_in_g/self.SolarMass_in_g
         #r200 in kpc/h (comoving).
         halo_radii = subs.get_grp("Group_R_Crit200")
         if subhalo:
