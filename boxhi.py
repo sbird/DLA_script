@@ -366,6 +366,20 @@ class BoxHI(HaloHI):
         dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
 
+    def get_dndm(self,minM,maxM):
+        """Get the halo mass function from the simulations,
+        in units of h^4 M_sun^-1 Mpc^-3.
+        Parameters:
+            minM and maxM are the sides of the bin to use.
+        """
+        #Number of halos in this mass bin in the whole box
+        Nhalo=np.shape(np.where((self.real_sub_mass <= maxM)*(self.real_sub_mass > minM)))[1]
+        Mpch_in_cm=3.085678e24
+        #Convert to halos per Mpc/h^3
+        Nhalo/=(self.box*self.UnitLength_in_cm/Mpch_in_cm)**3
+        #Convert to per unit mass
+        return Nhalo/(maxM-minM)
+
 
     def save_sigLLS(self):
         """Generate and save sigma_LLS to the savefile"""

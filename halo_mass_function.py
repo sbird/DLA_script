@@ -27,7 +27,7 @@ class HaloMassFunction:
         #Sigma tables
         self.overden = Overdensities(redshift,omega_m, omega_b,omega_l,hubble, ns,sigma8,log_mass_lim=log_mass_lim)
         if mass_function == None:
-            self.mass_function = self.sheth_tormen
+            self.mass_function = self.tinker
         else:
             self.mass_function = mass_function
 
