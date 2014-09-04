@@ -361,7 +361,6 @@ class BoxCIV(bi.BoxHI):
         files = hdfsim.get_all_files(self.snapnum, self.snap_dir)
         #Larger numbers seem to be towards the beginning
         files.reverse()
-        star=cold_gas.RahmatiRT(self.redshift, self.hubble)
         end = np.min([np.size(files),self.end])
         for xx in xrange(start, end):
             ff = files[xx]
@@ -382,7 +381,7 @@ class BoxCIV(bi.BoxHI):
             den[np.where(den > 1e4)] = 9999.
             den[np.where(den < 1e-7)] = 1.01e-7
             temp[np.where(temp > 3e8)] = 3e8
-            temp[np.where(temp < 1e4)] = 1e4
+            temp[np.where(temp < 1e3)] = 1e3
             mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
             smooth = hsml.get_smooth_length(bar)[ind]
             ipos = ipos[ind,:][0]
@@ -423,3 +422,10 @@ class BoxCIV(bi.BoxHI):
         #Avg density in g/cm^3 (comoving)
         return HImass/length
 
+class HaloCIV(hi.HaloHI, BoxCIV):
+    """Plots of the CIV around a single halo"""
+    def __init__(self,snap_dir,snapnum,reload_file=True, savefile=None, start=0, end=3000):
+        hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=400,reload_file=reload_file,savefile=savefile, gas=False, molec=True, start=start, end = end)
+
+    def set_nHI_grid(self, gas=False, start=0):
+        return BoxCIV.set_nHI_grid(self,gas,start)
