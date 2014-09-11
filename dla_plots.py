@@ -12,7 +12,6 @@ import boxhi
 import numpy as np
 import os.path as path
 import math
-import bias
 import matplotlib.pyplot as plt
 from brokenpowerfit import powerfit
 import matplotlib.colors
@@ -322,12 +321,6 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         massbins = np.logspace(np.log10(Mmin), np.log10(Mmax), nbins+1)
         #Now we have a cross-section, we know how many DLA cells are associated with each halo.
         (hist,xedges)=np.histogram(np.log10(self.real_sub_mass[ind]),weights = sigs,bins=np.log10(massbins),density=False)
-        if dla:
-            bb = bias.HaloBias(self.redshift, self.omegam, 0.045, self.omegal, self.hubble, 0.97)
-            ii = np.where(np.logical_and(self.real_sub_mass[ind] > 1e9, self.real_sub_mass[ind] < 1e12))
-            biases = bb.halo_bias(self.real_sub_mass[ind][ii])
-            dla_bias = np.sqrt(np.sum(sigs[ii]*biases**2)/ np.sum(sigs[ii]))
-            print "DLA bias is:", dla_bias
         #For error bars
         xbins=np.array([(10**xedges[i+1]+10**xedges[i])/2 for i in xrange(0,np.size(xedges)-1)])
         nzind = np.where(hist > 0)
@@ -340,20 +333,36 @@ class PrettyBox(boxhi.BoxHI,PrettyHalo):
         plt.ylabel(r"$\sigma_\mathrm{T}$ (Mpc/h)$^2$")
 
     def plot_halo_mass_func(self):
-        """Plots the halo mass function from simulation as well as Sheth-Torman"""
+        """Plots the halo mass function from simulation and a fitting formula"""
         self.load_sigDLA()
-        mass=np.logspace(8,13,51)
+        massedge=np.logspace(8,13,51)
         halo_mass=halo_mass_function.HaloMassFunction(self.redshift,omega_m=self.omegam, omega_l=self.omegal, hubble=self.hubble,log_mass_lim=(7,15))
+        adndm=np.array([self.get_dndm(massedge[ii],massedge[ii+1]) for ii in range(np.size(massedge)-1)])
+        mass=np.array([(massedge[ii]+massedge[ii+1])/2. for ii in range(np.size(massedge)-1)])
         shdndm=[halo_mass.dndm(mm) for mm in mass]
-        adndm=np.array([self.get_dndm(mass[ii],mass[ii+1]) for ii in range(0,50)])
-        plt.loglog(mass,shdndm,color="black",ls='--',label="Sheth-Tormen")
-        plt.loglog(mass[0:-1],adndm,color=acol,ls=astyle,label="Arepo")
+        plt.loglog(mass,shdndm,color="black",ls='--',label="Tinker")
+        plt.loglog(mass,adndm,color=acol,ls=astyle,label=self.label)
         #Make the ticks be less-dense
         ax=plt.gca()
         ax.yaxis.set_ticks(np.power(10.,np.arange(int(np.log10(shdndm[-1])),int(np.log10(shdndm[0])),2)))
         plt.ylabel(r"dn/dM (h$^4$ $M^{-1}_\odot$ Mpc$^{-3}$)")
         plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
         plt.legend(loc=0)
+#         plt.xlim(self.minplot,self.maxplot)
+        tight_layout_wrapper()
+        plt.show()
+
+    def plot_rel_halo_mass_func(self):
+        """Plots the halo mass function from simulation divided by fitting formula"""
+        self.load_sigDLA()
+        massedge=np.logspace(8,13,51)
+        halo_mass=halo_mass_function.HaloMassFunction(self.redshift,omega_m=self.omegam, omega_l=self.omegal, hubble=self.hubble,log_mass_lim=(7,15))
+        adndm=np.array([self.get_dndm(massedge[ii],massedge[ii+1]) for ii in range(np.size(massedge)-1)])
+        mass=np.array([(massedge[ii]+massedge[ii+1])/2. for ii in range(np.size(massedge)-1)])
+        shdndm=[halo_mass.dndm(mm) for mm in mass]
+        plt.semilogx(mass,adndm/shdndm,color="black",ls='-')
+        #Make the ticks be less-dense
+        plt.xlabel(r"Mass ($M_\odot$ h$^{-1}$)")
 #         plt.xlim(self.minplot,self.maxplot)
         tight_layout_wrapper()
         plt.show()
