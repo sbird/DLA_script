@@ -359,9 +359,12 @@ class BoxHI(HaloHI):
 
     def omega_DLA2(self,thresh=20.3):
         """Compute Omega_DLA the other way, by summing the cddf."""
-        (center,  fN) = self.column_density_function(minN=thresh,maxN=24)
+        (center,  fN) = self.column_density_function(minN=16,maxN=24)
+        ind = np.where(center > 10**thresh)
+        center = center[ind]
+        fN = fN[ind]
         #f_N* NHI is returned, in amu/cm^2/dX
-        NHI_table = 10**np.arange(thresh, 24, 0.2)
+        NHI_table = 10**np.arange(thresh, 24, 0.1)
         width =  np.array([NHI_table[i+1]-NHI_table[i] for i in range(0,np.size(NHI_table)-1)])
         dXdcm = self.absorption_distance()/((self.box/self.nhalo)*self.UnitLength_in_cm/self.hubble)
         return 1000*self.protonmass*np.sum(fN*center*width)*dXdcm/self.rho_crit()/(1+self.redshift)**2
