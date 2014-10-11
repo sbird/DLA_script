@@ -107,15 +107,15 @@ class PrettyHalo(halohi.HaloHI):
     Derived class with extra methods for plotting a pretty (high-resolution) picture of the grid around a halo.
     """
 
-    def plot_pretty_something(self,num,grid,bar_label):
+    def plot_pretty_something(self,num,grid,bar_label, vmaxx = 25.5, vminn = 10):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max([np.max(grid),25.5])
+        vmax=np.max([np.max(grid),vmaxx])
         maxdist = self.sub_radii[num]
-        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=10,vmax=vmax,cmap=spb_jet2)
+        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=vminn,vmax=vmax,cmap=spb_jet2)
         bar=plt.colorbar()#use_gridspec=True)
         bar.set_label(bar_label)
         if (maxdist > 150) * (maxdist < 200):
@@ -129,11 +129,11 @@ class PrettyHalo(halohi.HaloHI):
         tight_layout_wrapper()
         plt.show()
 
-    def plot_pretty_halo(self,num=0):
+    def plot_pretty_halo(self,num=0, vmaxx = 25.5, vminn=10, bar_label=r"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)"):
         """
         Plots a pretty (high-resolution) picture of the grid around a halo.
         """
-        self.plot_pretty_something(num,self.sub_nHI_grid[num],r"log$_{10}$ N$_\mathrm{HI}$ (cm$^{-2}$)")
+        self.plot_pretty_something(num,self.sub_nHI_grid[num],bar_label, vmaxx=vmaxx, vminn=vminn)
 
     def plot_pretty_cut_halo(self,num=0,cut_LLS=17,cut_DLA=20.3):
         """
