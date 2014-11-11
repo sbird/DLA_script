@@ -29,7 +29,7 @@ ifeq (icpc,$(findstring icpc,${CXX}))
   CFLAGS +=-O2 -g -c -w1 -openmp -fpic
   LINK +=${CXX} -openmp
 else
-  CFLAGS +=-O3 -g -c -Wall -fopenmp -fPIC -ffast-math
+  CFLAGS +=-O3 -g -c -Wall -fopenmp -fPIC -ffast-math -DTOP_HAT_KERNEL
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include "fieldize.h"
 
+#ifndef TOP_HAT_KERNEL
+
 /*Compute the SPH weighting for this cell, using the trapezium rule.
  * rr is the smoothing length, r0 is the distance of the cell from the center*/
 double compute_sph_cell_weight(double rr, double r0)
@@ -32,15 +34,27 @@ double compute_sph_cell_weight(double rr, double r0)
         double zz2[9]={0,zc/16.,zc/8.,zc/4.,3*zc/8,zc/2.,5/8.*zc,3*zc/4.,zc};
         double kern2[9];
         for(int i=0; i< 9;i++){
-            double R = sqrt(zz2[i]*zz2[i]+r0*r0);
-            kern2[i] = kfac*(1-6*(R/rr)*R/rr+6*pow(R/rr,3));
+            double r = sqrt(zz2[i]*zz2[i]+r0*r0);
+            kern2[i] = kfac*(1-6*(r/rr)*r/rr+6*pow(r/rr,3));
         }
         for(int i=0; i< 8;i++){
-            //Trapezium rule. Factor of 1/2 goes away because we double the integral
+            //trapezium rule. factor of 1/2 goes away because we double the integral
             total +=(zz2[i+1]-zz2[i])*(kern2[i+1]+kern2[i]);
         }
     }
     return total;
 }
 
+#else
 
+double compute_sph_cell_weight(double rr, double r0)
+{
+    if(r0 > rr){
+        return 0;
+    }
+    double kfac= 3./4./M_PI/pow(rr,3);
+    double total = kfac*2*sqrt(rr*rr-r0*r0);
+    return total;
+}
+
+#endif
