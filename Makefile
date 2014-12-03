@@ -1,5 +1,5 @@
 #Python include path
-PYINC=-I/usr/include/python2.6 -I/usr/include/python2.6
+PYINC=`pkg-config --cflags python2 `
 
 # CC = /usr/bin/gcc
 # CXX = /usr/bin/g++
