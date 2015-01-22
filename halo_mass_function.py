@@ -29,7 +29,7 @@ class HaloMassFunction:
         if mass_function == None:
             self.mass_function = self.tinker
         else:
-            self.mass_function = mass_function
+            self.mass_function = mass_function.__get__(self)
 
         self.delta_c0 = 1.69  # critical density for turnaround (Press-Schechter)
 
