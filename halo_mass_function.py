@@ -79,6 +79,14 @@ class HaloMassFunction:
         b = 2.25 #2.57
         c = 1.27 #1.19
         return A * ( np.power((sigma / b), -a) + 1) * np.exp(-1 * c / sigma / sigma)
+    
+    def waston_FOF(self, sigma):
+        """Waston + 2012, FOF halos linking length = 0.2 * mean"""
+        A = 0.282
+        a = 2.163
+        b = 1.406
+        c = 1.210
+        return A*( np.power(b / sigma, 1.0*a) + 1)*np.exp(-1.0*c / sigma / sigma )
 
 class Overdensities:
     """Module for calculating the linear theory overdensities.
