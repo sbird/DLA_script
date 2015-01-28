@@ -28,13 +28,38 @@ astyle="-"
 gstyle="--"
 
 #Modified jet that works better in B&W
-jet2 =   {'red':   ((0., 1, 1),(0.2, 0, 0), (0.5, 1, 1), (0.75,1, 1),
-                   (1, 0.5, 0.5)),
-        'green': ((0., 1, 1),  (0.2,1, 1), (0.5,1, 1),
-                  (0.75,0,0), (1, 0, 0)),
-        'blue':  ((0., 1, 1), (0.2, 1, 1), (0.5,0, 0),
+jet2 =   {'red': ((0.,  1, 1),
+                  (0.2, 0, 0),
+                  (0.5, 1, 1),
+                  (0.75,1, 1),
+                  (1, 0.5, 0.5)),
+        'green': ((0., 1, 1),
+                  (0.2,1, 1),
+                  (0.5,1, 1),
+                  (0.75,0,0),
+                  (1, 0, 0)),
+        'blue':  ((0., 1, 1),
+                  (0.2, 1, 1),
+                  (0.5,0, 0),
                   (1, 0, 0))}
+
+segmented =  {
+          'red': ((0., 0., 0.),
+                  (0.33,  0, 0.33),
+                  (0.66,  1, 0.33),
+                  (1.0, 1., 1.)),
+       'green': ((0., 0., 0.),
+                  (0.33,  0, 0.33),
+                  (0.66, 1., 0.),
+                  (1., 0., 0.)
+                  ),
+       'blue': ((0., 0., 0.),
+                  (0.33,  1, 0),
+                  (1., 0., 0.)
+                  ),
+        }
 spb_jet2 = matplotlib.colors.LinearSegmentedColormap('spb_jet2',jet2,256)
+spb_segmented = matplotlib.colors.LinearSegmentedColormap('spb_segmented',segmented,256)
 
 #These are parameters for the analytic fits for the DLA abundances.
 #breakpoint is at 10^10.5
@@ -113,9 +138,10 @@ class PrettyHalo(halohi.HaloHI):
         Helper for the other functions.
         """
         #Plot a figure
-        vmax=np.max([np.max(grid),vmaxx])
+#         vmax=np.max([np.max(grid),vmaxx])
+        vmax = vmaxx
         maxdist = self.sub_radii[num]
-        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=vminn,vmax=vmax,cmap=spb_jet2)
+        plt.imshow(grid,origin='lower',extent=(-maxdist,maxdist,-maxdist,maxdist),vmin=vminn,vmax=vmax,cmap=spb_segmented)
         bar=plt.colorbar()#use_gridspec=True)
         bar.set_label(bar_label)
         if (maxdist > 150) * (maxdist < 200):
