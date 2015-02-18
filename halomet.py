@@ -349,6 +349,7 @@ class BoxCIV(bi.BoxHI):
     Inherits from BoxHI
     """
     def __init__(self,snap_dir,snapnum,nslice=1,reload_file=True, savefile=None, start=0, end=3000, ngrid=16384):
+        self.ion=4
         bi.BoxHI.__init__(self, snap_dir, snapnum, nslice, reload_file=reload_file, savefile=savefile, start=start, end=end,ngrid=ngrid)
 
     def set_nHI_grid(self, gas=False, start=0):
@@ -382,7 +383,7 @@ class BoxCIV(bi.BoxHI):
             den[np.where(den < 1e-7)] = 1.01e-7
             temp[np.where(temp > 3e8)] = 3e8
             temp[np.where(temp < 1e3)] = 1e3
-            mass *= self.cloudy_table.ion("C", 4, den[ind], temp[ind])
+            mass *= self.cloudy_table.ion("C", self.ion, den[ind], temp[ind])
             smooth = hsml.get_smooth_length(bar)[ind]
             ipos = ipos[ind,:][0]
             [self.sub_gridize_single_file(ii,ipos,smooth,mass,self.sub_nHI_grid) for ii in xrange(0,self.nhalo)]
@@ -424,8 +425,9 @@ class BoxCIV(bi.BoxHI):
 
 class HaloCIV(hi.HaloHI, BoxCIV):
     """Plots of the CIV around a single halo"""
-    def __init__(self,snap_dir,snapnum,reload_file=True, savefile=None, start=0, end=3000):
-        hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=400,reload_file=reload_file,savefile=savefile, gas=False, molec=True, start=start, end = end)
+    def __init__(self,snap_dir,snapnum,minpart=400,ion=4,reload_file=True, savefile=None, start=0, end=3000):
+        self.ion=ion
+        hi.HaloHI.__init__(self,snap_dir,snapnum,minpart=minpart,reload_file=reload_file,savefile=savefile, gas=False, molec=True, start=start, end = end)
 
     def set_nHI_grid(self, gas=False, start=0):
         return BoxCIV.set_nHI_grid(self,gas,start)
