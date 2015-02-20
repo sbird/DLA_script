@@ -154,6 +154,34 @@ def plot_covering_frac(sim, snap, ff=True):
     save_figure(path.join(outdir, "cosmo"+str(sim)+"_covering_z"+str(snap)))
     plt.clf()
 
+def plot_halo_stellar_mass():
+    """Plot a histogram of nearby halos"""
+    for sim in (1,7,9):   #xrange(8):
+        halo = myname.get_name(sim, True)
+        hms = []
+        sms = []
+        sfrs = []
+        zz = []
+        for snap in (1,3,5):
+            ahalo = dp.PrettyBox(halo, snap, nslice=10, label=labels[sim])
+            (hm, sm, sfr) = ahalo.get_avg_stellar_mass()
+            hms.append(hm)
+            sms.append(sm)
+            sfrs.append(sfr)
+            zz.append(redshifts[snap])
+        plt.figure(1)
+        plt.semilogy(zz, hms, color=colors[sim], ls="-", label=labels[sim])
+        plt.semilogy(zz, sms, color=colors[sim], ls="--", label=labels[sim])
+        plt.figure(2)
+        plt.semilogy(zz, sfrs, color=colors[sim], ls="--", label=labels[sim])
+    plt.figure(1)
+    plt.legend(loc=1)
+    save_figure(path.join(outdir, "halos/avg_smhm_z"+str(snap)))
+    plt.figure(2)
+    plt.legend(loc=1)
+    save_figure(path.join(outdir, "halos/avg_sfr_z"+str(snap)))
+    plt.clf()
+
 def plot_halohist(snap, dla=True):
     """Plot a histogram of nearby halos"""
     for sim in (0,4,2,1,3,7,9):   #xrange(8):

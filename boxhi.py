@@ -714,3 +714,20 @@ class BoxHI(HaloHI):
 
         ind2 = np.where((halo_mass[self.dla_halo[ind]] > minM)*(halo_mass[self.dla_halo[ind]] < maxM))
         return (distance/halo_radii[self.dla_halo[ind]])[ind2]
+
+    def get_avg_stellar_mass(self, minpart = 0, dist=2.):
+        """Plot a histogram of the halo masses of DLA hosts. Each bin contains the fraction
+           of DLA cells associated with halos in this mass bin"""
+        self._get_sigma_DLA(minpart, dist)
+        sigs = self.sigDLA/1e6
+        avg_halo_mass = np.sum(self.real_sub_mass*sigs)/np.sum(sigs)
+        #Get the stellar mass
+        subs=subfindhdf.SubFindHDF5(self.snap_dir, self.snapnum)
+        #halo masses in M_sun/h
+        stellar_mass=subs.get_grp("GroupMassType")[:,4]*self.UnitMass_in_g/self.SolarMass_in_g
+        avg_stellar_mass = np.sum(stellar_mass*sigs)/np.sum(sigs)
+        #SFR in M_sun/year
+        sfr=subs.get_grp("GroupSFR")
+        avg_sfr = np.sum(sfr*sigs)/np.sum(sigs)
+        print "Percent above 2:",np.sum(sigs[np.where(sfr > 2)])/1./np.sum(sigs)
+        return (avg_halo_mass, avg_stellar_mass, avg_sfr)
