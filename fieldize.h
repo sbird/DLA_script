@@ -133,6 +133,7 @@ double compute_sph_cell_weight(double rr, double r0);
 
 /**
  Do the hard work interpolating with an SPH kernel particles handed to us from python.
+ This is declared here to avoid messing with template instantiation
 */
 template <class T> int SphInterp<T>::do_work(PyArrayObject *pos, PyArrayObject *radii, PyArrayObject *value, PyArrayObject *weights, const npy_int nval)
 {
