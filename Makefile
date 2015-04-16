@@ -1,6 +1,7 @@
 #Python include path
 PYINC=`pkg-config --cflags python2 `
-
+#Comment to enable Kahan summation
+OPTS = -DNO_KAHAN
 # CC = /usr/bin/gcc
 # CXX = /usr/bin/g++
 GCCV:=$(shell gcc --version)
@@ -26,10 +27,10 @@ endif
 
 #Are we using gcc or icc?
 ifeq (icpc,$(findstring icpc,${CXX}))
-  CFLAGS +=-O2 -g -c -w1 -openmp -fpic
+  CFLAGS +=-O2 -g -c -w1 -openmp -fpic -DTOP_HAT_KERNEL $(OPTS)
   LINK +=${CXX} -openmp
 else
-  CFLAGS +=-O3 -g -c -Wall -fopenmp -fPIC -ffast-math -DTOP_HAT_KERNEL
+  CFLAGS +=-O3 -g -c -Wall -fopenmp -fPIC -ffast-math -DTOP_HAT_KERNEL $(OPTS)
   LINK +=${CXX} -openmp $(PRO)
   LFLAGS += -lm -lgomp
 endif
@@ -37,8 +38,8 @@ endif
 
 all: _fieldize_priv.so
 
-clean: _fieldize_priv.so
-	rm *.o $^
+clean:
+	rm *.o _fieldize_priv.so
 
 %.o: %.cpp fieldize.h
 	$(CXX) $(CFLAGS) -fPIC -fno-strict-aliasing -DNDEBUG $(PYINC) -c $< -o $@
