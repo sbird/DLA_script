@@ -81,6 +81,7 @@ class HaloHI:
             self.load_halos(minpart)
             #Otherwise regenerate from the raw data
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
+            [self.sub_nHI_grid[i]+=1e-50 for i in xrange(0,self.nhalo)]
             self.set_nHI_grid(gas)
         return
 
@@ -330,7 +331,6 @@ class HaloHI:
             massg=self.UnitMass_in_g/self.hubble/self.protonmass
             epsilon=2.*self.sub_radii[ii]/(self.ngrid[ii])*self.UnitLength_in_cm/self.hubble/(1+self.redshift)
             self.sub_nHI_grid[ii]*=(massg/epsilon**2)
-            self.sub_nHI_grid[ii]+=0.1
             np.log10(self.sub_nHI_grid[ii],self.sub_nHI_grid[ii])
         return
 

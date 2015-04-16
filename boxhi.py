@@ -50,7 +50,8 @@ class BoxHI(HaloHI):
             #self.ngrid=np.array([int(np.ceil(40*self.npart[1]**(1./3)/self.box*2*rr)) for rr in self.sub_radii])/2.
             #Grid size constant
             self.ngrid=ngrid*np.ones(self.nhalo)
-            self.sub_nHI_grid=np.zeros([self.nhalo, ngrid,ngrid])
+            self.sub_nHI_grid=np.zeros([self.nhalo, ngrid,ngrid], dtype=np.float32)
+            self.sub_nHI_grid += 1e-50
             try:
                 thisstart = self.load_tmp()
             except IOError:
