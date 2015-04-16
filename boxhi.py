@@ -92,17 +92,18 @@ class BoxHI(HaloHI):
         jjpos = ipos[:,0]
         grid_radius = self.box/self.nhalo/2.
         indj = np.where(ne.evaluate("abs(jjpos-jpos) < grid_radius"))
-
+        del jjpos
         if np.size(indj) == 0:
             return (None, None, None)
 
-        ipos = ipos[indj]
+        ipos_slab = ipos[indj]
         # Update smooth and rho arrays as well:
-        ismooth = ismooth[indj]
-        mHI = mHI[indj]
-
+        ismooth_slab = ismooth[indj]
+        mHI_slab = mHI[indj]
+        del indj
         #coords in grid units
-        coords=fieldize.convert(ipos,self.ngrid[0],self.box)
+        coords=fieldize.convert(ipos_slab,self.ngrid[0],self.box)
+        del ipos_slab
         # Convert each particle's density to column density by multiplying by the smoothing length once (in physical cm)!
         cellspkpc=(self.ngrid[0]/self.box)
         if self.once:
@@ -110,7 +111,7 @@ class BoxHI(HaloHI):
             print ii," Av. smoothing length is ",avgsmth," kpc/h ",avgsmth*cellspkpc, "grid cells min: ",np.min(ismooth)*cellspkpc
             self.once=False
         #Convert smoothing lengths to grid coordinates.
-        return (coords, ismooth*cellspkpc, mHI)
+        return (coords, ismooth_slab*cellspkpc, mHI_slab)
 
     def sub_gridize_single_file(self,ii,ipos,ismooth,mHI,sub_nHI_grid,weights=None):
         """Helper function for sub_nHI_grid
@@ -125,6 +126,9 @@ class BoxHI(HaloHI):
         if np.size(coords) == 1 and coords == None:
             return
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
+        del coords
+        del mHI
+        del ismooth
         return
 
     def set_stellar_grid(self):
