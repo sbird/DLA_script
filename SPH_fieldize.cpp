@@ -1,8 +1,4 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <Python.h>
-#include "numpy/arrayobject.h"
-#include <algorithm>
-#include "fieldize.h"
+#include <cmath>
 #ifndef TOP_HAT_KERNEL
 
 /*Compute the SPH weighting for this cell, using the trapezium rule.
