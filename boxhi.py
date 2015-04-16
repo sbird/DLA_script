@@ -121,7 +121,7 @@ class BoxHI(HaloHI):
                 sub_grid - Grid to add the interpolated data to
         """
         (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
-        if coords == None:
+        if np.size(coords) == 1 and coords == None:
             return
         fieldize.sph_str(coords,mHI,sub_nHI_grid[ii],ismooth,weights=weights, periodic=True)
         return
@@ -233,7 +233,7 @@ class BoxHI(HaloHI):
         """Like sub_gridize_single_file for set_zdir_grid
         """
         (coords, ismooth, mHI) = self._find_particles_in_slab(ii,ipos,ismooth, mHI)
-        if coords == None:
+        if np.size(coords) == 1 and coords == None:
             return np.zeros_like(yslab)
 
         slablist = yslab*int(self.ngrid[0])+zslab
