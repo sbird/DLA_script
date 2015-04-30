@@ -81,7 +81,7 @@ class HaloHI:
             self.load_halos(minpart)
             #Otherwise regenerate from the raw data
             self.sub_nHI_grid=np.array([np.zeros([self.ngrid[i],self.ngrid[i]]) for i in xrange(0,self.nhalo)])
-            [self.sub_nHI_grid[i]+=1e-50 for i in xrange(0,self.nhalo)]
+            self.sub_nHI_grid+=1e-50
             self.set_nHI_grid(gas)
         return
 
