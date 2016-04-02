@@ -32,5 +32,7 @@ def get_smooth_length(bar):
         radius = ne.evaluate("(scal*mass/rho)**poww")
     else:
         #If we are gadget, the SmoothingLength array is actually the smoothing length.
-        radius=np.array(bar["SmoothingLength"])
+        #Note the definition used in Gadget differs from that used here: in gadget volume = h^3
+        #due to the normalisation of the SPH kernel.
+        radius=np.array(bar["SmoothingLength"])*scal**poww
     return radius
